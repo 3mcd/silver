@@ -1,0 +1,20 @@
+{
+  "name": "solar",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "vite build",
+    "start": "vite"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "silver-ecs": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^4.3.4"
+  }
+}
