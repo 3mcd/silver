@@ -1,5 +1,5 @@
 export {run} from "./app/system"
-export {relation, tag, tagRelation, value} from "./data/component"
+export {relation, tag, relationTag, value} from "./data/component"
 export * from "./data/data"
 import type {World} from "./world/world"
 import {make as type} from "./data/type"

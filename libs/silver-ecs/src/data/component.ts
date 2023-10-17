@@ -192,7 +192,7 @@ export const makeRelationship = (
 /**
  * Define a new tag. Tags are components with no data.
  */
-export const tagRelation = (): Type.Type<[RelationTag]> =>
+export const relationTag = (): Type.Type<[RelationTag]> =>
   Type.make(make(makeComponentId(), Kind.RelationTag))
 
 export const isValue = (component: T): component is Value | Relation =>
