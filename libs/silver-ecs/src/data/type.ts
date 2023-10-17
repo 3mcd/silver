@@ -187,11 +187,13 @@ export class Type<U extends Component.T[] = Component.T[]> {
   relationships
   sparse
   sparseInit
+  sparseRelations
 
   constructor(componentSpec: U) {
     const components = sortSpec(componentSpec.slice())
     const sparse: number[] = []
     const sparseInit: number[] = []
+    const sparseRelations: number[] = []
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
       sparse[component.id] = i
@@ -203,6 +205,13 @@ export class Type<U extends Component.T[] = Component.T[]> {
         sparseInit[component.id] = j++
       }
     }
+    j = 0
+    for (let i = 0; i < componentSpec.length; i++) {
+      const component = componentSpec[i]
+      if (Component.isRelation(component)) {
+        sparseRelations[component.id] = j++
+      }
+    }
     this.componentIds = components.map(component => component.id)
     this.components = components
     this.componentsHash = Hash.words(this.componentIds)
@@ -211,6 +220,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
     this.relationships = components.filter(Component.isRelationship)
     this.sparse = sparse
     this.sparseInit = sparseInit
+    this.sparseRelations = sparseRelations
   }
 }
 

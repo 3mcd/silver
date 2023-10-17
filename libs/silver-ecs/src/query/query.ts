@@ -55,15 +55,14 @@ class QueryChangedRecord {
 }
 
 export class Query<U extends Component.T[] = Component.T[]> {
-  changed
-  eachIterator
-  isMonitor
-  matches
-  node
-  not
-  relationshipIndices
-  relationshipMatches
-  type
+  #each: Iterator<U>
+  readonly changed
+  readonly isMonitor
+  readonly matches
+  readonly node
+  readonly not
+  readonly relationshipMatches
+  readonly type
 
   constructor(world: World.T, type: Type.T<U>, filters: Filter.T[]) {
     let isMonitor = false
@@ -77,9 +76,15 @@ export class Query<U extends Component.T[] = Component.T[]> {
     const matches = SparseMap.make<Entity.T[][]>()
     const {changed, not} = initializeFilters(filters, world)
     const relationshipMatches = new QueryRelationshipMatch()
-    const relationshipIndices = makeRelationshipIndices(type)
-    const eachIterator =
-      relationshipIndices.length > 0
+    this.changed = changed
+    this.isMonitor = isMonitor
+    this.matches = matches
+    this.node = Graph.resolve(world.graph, type)
+    this.not = not
+    this.relationshipMatches = relationshipMatches
+    this.type = type
+    this.#each =
+      type.sparseRelations.length > 0
         ? compileEachIteratorWithRelationships(
             world,
             type,
@@ -87,21 +92,11 @@ export class Query<U extends Component.T[] = Component.T[]> {
             changed,
           )
         : compileEachIterator(world, type, SparseMap.values(matches), changed)
-    this.changed = changed
-    this.eachIterator = eachIterator
-    this.isMonitor = isMonitor
-    this.matches = matches
-    this.node = Graph.resolve(world.graph, type)
-    this.not = not
-    this.relationshipIndices = relationshipIndices
-    this.relationshipMatches = relationshipMatches
-    this.type = type
   }
 
   each(...args: [...parents: Parents<U>, iteratee: IteratorIteratee<U>]): void
   each() {
-    // @ts-expect-error
-    this.eachIterator.apply(null, arguments)
+    this.#each.apply(null, arguments as unknown as Parameters<Iterator<U>>)
     for (let i = 0; i < this.changed.length; i++) {
       const {state} = this.changed[i]
       SparseMap.each(state.stage, (key, version) => {
@@ -252,30 +247,24 @@ const compileEachIterator = <U extends Component.T[]>(
   return closure(storesSparse, changedPredicates, matches)
 }
 
-const makeRelationshipPath = (type: Type.T, relationshipIndices: number[]) => {
+const makeRelationshipPath = (type: Type.T) => {
   const relationshipPath: number[] = []
   for (let i = 0; i < type.relationships.length; i++) {
     const relationship = type.relationships[i]
-    const relationshipComponentId = Entity.parseHi(relationship.id)
-    const relationshipIndex = relationshipIndices[relationshipComponentId]
-    if (relationshipIndex === undefined) continue
-    relationshipPath[relationshipIndex] = Entity.parseEntityId(relationship.id)
+    const relationComponentId = Entity.parseHi(relationship.id)
+    const relationComponentIndex = type.sparseRelations[relationComponentId]
+    relationshipPath[relationComponentIndex] = Entity.parseEntityId(
+      relationship.id,
+    )
   }
   return relationshipPath
 }
 
-const watchNode = (
-  query: Query,
-  node: Graph.Node,
-  entities = SparseSet.values(node.entities),
-) => {
+const rememberNode = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
   for (let i = 0; i < query.not.length; i++) {
     if (Type.has(node.type, query.not[i].type)) return false
   }
-  const relationshipPath = makeRelationshipPath(
-    node.type,
-    query.relationshipIndices,
-  )
+  const relationshipPath = makeRelationshipPath(node.type)
   if (relationshipPath.length > 0) {
     let i = 0
     let relationshipMatches = query.relationshipMatches
@@ -295,10 +284,7 @@ const watchNode = (
 }
 
 const forgetNode = (query: Query, node: Graph.Node) => {
-  const relationshipPath = makeRelationshipPath(
-    node.type,
-    query.relationshipIndices,
-  )
+  const relationshipPath = makeRelationshipPath(node.type)
   if (relationshipPath.length > 0) {
     let i = 0
     let relationshipMatch = query.relationshipMatches
@@ -334,37 +320,16 @@ const initializeFilters = (filters: Filter.T[], world: World.T) => {
   return {changed, not}
 }
 
-const makeRelationshipIndices = (type: Type.T) => {
-  const relationshipIndices = [] as number[]
-  let j = 0
-  for (let i = 0; i < type.componentSpec.length; i++) {
-    const component = type.componentSpec[i]
-    if (Component.isRelation(component)) {
-      relationshipIndices[component.id] = j++
-    }
-  }
-  return relationshipIndices
-}
-
 const initMonitorGraphListeners = (query: Query, filters: Filter.T[]) => {
-  const onMonitorEntities = (
-    type: Type.T,
-    entities: Entity.T[],
-    node: Graph.Node,
-  ) => {
-    if (Type.isSuperset(node.type, type)) {
-      watchNode(query, query.node, entities)
-    }
-  }
   for (let i = 0; i < filters.length; i++) {
-    const {kind, type} = filters[i]
+    const {kind} = filters[i]
     switch (kind) {
       case Filter.Kind.In:
       case Filter.Kind.Out:
         Signal.subscribe(
           kind === Filter.Kind.In ? query.node.$included : query.node.$excluded,
-          function watchIncludedEntities(event) {
-            onMonitorEntities(type, event.entities, event.node)
+          function onEntitiesIncludedOrExcluded(event) {
+            rememberNode(query, query.node, event.entities)
           },
         )
         break
@@ -372,9 +337,9 @@ const initMonitorGraphListeners = (query: Query, filters: Filter.T[]) => {
   }
 }
 
-const initQueryGraphListeners = (query: Query, filters: Filter.T[]) => {
+const initQueryGraphListeners = (query: Query) => {
   const onNodeCreated = (node: Graph.Node) => {
-    watchNode(query, node)
+    rememberNode(query, node, SparseSet.values(node.entities))
   }
   const onNodeRemoved = (node: Graph.Node) => {
     forgetNode(query, node)
@@ -393,7 +358,7 @@ export const make = <U extends Component.T[]>(
   if (query.isMonitor) {
     initMonitorGraphListeners(query, filters)
   } else {
-    initQueryGraphListeners(query, filters)
+    initQueryGraphListeners(query)
   }
   return query
 }
