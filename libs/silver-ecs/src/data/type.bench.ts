@@ -22,6 +22,6 @@ perf("hydrate a type's relationships", () => {
   const type = Type.make.apply(null, components)
   const init = components.map(() => [0, 0])
   return () => {
-    Type.hydrateRelationships(type, init)
+    Type.withRelationships(type, init)
   }
 })

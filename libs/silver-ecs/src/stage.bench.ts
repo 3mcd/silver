@@ -1,5 +1,5 @@
 import {perf} from "silver-bench"
-import * as StepBuffer from "./step_buffer"
+import * as StepBuffer from "./stage"
 
 perf("insert 1000 values", () => {
   const buffer = StepBuffer.make<number>()

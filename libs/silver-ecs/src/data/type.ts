@@ -232,7 +232,7 @@ export const make = <U extends Array<Component.T | Type>>(
   return new Type(makeSpec(types))
 }
 
-export const hydrateRelationships = (type: T, values: unknown[]) => {
+export const withRelationships = (type: T, values: unknown[]) => {
   let relationshipType = type
   for (let i = 0; i < type.relations.length; i++) {
     const relation = type.relations[i]

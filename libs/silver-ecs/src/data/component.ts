@@ -144,8 +144,7 @@ export function value<U>(schema: Data.SchemaOf<U>): Type.Type<[Value<U>]>
 /**
  * Define a schemaless component with a statically-typed shape.
  *
- * The component is **neither** statically-typed nor eligible for serialization and
- * auto-initialization.
+ * The component is not eligible for serialization and auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
  * const Position = ecs.value<Position>()

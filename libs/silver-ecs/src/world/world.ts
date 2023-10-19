@@ -5,7 +5,7 @@ import * as Entity from "../entity/entity"
 import * as EntityRegistry from "../entity/entity_registry"
 import * as Signal from "../signal"
 import * as SparseMap from "../sparse/sparse_map"
-import * as StepBuffer from "../step_buffer"
+import * as Stage from "../stage"
 import * as Changes from "./changes"
 import * as Commands from "./commands"
 import * as Graph from "./graph"
@@ -30,7 +30,7 @@ export class World {
   readonly changes
 
   constructor(time: number) {
-    this.#stage = StepBuffer.make<Commands.T>()
+    this.#stage = Stage.make<Commands.T>()
     this.#entityNodes = SparseMap.make<Graph.Node>()
     this.#entityRegistry = EntityRegistry.make()
     this.#entityRelationshipNodes = [] as Graph.Node[][]
@@ -93,8 +93,11 @@ export class World {
     parent: Entity.T,
     value: U extends Component.Relation<infer V> ? V : never,
   ) {
-    const rid = Entity.make(Entity.parseEntityId(parent), component.id)
-    this.store(rid)[entity] = value
+    const relationshipComponentId = Entity.make(
+      Entity.parseEntityId(parent),
+      component.id,
+    )
+    this.store(relationshipComponentId)[entity] = value
     this.#bump(entity, component)
   }
 
@@ -259,11 +262,11 @@ export class World {
     ...values: Commands.Init<U>
   ): Entity.T {
     const entity = EntityRegistry.retain(this.#entityRegistry)
-    StepBuffer.insert(
+    Stage.insert(
       this.#stage,
       this.#tick,
       Commands.spawn(
-        Type.hydrateRelationships(type, values) as Type.T<U>,
+        Type.withRelationships(type, values) as Type.T<U>,
         entity,
         values,
       ),
@@ -273,7 +276,7 @@ export class World {
 
   despawn(entity: Entity.T) {
     EntityRegistry.check(this.#entityRegistry, entity)
-    StepBuffer.insert(this.#stage, this.#tick, Commands.despawn(entity))
+    Stage.insert(this.#stage, this.#tick, Commands.despawn(entity))
   }
 
   add<U extends Component.T[]>(
@@ -282,11 +285,11 @@ export class World {
     ...values: Commands.Init<U>
   ) {
     EntityRegistry.check(this.#entityRegistry, entity)
-    StepBuffer.insert(
+    Stage.insert(
       this.#stage,
       this.#tick,
       Commands.add(
-        Type.hydrateRelationships(type, values) as Type.T<U>,
+        Type.withRelationships(type, values) as Type.T<U>,
         entity,
         values,
       ),
@@ -295,7 +298,7 @@ export class World {
 
   remove<U extends Component.T[]>(entity: Entity.T, type: Type.Type<U>) {
     EntityRegistry.check(this.#entityRegistry, entity)
-    StepBuffer.insert(this.#stage, this.#tick, Commands.remove(type, entity))
+    Stage.insert(this.#stage, this.#tick, Commands.remove(type, entity))
   }
 
   link<U extends Component.RelationTag>(
@@ -317,7 +320,7 @@ export class World {
   ) {
     const node = SparseMap.get(this.#entityNodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity could not be located")
-    StepBuffer.insert(
+    Stage.insert(
       this.#stage,
       this.#tick,
       Commands.link(entity, type, parent, value),
@@ -331,11 +334,7 @@ export class World {
   ) {
     const node = SparseMap.get(this.#entityNodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity could not be located")
-    StepBuffer.insert(
-      this.#stage,
-      this.#tick,
-      Commands.unlink(entity, type, parent),
-    )
+    Stage.insert(this.#stage, this.#tick, Commands.unlink(entity, type, parent))
   }
 
   change<U extends Component.Value | Component.Relation>(
@@ -359,7 +358,7 @@ export class World {
   step(time: number = this.#tick + 1) {
     Transition.drain(this.#transition, this.graph, "stage")
     while (this.#tick < time) {
-      StepBuffer.drainBetween(this.#stage, this.#tick, time, this.#applyCommand)
+      Stage.drainTo(this.#stage, time, this.#applyCommand)
       this.#tick++
     }
   }
