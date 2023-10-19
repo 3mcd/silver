@@ -1,4 +1,4 @@
-# Silver ECS
+# silver-ecs
 
 ### Relations
 

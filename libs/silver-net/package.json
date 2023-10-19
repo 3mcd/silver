@@ -1,0 +1,45 @@
+{
+  "name": "silver-net",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "",
+  "keywords": [
+    "ecs",
+    "entity-component system",
+    "game",
+    "gamedev",
+    "multiplayer",
+    "mog"
+  ],
+  "scripts": {
+    "test": "vitest",
+    "bench": "silver-bench"
+  },
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "debug"
+  ],
+  "main": "./dist/silver-ecs.js",
+  "source": "./src/index.ts",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/silver-ecs.js"
+    },
+    "./debug": {
+      "import": "./dist/silver-ecs.debug.js"
+    },
+    "./dev": {
+      "import": "./src/index.ts"
+    }
+  },
+  "devDependencies": {
+    "silver-bench": "workspace:*",
+    "silver-ecs": "workspace:*"
+  },
+  "peerDependencies": {
+    "silver-ecs": "workspace:*"
+  }
+}

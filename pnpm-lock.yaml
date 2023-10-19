@@ -76,6 +76,15 @@ importers:
 
   libs/silver-ecs/dev: {}
 
+  libs/silver-net:
+    devDependencies:
+      silver-bench:
+        specifier: workspace:*
+        version: link:../silver-bench
+      silver-ecs:
+        specifier: workspace:*
+        version: link:../silver-ecs
+
 packages:
 
   /@cspotcode/source-map-support@0.8.1:

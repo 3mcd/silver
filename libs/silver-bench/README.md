@@ -1,4 +1,4 @@
-# Silver Bench
+# silver-bench
 
 A fast and configurable benchmarking tool for JS/TS.
 

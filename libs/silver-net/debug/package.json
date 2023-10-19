@@ -1,0 +1,4 @@
+{
+  "main": "../dist/silver-net.debug.js",
+  "types": "../dist/types/index.d.ts"
+}

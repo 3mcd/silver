@@ -33,3 +33,5 @@ async function build(dir: string, debug = false) {
 
 await build("libs/silver-ecs")
 await build("libs/silver-ecs", true)
+await build("libs/silver-net")
+await build("libs/silver-net", true)
