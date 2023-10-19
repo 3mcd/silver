@@ -23,16 +23,16 @@ type Parents<U extends Component.T[], Out extends Entity.T[] = []> = U extends [
     : never
   : Out
 
-type IteratorIteratee<U extends Component.T[]> = (
+type EachIteratee<U extends Component.T[]> = (
   entity: Entity.T,
   ...values: Component.ValuesOf<U>
 ) => void
 
-type IteratorArgs<U extends Component.T[]> = [
+type EachArgs<U extends Component.T[]> = [
   ...parents: Parents<U>,
-  iteratee: IteratorIteratee<U>,
+  iteratee: EachIteratee<U>,
 ]
-type Iterator<U extends Component.T[]> = (...args: IteratorArgs<U>) => void
+type Each<U extends Component.T[]> = (...args: EachArgs<U>) => void
 
 class QueryRelationshipMatch {
   entities: Entity.T[][][]
@@ -55,7 +55,7 @@ class QueryChangedRecord {
 }
 
 export class Query<U extends Component.T[] = Component.T[]> {
-  #each: Iterator<U>
+  #each: Each<U>
   readonly changed
   readonly isMonitor
   readonly matches
@@ -94,9 +94,9 @@ export class Query<U extends Component.T[] = Component.T[]> {
         : compileEachIterator(world, type, SparseMap.values(matches), changed)
   }
 
-  each(...args: [...parents: Parents<U>, iteratee: IteratorIteratee<U>]): void
+  each(...args: [...parents: Parents<U>, iteratee: EachIteratee<U>]): void
   each() {
-    this.#each.apply(null, arguments as unknown as Parameters<Iterator<U>>)
+    this.#each.apply(null, arguments as unknown as Parameters<Each<U>>)
     for (let i = 0; i < this.changed.length; i++) {
       const {state} = this.changed[i]
       SparseMap.each(state.stage, (key, version) => {
@@ -209,7 +209,7 @@ const compileEachIteratorWithRelationships = <U extends Component.T[]>(
   type: Type.T<U>,
   relationshipMatches: QueryRelationshipMatch,
   changed: Query["changed"],
-): Iterator<U> => {
+): Each<U> => {
   const changedPredicates = changed.map(changed => changed.predicate)
   const stores = getValueStores(type, world)
   const storesSparse = SparseMap.toSparseArray(stores)
@@ -234,7 +234,7 @@ const compileEachIterator = <U extends Component.T[]>(
   type: Type.T<U>,
   matches: ReadonlyArray<readonly Entity.T[][]>,
   changed: Query["changed"],
-): Iterator<U> => {
+): Each<U> => {
   const changedPredicates = changed.map(changed => changed.predicate)
   const stores = getValueStores(type, world)
   const storesSparse = SparseMap.toSparseArray(stores)
@@ -274,10 +274,10 @@ const rememberNode = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
     }
     relationshipMatches.entities.push([entities])
   }
-  let matches = SparseMap.get(query.matches, node.type.componentsHash)
+  let matches = SparseMap.get(query.matches, node.type.hash)
   if (matches === undefined) {
     matches = []
-    SparseMap.set(query.matches, node.type.componentsHash, matches)
+    SparseMap.set(query.matches, node.type.hash, matches)
   }
   matches.push(entities)
   return true
@@ -293,7 +293,7 @@ const forgetNode = (query: Query, node: Graph.Node) => {
     }
     relationshipMatch.next[relationshipPath[i]] = undefined!
   }
-  SparseMap.delete(query.matches, node.type.componentsHash)
+  SparseMap.delete(query.matches, node.type.hash)
 }
 
 const initializeFilters = (filters: Filter.T[], world: World.T) => {

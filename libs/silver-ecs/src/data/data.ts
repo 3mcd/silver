@@ -40,12 +40,18 @@ export interface Object {
 }
 
 /**
- * A data type that describes the shape of a component.
+ * A type that describes the shape of a component.
  */
 export type Schema = Object | Scalar
 
 /**
- * Express the value of a component schema.
+ * Express the value of a schema.
+ *
+ * @example <caption>Express the value of a scalar value.</caption>
+ * type T = Express<"u8"> // number
+ *
+ * @example <caption>Express the value of an object schema.</caption>
+ * type T = Express<{x: "f32", y: "f32"}> // {x: number, y: number}
  */
 export type Express<T extends Schema> = T extends Object
   ? {
@@ -60,7 +66,13 @@ export type Express<T extends Schema> = T extends Object
   : never
 
 /**
- * Derive a component schema from a type.
+ * Derive a schema from a type.
+ *
+ * @example <caption>Derive a schema from a scalar value.</caption>
+ * type T = SchemaOf<number> // "u8" | "u16" ...
+ *
+ * @example <caption>Derive a schema from an object.</caption>
+ * type T = SchemaOf<{x: number, y: number}> // {x: "u8" | "u16" ..., y: "u8" | "u16" ...}
  */
 export type SchemaOf<T> = T extends object
   ? {[K in keyof T]: SchemaOf<T[K]>}

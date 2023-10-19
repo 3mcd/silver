@@ -29,7 +29,7 @@ export const isSuperset = (typeA: Type, typeB: Type): boolean => {
   // Compared type is a void type.
   if (typeB.componentIds.length === 0) return true
   // Compared type is equivalent to this type.
-  if (typeA.componentsHash === typeB.componentsHash) return false
+  if (typeA.hash === typeB.hash) return false
   let cursorA = 0
   let cursorB = 0
   while (
@@ -72,7 +72,7 @@ export const supersetMayContain = (typeA: Type, typeB: Type): boolean => {
 }
 
 export const xor = (typeA: Type, typeB: Type): number => {
-  if (typeA.componentsHash === typeB.componentsHash) return 0
+  if (typeA.hash === typeB.hash) return 0
   let xor = 0
   let cursorA = 0
   let cursorB = 0
@@ -182,7 +182,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
   componentIds
   componentSpec
   components
-  componentsHash
+  hash
   relations
   relationships
   sparse
@@ -214,7 +214,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
     }
     this.componentIds = components.map(component => component.id)
     this.components = components
-    this.componentsHash = Hash.words(this.componentIds)
+    this.hash = Hash.words(this.componentIds)
     this.componentSpec = componentSpec
     this.relations = components.filter(Component.isRelation)
     this.relationships = components.filter(Component.isRelationship)

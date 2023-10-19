@@ -113,72 +113,143 @@ function make(
 }
 
 /**
- * Define a new component using the given schema. The shape of the component's
- * values is automatically derived from the schema.
+ * Define a component with a schema.
  *
- * @example
- * const Position = ecs.Component.define({x: "f32", y: "f32"}) // Component<{ x: number, y: number }>
+ * The component is statically-typed and eligible for serialization and
+ * auto-initialization.
+ *
+ * @example <caption>Define a component with a schema and add it to an entity.</caption>
+ * const Position = ecs.value({x: "f32", y: "f32"})
+ * const entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U extends Data.Schema>(
   schema: U,
 ): Type.Type<[Value<Data.Express<U>>]>
 /**
- * Define a new component using the given generic type and schema. The schema
- * will be statically compared to the provided type. Used to specify a named
- * type component values.
+ * Define a component using a generic type and schema. The schema must satisfy
+ * the type provided to the generic parameter.
  *
- * @example
- * interface Position {
+ * The component is statically-typed and eligible for serialization and
+ * auto-initialization.
+ *
+ * @example <caption>Define a component with a type-constrained schema and add it to an entity.</caption>
+ * type Position = {
  *   x: number,
  *   y: number,
  * }
- * const Position = ecs.Component.define<Position>({x: "f32", y: "f32"}) // Component<Position>
+ * const Position = ecs.value<Position>({x: "f32", y: "f32"}) // Value<Position>
+ * const entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U>(schema: Data.SchemaOf<U>): Type.Type<[Value<U>]>
 /**
- * Define a new component with an undefined shape. The component's values will
- * be typed `unknown`, and will be ineligible for serialization and
+ * Define a schemaless component with a statically-typed shape.
+ *
+ * The component is **neither** statically-typed nor eligible for serialization and
  * auto-initialization.
  *
- * @example
- * const Position = ecs.Component.define() // Component<unknown>
+ * @example <caption>Define a schemaless component and add it to an entity.</caption>
+ * const Position = ecs.value<Position>()
+ * const entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U>(): Type.Type<[Value<U>]>
+/**
+ * Define a component with an undefined shape. The component's values will
+ * be typed `unknown`.
+ *
+ * The component is **neither** statically-typed nor eligible for serialization and
+ * auto-initialization.
+ *
+ * @example <caption>Define a schemaless component and add it to an entity.</caption>
+ * const Anything = ecs.value() // Value<unknown>
+ * const entity = world.spawn(Anything, [[[]]])
+ */
+export function value(): Type.Type<[Value<unknown>]>
 export function value(schema?: Data.Schema) {
   return Type.make(make(makeComponentId(), Kind.Value, schema))
 }
 
 /**
- * Define a new tag. Tags are components with no data.
+ * Define a tag. Tags are components with no data.
+ *
+ * @example <caption>Define a tag and add it to an entity.</caption>
+ * const RedTeam = ecs.tag()
+ * const entity = world.spawn(RedTeam)
  */
 export const tag = (): Type.Type<[Tag]> =>
   Type.make(make(makeComponentId(), Kind.Tag))
 
 /**
- * Define a new relation using the given schema.
+ * Define a relation using the given schema.
+ *
+ * The relation's data is statically-typed and eligible for serialization and
+ * auto-initialization.
  *
  * Relations are used to describe an entity's relationship to another entity.
+ *
+ * @example <caption>Define a relation with a schema and add it to an entity.</caption>
+ * const Orbits = ecs.relation({distance: "f32", period: "f32"})
+ * const entity = world.spawn(Orbits, [sun, {distance: 10, period: 0.5}])
  */
 export function relation<U extends Data.Schema>(
   schema: U,
 ): Type.Type<[Relation<Data.Express<U>>]>
 /**
- * Define a new relation using the given generic type and schema.
+ * Define a relation using the given generic type and schema. The schema must satisfy
+ * the type provided to the generic parameter.
  *
- * Relations are used to describe an entity's relationship to another entity.
- */
-export function relation<U>(schema: Data.SchemaOf<U>): Type.Type<[Relation<U>]>
-/**
- * Define a new relation with an undefined shape. The relation's values will be
- * typed `unknown`, and will be ineligible for serialization and
+ * The relation's data is statically-typed and eligible for serialization and
  * auto-initialization.
  *
  * Relations are used to describe an entity's relationship to another entity.
+ *
+ * @example <caption>Define a relation with a type-constrained schema and add it to an entity.</caption>
+ * const Owes = ecs.relation<number>("f32")
+ * const entity = world.spawn(Owes, [bank, 1_000])
+ */
+export function relation<U>(schema: Data.SchemaOf<U>): Type.Type<[Relation<U>]>
+/**
+ * Define a schemaless relation with a statically-typed shape.
+ *
+ * The relation's data is **not** eligible for serialization and
+ * auto-initialization.
+ *
+ * Relations are used to describe an entity's relationship to another entity.
+ *
+ * @example <caption>Define a typed but schemaless relation and add it to an entity.</caption>
+ * const Owes = ecs.relation<number>()
+ * const entity = world.spawn(Owes, [bank, 1_000])
  */
 export function relation<U>(): Type.Type<[Relation<U>]>
+/**
+ * Define a relation with an undefined shape.
+ *
+ * The relation's data is typed `unknown`.
+ *
+ * The relation's data is **neither** statically-typed nor eligible for
+ * serialization and auto-initialization.
+ *
+ * Relations are used to describe an entity's relationship to another entity.
+ *
+ * @example <caption>Define an untyped relation and add it to an entity.</caption>
+ * const OwesAnything = ecs.relation()
+ * const entity = world.spawn(OwesAnything, [[[]]])
+ */
+export function relation(): Type.Type<[Relation<unknown>]>
 export function relation(schema?: Data.Schema) {
   return Type.make(make(makeComponentId(), Kind.Relation, schema))
 }
+
+/**
+ * Define a relation with no data.
+ *
+ * Relations are used to describe an entity's relationship to another entity.
+ *
+ * @example <caption>Define a relation with no data and add it to an entity.</caption>
+ * const ChildOf = ecs.relationTag()
+ * const entity = world.spawn(ChildOf, [parent])
+ */
+export const relationTag = (): Type.Type<[RelationTag]> =>
+  Type.make(make(makeComponentId(), Kind.RelationTag))
 
 export const makeRelationship = (
   component: Relation | RelationTag,
@@ -188,12 +259,6 @@ export const makeRelationship = (
     Entity.make(Entity.parseEntityId(entity), component.id),
     Kind.Relationship,
   )
-
-/**
- * Define a new tag. Tags are components with no data.
- */
-export const relationTag = (): Type.Type<[RelationTag]> =>
-  Type.make(make(makeComponentId(), Kind.RelationTag))
 
 export const isValue = (component: T): component is Value | Relation =>
   component.kind === Kind.Value || component.kind === Kind.Relation

@@ -27,33 +27,21 @@ export class Filter {
 export type T = Filter
 
 export const Not = (type: Type.T) => {
-  return new Filter(
-    Hash.words([type.componentsHash, notComponentId]),
-    Kind.Not,
-    type,
-  )
+  return new Filter(Hash.words([type.hash, notComponentId]), Kind.Not, type)
 }
 
 export const Changed = (type: Type.T) => {
   return new Filter(
-    Hash.words([type.componentsHash, changedComponentId]),
+    Hash.words([type.hash, changedComponentId]),
     Kind.Changed,
     type,
   )
 }
 
 export const In = (type: Type.T) => {
-  return new Filter(
-    Hash.words([type.componentsHash, inComponentId]),
-    Kind.In,
-    type,
-  )
+  return new Filter(Hash.words([type.hash, inComponentId]), Kind.In, type)
 }
 
 export const Out = (type: Type.T) => {
-  return new Filter(
-    Hash.words([type.componentsHash, outComponentId]),
-    Kind.Out,
-    type,
-  )
+  return new Filter(Hash.words([type.hash, outComponentId]), Kind.Out, type)
 }

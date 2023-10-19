@@ -123,10 +123,10 @@ const insertNode = (graph: Graph, type: Type.T): Node => {
   let node: Node = graph.root
   for (let i = 0; i < type.components.length; i++) {
     const nextType = Type.withComponent(node.type, type.components[i])
-    let nextNode = graph.nodesByComponentsHash.get(nextType.componentsHash)
+    let nextNode = graph.nodesByComponentsHash.get(nextType.hash)
     if (nextNode === undefined) {
       nextNode = new Node(nextType)
-      graph.nodesByComponentsHash.set(nextType.componentsHash, nextNode)
+      graph.nodesByComponentsHash.set(nextType.hash, nextNode)
       graph.nodesById[nextNode.id] = nextNode
       linkNodes(nextNode, node, Type.xor(nextNode.type, node.type))
       linkNodesTraverse(graph, nextNode)
@@ -144,7 +144,7 @@ const dropNode = (graph: Graph, node: Node): void => {
   node.edgesPrev.forEach(function dropNodeUnlinkPrev(prevNode, xor) {
     unlinkNodes(node, prevNode, xor)
   })
-  graph.nodesByComponentsHash.delete(node.type.componentsHash)
+  graph.nodesByComponentsHash.delete(node.type.hash)
   graph.nodesById[node.id] = undefined!
   Signal.dispose(node.$removed)
   Signal.dispose(node.$created)
@@ -185,16 +185,12 @@ export const moveEntitiesRem = (
 
 export const resolve = (graph: Graph, type: Type.T): Node => {
   const node =
-    graph.nodesByComponentsHash.get(type.componentsHash) ??
-    insertNode(graph, type)
+    graph.nodesByComponentsHash.get(type.hash) ?? insertNode(graph, type)
   return node
 }
 
-export const findById = (
-  graph: Graph,
-  componentsHash: number,
-): Node | undefined => {
-  return graph.nodesById[componentsHash]
+export const findById = (graph: Graph, hash: number): Node | undefined => {
+  return graph.nodesById[hash]
 }
 
 class Graph {
@@ -206,7 +202,7 @@ class Graph {
     this.root = new Node()
     this.nodesById = [] as Node[]
     this.nodesByComponentsHash = new Map<number, Node>()
-    this.nodesByComponentsHash.set(this.root.type.componentsHash, this.root)
+    this.nodesByComponentsHash.set(this.root.type.hash, this.root)
     this.nodesById[this.root.id] = this.root
   }
 }
@@ -250,15 +246,15 @@ if (import.meta.vitest) {
       resolve(graph, B)
       resolve(graph, C)
       traverse(graph.root, node => {
-        visited.push(node.type.componentsHash)
+        visited.push(node.type.hash)
       })
       expect(visited.length).toBe(6)
-      expect(visited).toContain(graph.root.type.componentsHash)
-      expect(visited).toContain(A.componentsHash)
-      expect(visited).toContain(AB.componentsHash)
-      expect(visited).toContain(ABC.componentsHash)
-      expect(visited).toContain(B.componentsHash)
-      expect(visited).toContain(C.componentsHash)
+      expect(visited).toContain(graph.root.type.hash)
+      expect(visited).toContain(A.hash)
+      expect(visited).toContain(AB.hash)
+      expect(visited).toContain(ABC.hash)
+      expect(visited).toContain(B.hash)
+      expect(visited).toContain(C.hash)
     })
     it("traverses nodes right to left", () => {
       const graph = make()
@@ -268,15 +264,15 @@ if (import.meta.vitest) {
       resolve(graph, C)
       resolve(graph, D)
       traversePrev(nodeAbc, node => {
-        visited.push(node.type.componentsHash)
+        visited.push(node.type.hash)
       })
       expect(visited.length).toBe(6)
-      expect(visited).toContain(graph.root.type.componentsHash)
-      expect(visited).toContain(A.componentsHash)
-      expect(visited).toContain(AB.componentsHash)
-      expect(visited).toContain(ABC.componentsHash)
-      expect(visited).toContain(B.componentsHash)
-      expect(visited).toContain(C.componentsHash)
+      expect(visited).toContain(graph.root.type.hash)
+      expect(visited).toContain(A.hash)
+      expect(visited).toContain(AB.hash)
+      expect(visited).toContain(ABC.hash)
+      expect(visited).toContain(B.hash)
+      expect(visited).toContain(C.hash)
     })
     it("inserts entities", () => {
       const graph = make()
