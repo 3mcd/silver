@@ -135,4 +135,4 @@ export const unlink = <U extends Component.Relation | Component.RelationTag>(
   entity: Entity.T,
   type: Type.Unitary<U>,
   parent: Entity.T,
-) => new Command("unlink", entity, type, parent) as Unlink<U>
+) => new Command("unlink", entity, type, undefined, parent) as Unlink<U>

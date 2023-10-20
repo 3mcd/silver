@@ -11,12 +11,6 @@ import * as Commands from "./commands"
 import * as Graph from "./graph"
 import * as Transition from "./transition"
 
-type GetSingle<U extends Component.T> = U extends Component.Relation<infer V>
-  ? Array<Commands.InitRelationship<V>>
-  : U extends Component.Value<infer V>
-  ? V
-  : never
-
 export class World {
   #entity_nodes
   #entity_registry
@@ -322,8 +316,8 @@ export class World {
     parent: Entity.T,
     value?: U extends Component.Relation<infer V> ? V : never,
   ) {
-    const node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
+    EntityRegistry.check(this.#entity_registry, entity)
+    EntityRegistry.check(this.#entity_registry, parent)
     Stage.insert(
       this.#stage,
       this.#tick,
@@ -336,8 +330,8 @@ export class World {
     type: Type.Unitary<U>,
     parent: Entity.T,
   ) {
-    const node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
+    EntityRegistry.check(this.#entity_registry, entity)
+    EntityRegistry.check(this.#entity_registry, parent)
     Stage.insert(this.#stage, this.#tick, Commands.unlink(entity, type, parent))
   }
 
@@ -368,15 +362,15 @@ export class World {
     }
   }
 
-  get<U extends Component.Value | Component.Relation>(
+  get<U extends Component.Value | Component.Relation | Component.RelationTag>(
     entity: Entity.T,
     type: Type.Unitary<U>,
-  ): GetSingle<U> {
+  ): Commands.InitSingle<U> {
     const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     const component = type.component_spec[0]
     if (Component.is_relation(component)) {
-      const out = [] as Array<Commands.InitRelationship<unknown>>
+      const out = [] as Commands.InitSingle<U>[]
       for (let i = 0; i < node.type.relationships.length; i++) {
         const relationship = node.type.relationships[i]
         const relationship_relation_id = Entity.parse_hi(relationship.id)
@@ -386,13 +380,20 @@ export class World {
             this.#entity_registry,
             relationship_entity_id,
           )
-          const relationship_value = this.#read(entity, relationship)
-          out.push([relationship_entity, relationship_value])
+          if (Component.is_tag(component)) {
+            out.push(relationship_entity as Commands.InitSingle<U>)
+          } else {
+            const relationship_value = this.#read(entity, relationship)
+            out.push([
+              relationship_entity,
+              relationship_value,
+            ] as Commands.InitSingle<U>)
+          }
         }
       }
-      return out as GetSingle<U>
+      return out as Commands.InitSingle<U>
     }
-    return this.#read(entity, component) as GetSingle<U>
+    return this.#read(entity, component) as Commands.InitSingle<U>
   }
 }
 export type T = World
@@ -402,6 +403,8 @@ export const make = (time = 0): World => new World(time)
 if (import.meta.vitest) {
   const {describe, it, expect} = await import("vitest")
   const A = Component.tag()
+  const B = Component.value()
+  const C = Component.relation_tag()
 
   describe("World", () => {
     it("throws an error when adding a component to a non-existent entity", () => {
@@ -412,5 +415,46 @@ if (import.meta.vitest) {
       const world = make()
       expect(() => world.remove(123 as Entity.T, A)).to.throw()
     })
+    it("adds a component to an entity", () => {
+      const world = make()
+      const entity = world.spawn()
+      world.add(entity, B, 123)
+      world.step()
+      expect(world.get(entity, B)).to.equal(123)
+    })
+    it("removes a component from an entity", () => {
+      const world = make()
+      const entity = world.spawn()
+      world.add(entity, B, 123)
+      world.step()
+      world.remove(entity, B)
+      world.step()
+      expect(world.get(entity, B)).to.equal(undefined)
+    })
+    it("adds a relation component to an entity (link)", () => {
+      const world = make()
+      const entity = world.spawn()
+      const parent = world.spawn()
+      world.link(entity, C, parent)
+      world.step()
+      expect(world.get(entity, C)).to.deep.equal([parent])
+    })
+    it("adds a relation component to an entity", () => {
+      const world = make()
+      const parent = world.spawn()
+      const entity = world.spawn(C, parent)
+      world.step()
+      expect(world.get(entity, C)).to.deep.equal([parent])
+    })
+    it("removes a relation component from an entity (unlink)", () => {
+      const world = make()
+      const parent = world.spawn()
+      const entity = world.spawn(C, parent)
+      world.step()
+      world.unlink(entity, C, parent)
+      world.step()
+      expect(world.get(entity, C)).to.deep.equal([])
+    })
+    it.todo("removes all relation components with the same type from an entity")
   })
 }
