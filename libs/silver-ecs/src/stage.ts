@@ -1,6 +1,6 @@
 type BTreeMapCompare<K> = (a: K, b: K) => number
 
-type BTreeMapForEachIteratee<K extends number, V> = (
+type BTreeMapForEachIterator<K extends number, V> = (
   values: V[],
   key: K,
 ) => void
@@ -12,7 +12,7 @@ type BTreeMapOptions<K> = {
 
 const compare = (a: number, b: number): number => (a < b ? -1 : a > b ? 1 : 0)
 
-export class BTreeMap<V, K extends number = number> {
+export class BTree_map<V, K extends number = number> {
   compare: BTreeMapCompare<K> = compare
   values: V[][] = []
   order: number = 3
@@ -41,7 +41,7 @@ export class BTreeMap<V, K extends number = number> {
     return this.values[key] !== undefined
   }
 
-  set(key: K, value: V): BTreeMap<V, K> {
+  set(key: K, value: V): BTree_map<V, K> {
     const values = this.values[key]
     if (values !== undefined) {
       values.push(value)
@@ -67,7 +67,7 @@ export class BTreeMap<V, K extends number = number> {
   delete(lo: K, hi?: K, inclusive?: boolean): boolean {
     if (hi) {
       let count = 0
-      let leaf: Leaf<K> | null = this.root.findLeaf(lo)
+      let leaf: Leaf<K> | null = this.root.find_leaf(lo)
       do {
         const keys = leaf.keys
         for (let i = 0, length = keys.length; i < length; i++) {
@@ -106,13 +106,13 @@ export class BTreeMap<V, K extends number = number> {
   }
 
   forEach(
-    iteratee: BTreeMapForEachIteratee<K, V>,
+    iteratee: BTreeMapForEachIterator<K, V>,
     lo = this.lo,
     hi = this.hi,
     inclusive: boolean = true,
   ): void {
     if (this.size === 0) return
-    let leaf: Leaf<K> | null = this.root.findLeaf(lo)
+    let leaf: Leaf<K> | null = this.root.find_leaf(lo)
     do {
       const keys = leaf.keys
       for (let i = 0, length = keys.length; i < length; i++) {
@@ -141,10 +141,10 @@ abstract class NodeBase<K extends number> {
   }
   abstract get lo(): K
   abstract get hi(): K
-  abstract borrowLeft(source: NodeBase<K>): void
-  abstract borrowRight(source: NodeBase<K>): void
+  abstract borrow_left(source: NodeBase<K>): void
+  abstract borrow_right(source: NodeBase<K>): void
   abstract delete(key: K): void
-  abstract findLeaf(key: K): Leaf<K>
+  abstract find_leaf(key: K): Leaf<K>
   abstract merge(source: NodeBase<K>): void
   abstract set(key: K): void
   abstract shrink(): NodeBase<K>
@@ -168,33 +168,33 @@ class Node<V, K extends number> extends NodeBase<K> {
   }
 
   set(key: K): void {
-    const slot = this.slotOf(key, this.keys, this.compare)
+    const slot = this.slot_of(key, this.keys, this.compare)
     const child = this.children[slot]
     if (child.keys.length > child.max) {
       let sibling
       if (slot > 0) {
         sibling = this.children[slot - 1]
         if (sibling.keys.length < sibling.max) {
-          sibling.borrowRight(child)
+          sibling.borrow_right(child)
           this.keys[slot - 1] = child.lo
         } else if (slot < this.children.length - 1) {
           sibling = this.children[slot + 1]
           if (sibling.keys.length < sibling.max) {
-            sibling.borrowLeft(child)
+            sibling.borrow_left(child)
             this.keys[slot] = sibling.lo
           } else {
-            this.splitChild(child, slot)
+            this.split_child(child, slot)
           }
         } else {
-          this.splitChild(child, slot)
+          this.split_child(child, slot)
         }
       } else {
         sibling = this.children[1]
         if (sibling.keys.length < sibling.max) {
-          sibling.borrowLeft(child)
+          sibling.borrow_left(child)
           this.keys[slot] = sibling.lo
         } else {
-          this.splitChild(child, slot)
+          this.split_child(child, slot)
         }
       }
     }
@@ -202,16 +202,16 @@ class Node<V, K extends number> extends NodeBase<K> {
 
   delete(key: K): void {
     const keys = this.keys
-    const slot = this.slotOf(key, keys, this.compare)
+    const slot = this.slot_of(key, keys, this.compare)
     const child = this.children[slot]
     child.delete(key)
     if (slot > 0) keys[slot - 1] = child.lo
-    if (child.keys.length < child.min) this.consolidateChild(child, slot)
+    if (child.keys.length < child.min) this.consolidate_child(child, slot)
   }
 
-  findLeaf(key: K): Leaf<K> {
-    const slot = this.slotOf(key, this.keys, this.compare)
-    return this.children[slot].findLeaf(key)
+  find_leaf(key: K): Leaf<K> {
+    const slot = this.slot_of(key, this.keys, this.compare)
+    return this.children[slot].find_leaf(key)
   }
 
   split(): Node<V, K> {
@@ -226,13 +226,13 @@ class Node<V, K extends number> extends NodeBase<K> {
     return this.children[0]
   }
 
-  borrowLeft(source: Node<V, K>): void {
+  borrow_left(source: Node<V, K>): void {
     this.keys.unshift(this.lo)
     source.keys.pop()
     this.children.unshift(source.children.pop()!)
   }
 
-  borrowRight(source: Node<V, K>): void {
+  borrow_right(source: Node<V, K>): void {
     this.keys.push(source.lo)
     source.keys.shift()
     this.children.push(source.children.shift()!)
@@ -248,25 +248,25 @@ class Node<V, K extends number> extends NodeBase<K> {
     }
   }
 
-  splitChild(child: NodeBase<K>, slot: number): void {
-    const newChild = child.split()
-    this.keys.splice(slot, 0, newChild.lo)
-    this.children.splice(slot + 1, 0, newChild)
+  split_child(child: NodeBase<K>, slot: number): void {
+    const new_child = child.split()
+    this.keys.splice(slot, 0, new_child.lo)
+    this.children.splice(slot + 1, 0, new_child)
   }
 
-  consolidateChild(child: NodeBase<K>, slot: number): void {
+  consolidate_child(child: NodeBase<K>, slot: number): void {
     const keys = this.keys
     const children = this.children
     let sibling
     if (slot > 0) {
       sibling = children[slot - 1]
       if (sibling.keys.length > sibling.min) {
-        child.borrowLeft(sibling)
+        child.borrow_left(sibling)
         keys[slot - 1] = child.lo
       } else if (slot < this.children.length - 1) {
         sibling = children[slot + 1]
         if (sibling.keys.length > sibling.min) {
-          child.borrowRight(sibling)
+          child.borrow_right(sibling)
           keys[slot] = sibling.lo
         } else {
           children[slot - 1].merge(child)
@@ -281,7 +281,7 @@ class Node<V, K extends number> extends NodeBase<K> {
     } else {
       sibling = children[slot + 1]
       if (sibling.keys.length > sibling.min) {
-        child.borrowRight(sibling)
+        child.borrow_right(sibling)
         keys[slot] = sibling.lo
       } else {
         child.merge(children[1])
@@ -291,7 +291,7 @@ class Node<V, K extends number> extends NodeBase<K> {
     }
   }
 
-  slotOf(element: K, array: K[], compare: BTreeMapCompare<K>): number {
+  slot_of(element: K, array: K[], compare: BTreeMapCompare<K>): number {
     let top = array.length
     let middle = top >>> 1
     let bottom = 0
@@ -330,7 +330,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     if (this.keys.length === 0) {
       this.keys.push(key)
     } else {
-      const slot = this.slotOf(key, this.keys, this.compare)
+      const slot = this.slot_of(key, this.keys, this.compare)
       this.keys.splice(slot, 0, key)
     }
   }
@@ -339,7 +339,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     this.keys.splice(this.keys.indexOf(key), 1)
   }
 
-  findLeaf(): Leaf<K> {
+  find_leaf(): Leaf<K> {
     return this
   }
 
@@ -355,11 +355,11 @@ class Leaf<K extends number> extends NodeBase<K> {
     return new Leaf<K>(this.order, this.compare)
   }
 
-  borrowLeft(source: Leaf<K>): void {
+  borrow_left(source: Leaf<K>): void {
     this.keys.unshift(source.keys.pop()!)
   }
 
-  borrowRight(source: Leaf<K>): void {
+  borrow_right(source: Leaf<K>): void {
     this.keys.push(source.keys.shift()!)
   }
 
@@ -370,7 +370,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     this.next = source.next
   }
 
-  slotOf(element: K, array: Array<K>, compare: BTreeMapCompare<K>): number {
+  slot_of(element: K, array: Array<K>, compare: BTreeMapCompare<K>): number {
     let top = array.length
     let middle = top >>> 1
     let bottom = 0
@@ -390,7 +390,7 @@ class Leaf<K extends number> extends NodeBase<K> {
 }
 
 export class Stage<U> {
-  map = new BTreeMap<U>()
+  map = new BTree_map<U>()
   min = 0
   max = 0
 }
@@ -415,12 +415,12 @@ export const _delete = <U>(buffer: T<U>, time: number) => {
 }
 export {_delete as delete}
 
-export const deleteRange = <U>(buffer: T<U>, time: number) => {
+export const delete_range = <U>(buffer: T<U>, time: number) => {
   buffer.map.delete(buffer.min, time, true)
   buffer.min = time
 }
 
-export const drainTo = <U>(
+export const drain_to = <U>(
   buffer: T<U>,
   time: number,
   iteratee?: (value: U, key: number) => void,
@@ -451,7 +451,7 @@ if (import.meta.vitest) {
       const b = "b"
       insert(buffer, 0, b)
       insert(buffer, 1, a)
-      drainTo(buffer, 1, value => {
+      drain_to(buffer, 1, value => {
         out.push(value)
       })
       expect(out).toEqual([b, a])
@@ -465,7 +465,7 @@ if (import.meta.vitest) {
       insert(buffer, 15, b)
       insert(buffer, 27, a)
       insert(buffer, 3, c)
-      drainTo(buffer, 17, value => {
+      drain_to(buffer, 17, value => {
         out.push(value)
       })
       expect(out).toEqual([c, b])
@@ -479,10 +479,10 @@ if (import.meta.vitest) {
       const d = "d"
       insert(buffer, 15, b)
       insert(buffer, 27, a)
-      drainTo(buffer, 30)
+      drain_to(buffer, 30)
       insert(buffer, 99, c)
       insert(buffer, 88, d)
-      drainTo(buffer, 100, value => {
+      drain_to(buffer, 100, value => {
         out.push(value)
       })
       expect(out).toEqual([d, c])
@@ -493,8 +493,8 @@ if (import.meta.vitest) {
       for (let i = 0; i < 100; i++) {
         insert(buffer, i, i)
       }
-      drainTo(buffer, 50)
-      drainTo(buffer, 50, value => {
+      drain_to(buffer, 50)
+      drain_to(buffer, 50, value => {
         out.push(value)
       })
       expect(out).toEqual([])
@@ -505,8 +505,8 @@ if (import.meta.vitest) {
       for (let i = 0; i < 100; i++) {
         insert(buffer, i, i)
       }
-      drainTo(buffer, 100)
-      drainTo(buffer, 175, value => {
+      drain_to(buffer, 100)
+      drain_to(buffer, 175, value => {
         out.push(value)
       })
       expect(out).toEqual([])

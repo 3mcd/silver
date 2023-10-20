@@ -15,6 +15,6 @@ export const bump = (changes: Changes, key: number): number => {
   return (changes[key] = get(changes, key) + 1)
 }
 
-export const makeKey = (entity: Entity.T, componentId: number): number => {
-  return Entity.make(Entity.parseEntityId(entity), componentId)
+export const make_key = (entity: Entity.T, component_id: number): number => {
+  return Entity.make(Entity.parse_entity_id(entity), component_id)
 }

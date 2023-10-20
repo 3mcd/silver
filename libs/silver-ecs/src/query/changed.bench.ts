@@ -13,9 +13,9 @@ const type = Type.make(A, B, C)
 const entities = Array.from({length: 1000}, (_, i) => Entity.make(i, 0))
 
 perf("compare 1000 entities with 3 components", () => {
-  const state = Changed.makeFilterState()
+  const state = Changed.make_filter_state()
   const changes = Changes.make()
-  const changed = Changed.compilePredicate(type, changes, state)
+  const changed = Changed.compile_predicate(type, changes, state)
   return () => {
     for (let i = 0; i < entities.length; i++) {
       changed(entities[i])

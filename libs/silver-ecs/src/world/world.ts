@@ -19,9 +19,9 @@ type GetSingle<U extends Component.T> = U extends Component.Relation<infer V>
 
 export class World {
   #stage
-  #entityNodes
-  #entityRegistry
-  #entityRelationshipNodes
+  #entity_nodes
+  #entity_registry
+  #entity_relationship_nodes
   #tick
   #transition
 
@@ -31,35 +31,35 @@ export class World {
 
   constructor(time: number) {
     this.#stage = Stage.make<Commands.T>()
-    this.#entityNodes = SparseMap.make<Graph.Node>()
-    this.#entityRegistry = EntityRegistry.make()
-    this.#entityRelationshipNodes = [] as Graph.Node[][]
+    this.#entity_nodes = SparseMap.make<Graph.Node>()
+    this.#entity_registry = EntityRegistry.make()
+    this.#entity_relationship_nodes = [] as Graph.Node[][]
     this.#tick = time
     this.#transition = Transition.make()
     this.graph = Graph.make()
     this.stores = [] as unknown[][]
     this.changes = Changes.make()
-    Signal.subscribe(this.graph.root.$created, this.#recordRelationNode)
+    Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
   }
 
   get tick() {
     return this.#tick
   }
 
-  store(componentId: number) {
-    const store = (this.stores[componentId] ??= [])
+  store(component_id: number) {
+    const store = (this.stores[component_id] ??= [])
     return store
   }
 
-  #move(entity: Entity.T, prevNode: Graph.Node, nextNode: Graph.Node) {
-    Graph.removeEntity(prevNode, entity)
-    Graph.insertEntity(nextNode, entity)
-    SparseMap.set(this.#entityNodes, entity, nextNode)
-    Transition.move(this.#transition, entity, prevNode, nextNode)
+  #move(entity: Entity.T, prev_node: Graph.Node, next_node: Graph.Node) {
+    Graph.remove_entity(prev_node, entity)
+    Graph.insert_entity(next_node, entity)
+    SparseMap.set(this.#entity_nodes, entity, next_node)
+    Transition.move(this.#transition, entity, prev_node, next_node)
   }
 
   #bump(entity: Entity.T, component: Component.T) {
-    Changes.bump(this.changes, Changes.makeKey(entity, component.id))
+    Changes.bump(this.changes, Changes.make_key(entity, component.id))
   }
 
   #write<U extends Component.Value | Component.Relation>(
@@ -71,188 +71,188 @@ export class World {
     this.#bump(entity, component)
   }
 
-  #writeMany(entity: Entity.T, type: Type.T, values: unknown[]) {
+  #write_many(entity: Entity.T, type: Type.T, values: unknown[]) {
     let j = 0
     for (let i = 0; i < type.components.length; i++) {
       const component = type.components[i]
-      if (Component.isRelationship(component)) {
+      if (Component.is_relationship(component)) {
         const value = (values[j++] as [Entity.T, unknown])[1]
         this.store(component.id)[entity] = value
       } else if (
-        Component.isValue(component) &&
-        !Component.isRelation(component)
+        Component.is_value(component) &&
+        !Component.is_relation(component)
       ) {
         this.#write(entity, component, values[j++])
       }
     }
   }
 
-  #writeRelationship<U extends Component.Relation>(
+  #write_relationship<U extends Component.Relation>(
     entity: Entity.T,
     component: U,
     parent: Entity.T,
     value: U extends Component.Relation<infer V> ? V : never,
   ) {
-    const relationshipComponentId = Entity.make(
-      Entity.parseEntityId(parent),
+    const relationship_component_id = Entity.make(
+      Entity.parse_entity_id(parent),
       component.id,
     )
-    this.store(relationshipComponentId)[entity] = value
+    this.store(relationship_component_id)[entity] = value
     this.#bump(entity, component)
   }
 
-  #commitSpawn(command: Commands.Spawn) {
+  #commit_spawn(command: Commands.Spawn) {
     const {entity, type, init} = command
     const node = Graph.resolve(this.graph, type)
-    Graph.insertEntity(node, entity)
-    this.#writeMany(entity, type, init)
+    Graph.insert_entity(node, entity)
+    this.#write_many(entity, type, init)
     this.#move(entity, this.graph.root, node)
   }
 
-  #commitDespawn(command: Commands.Despawn) {
+  #commit_despawn(command: Commands.Despawn) {
     const {entity} = command
-    const node = SparseMap.get(this.#entityNodes, entity)
+    const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity could not be located")
-    Graph.removeEntity(node, entity)
-    SparseMap.delete(this.#entityNodes, entity)
-    EntityRegistry.release(this.#entityRegistry, entity)
+    Graph.remove_entity(node, entity)
+    SparseMap.delete(this.#entity_nodes, entity)
+    EntityRegistry.release(this.#entity_registry, entity)
     for (let i = 0; i < node.type.components.length; i++) {
       const component = node.type.components[i]
-      if (Component.isValue(component)) {
+      if (Component.is_value(component)) {
         this.store(component.id)[entity] = undefined!
       }
     }
-    this.#clearEntityRelationships(entity)
+    this.#clear_entity_relationships(entity)
     Transition.move(this.#transition, entity, node, this.graph.root)
   }
 
-  #commitAdd(command: Commands.Add) {
+  #commit_add(command: Commands.Add) {
     const {entity, type, init} = command
-    const prevNode = SparseMap.get(this.#entityNodes, entity)
-    Assert.ok(prevNode !== undefined, DEBUG && "entity could not be located")
-    const nextType = Type.with(prevNode.type, type)
-    const nextNode = Graph.resolve(this.graph, nextType)
-    if (prevNode !== nextNode) {
-      this.#move(entity, prevNode, nextNode)
+    const prev_node = SparseMap.get(this.#entity_nodes, entity)
+    Assert.ok(prev_node !== undefined, DEBUG && "entity could not be located")
+    const next_type = Type.with(prev_node.type, type)
+    const next_node = Graph.resolve(this.graph, next_type)
+    if (prev_node !== next_node) {
+      this.#move(entity, prev_node, next_node)
     }
-    this.#writeMany(entity, type, init)
-    SparseMap.set(this.#entityNodes, entity, nextNode)
+    this.#write_many(entity, type, init)
+    SparseMap.set(this.#entity_nodes, entity, next_node)
   }
 
-  #commitRemove(command: Commands.Remove) {
+  #commit_remove(command: Commands.Remove) {
     const {entity, type} = command
-    const prevNode = SparseMap.get(this.#entityNodes, entity)
-    Assert.ok(prevNode !== undefined, DEBUG && "entity could not be located")
-    const nextType = Type.without(prevNode.type, type)
-    const nextNode = Graph.resolve(this.graph, nextType)
-    if (prevNode !== nextNode) {
-      this.#move(entity, prevNode, nextNode)
+    const prev_node = SparseMap.get(this.#entity_nodes, entity)
+    Assert.ok(prev_node !== undefined, DEBUG && "entity could not be located")
+    const next_type = Type.without(prev_node.type, type)
+    const next_node = Graph.resolve(this.graph, next_type)
+    if (prev_node !== next_node) {
+      this.#move(entity, prev_node, next_node)
     }
     for (let i = 0; i < type.components.length; i++) {
       const component = type.components[i]
-      if (Component.isRelationship(component)) {
+      if (Component.is_relationship(component)) {
         this.store(component.id)[entity] = undefined!
       } else if (
-        Component.isValue(component) &&
-        !Component.isRelation(component)
+        Component.is_value(component) &&
+        !Component.is_relation(component)
       ) {
         this.#write(entity, component, undefined!)
       }
     }
-    SparseMap.set(this.#entityNodes, entity, nextNode)
+    SparseMap.set(this.#entity_nodes, entity, next_node)
   }
 
-  #commitLink(command: Commands.Link) {
+  #commit_link(command: Commands.Link) {
     const {entity, type, parent, value} = command
-    const prevNode = SparseMap.get(this.#entityNodes, entity)
-    Assert.ok(prevNode !== undefined, DEBUG && "entity could not be located")
-    const component = type.componentSpec[0]
-    const nextType = Type.withComponent(
-      prevNode.type,
-      Component.makeRelationship(component, parent),
+    const prev_node = SparseMap.get(this.#entity_nodes, entity)
+    Assert.ok(prev_node !== undefined, DEBUG && "entity could not be located")
+    const component = type.component_spec[0]
+    const next_type = Type.with_component(
+      prev_node.type,
+      Component.make_relationship(component, parent),
     )
-    const nextNode = Graph.resolve(this.graph, nextType)
-    this.#move(entity, prevNode, nextNode)
+    const next_node = Graph.resolve(this.graph, next_type)
+    this.#move(entity, prev_node, next_node)
     this.#bump(entity, component)
-    if (Component.isValue(component)) {
-      this.#writeRelationship(entity, component, parent, value)
+    if (Component.is_value(component)) {
+      this.#write_relationship(entity, component, parent, value)
     }
   }
 
-  #commitUnlink(command: Commands.Unlink) {
+  #commit_unlink(command: Commands.Unlink) {
     const {entity, type, parent} = command
-    const prevNode = SparseMap.get(this.#entityNodes, entity)
-    Assert.ok(prevNode !== undefined, DEBUG && "entity could not be located")
-    const component = type.componentSpec[0]
-    const nextType = Type.withoutComponent(
-      prevNode.type,
-      Component.makeRelationship(component, parent),
+    const prev_node = SparseMap.get(this.#entity_nodes, entity)
+    Assert.ok(prev_node !== undefined, DEBUG && "entity could not be located")
+    const component = type.component_spec[0]
+    const next_type = Type.without_component(
+      prev_node.type,
+      Component.make_relationship(component, parent),
     )
-    const nextNode = Graph.resolve(this.graph, nextType)
-    this.#move(entity, prevNode, nextNode)
+    const next_node = Graph.resolve(this.graph, next_type)
+    this.#move(entity, prev_node, next_node)
     this.#bump(entity, component)
-    if (Component.isValue(component)) {
-      this.#writeRelationship(entity, component, parent, undefined!)
+    if (Component.is_value(component)) {
+      this.#write_relationship(entity, component, parent, undefined!)
     }
   }
 
-  #recordRelationNode = (node: Graph.Node) => {
+  #record_relation_node = (node: Graph.Node) => {
     for (let i = 0; i < node.type.relationships.length; i++) {
       const relationship = node.type.relationships[i]
-      const relationshipEntityId = Entity.parseEntityId(relationship.id)
-      const relationshipEntity = EntityRegistry.hydrate(
-        this.#entityRegistry,
-        relationshipEntityId,
+      const relationship_entity_id = Entity.parse_entity_id(relationship.id)
+      const relationship_entity = EntityRegistry.hydrate(
+        this.#entity_registry,
+        relationship_entity_id,
       )
-      const entityRelationshipNodes = (this.#entityRelationshipNodes[
-        relationshipEntity
+      const entity_relationship_nodes = (this.#entity_relationship_nodes[
+        relationship_entity
       ] ??= [])
-      entityRelationshipNodes.push(
+      entity_relationship_nodes.push(
         Graph.resolve(this.graph, Type.make(relationship)),
       )
     }
   }
 
-  #clearEntityRelationships(entity: Entity.T) {
-    const entityRelationshipNodes = this.#entityRelationshipNodes[entity]
-    if (entityRelationshipNodes === undefined) return
-    for (let i = 0; i < entityRelationshipNodes.length; i++) {
-      const relationshipNode = entityRelationshipNodes[i]
-      const relationshipComponent = relationshipNode.type.relationships[0]
-      const relationshipStore = this.store(relationshipComponent.id)
-      Graph.moveEntitiesRem(
+  #clear_entity_relationships(entity: Entity.T) {
+    const entity_relationship_nodes = this.#entity_relationship_nodes[entity]
+    if (entity_relationship_nodes === undefined) return
+    for (let i = 0; i < entity_relationship_nodes.length; i++) {
+      const relationship_node = entity_relationship_nodes[i]
+      const relationship_component = relationship_node.type.relationships[0]
+      const relationship_store = this.store(relationship_component.id)
+      Graph.move_entities_rem(
         this.graph,
-        relationshipNode,
-        relationshipComponent,
+        relationship_node,
+        relationship_component,
         (entity, node) => {
-          SparseMap.set(this.#entityNodes, entity, node)
-          relationshipStore[entity] = undefined!
+          SparseMap.set(this.#entity_nodes, entity, node)
+          relationship_store[entity] = undefined!
         },
       )
-      Graph.deleteNode(this.graph, relationshipNode)
+      Graph.delete_node(this.graph, relationship_node)
     }
-    this.#entityRelationshipNodes[entity] = undefined!
+    this.#entity_relationship_nodes[entity] = undefined!
   }
 
-  #applyCommand = (command: Commands.T) => {
+  #apply_command = (command: Commands.T) => {
     switch (command.kind) {
       case "spawn":
-        this.#commitSpawn(command)
+        this.#commit_spawn(command)
         break
       case "despawn":
-        this.#commitDespawn(command)
+        this.#commit_despawn(command)
         break
       case "add":
-        this.#commitAdd(command)
+        this.#commit_add(command)
         break
       case "remove":
-        this.#commitRemove(command)
+        this.#commit_remove(command)
         break
       case "link":
-        this.#commitLink(command)
+        this.#commit_link(command)
         break
       case "unlink":
-        this.#commitUnlink(command)
+        this.#commit_unlink(command)
         break
     }
   }
@@ -261,12 +261,12 @@ export class World {
     type: Type.Type<U>,
     ...values: Commands.Init<U>
   ): Entity.T {
-    const entity = EntityRegistry.retain(this.#entityRegistry)
+    const entity = EntityRegistry.retain(this.#entity_registry)
     Stage.insert(
       this.#stage,
       this.#tick,
       Commands.spawn(
-        Type.withRelationships(type, values) as Type.T<U>,
+        Type.with_relationships(type, values) as Type.T<U>,
         entity,
         values,
       ),
@@ -275,7 +275,7 @@ export class World {
   }
 
   despawn(entity: Entity.T) {
-    EntityRegistry.check(this.#entityRegistry, entity)
+    EntityRegistry.check(this.#entity_registry, entity)
     Stage.insert(this.#stage, this.#tick, Commands.despawn(entity))
   }
 
@@ -284,12 +284,12 @@ export class World {
     type: Type.Type<U>,
     ...values: Commands.Init<U>
   ) {
-    EntityRegistry.check(this.#entityRegistry, entity)
+    EntityRegistry.check(this.#entity_registry, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
       Commands.add(
-        Type.withRelationships(type, values) as Type.T<U>,
+        Type.with_relationships(type, values) as Type.T<U>,
         entity,
         values,
       ),
@@ -297,7 +297,7 @@ export class World {
   }
 
   remove<U extends Component.T[]>(entity: Entity.T, type: Type.Type<U>) {
-    EntityRegistry.check(this.#entityRegistry, entity)
+    EntityRegistry.check(this.#entity_registry, entity)
     Stage.insert(this.#stage, this.#tick, Commands.remove(type, entity))
   }
 
@@ -318,7 +318,7 @@ export class World {
     parent: Entity.T,
     value?: U extends Component.Relation<infer V> ? V : never,
   ) {
-    const node = SparseMap.get(this.#entityNodes, entity)
+    const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity could not be located")
     Stage.insert(
       this.#stage,
@@ -332,7 +332,7 @@ export class World {
     type: Type.Unitary<U>,
     parent: Entity.T,
   ) {
-    const node = SparseMap.get(this.#entityNodes, entity)
+    const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity could not be located")
     Stage.insert(this.#stage, this.#tick, Commands.unlink(entity, type, parent))
   }
@@ -342,14 +342,14 @@ export class World {
     type: Type.Unitary<U>,
     init: Commands.InitSingle<U>,
   ) {
-    const component = type.componentSpec[0]
-    const nextNode = SparseMap.get(this.#entityNodes, entity)
-    Assert.ok(nextNode !== undefined, DEBUG && "entity could not be located")
-    if (Component.isRelation(component)) {
+    const component = type.component_spec[0]
+    const next_node = SparseMap.get(this.#entity_nodes, entity)
+    Assert.ok(next_node !== undefined, DEBUG && "entity could not be located")
+    if (Component.is_relation(component)) {
       const [parent, value] = init as Commands.InitRelationship<
         U extends Component.Relation<infer V> ? V : never
       >
-      this.#writeRelationship(entity, component, parent, value)
+      this.#write_relationship(entity, component, parent, value)
     } else {
       this.#write(entity, component, init)
     }
@@ -358,7 +358,7 @@ export class World {
   step(time: number = this.#tick + 1) {
     Transition.drain(this.#transition, this.graph, "stage")
     while (this.#tick < time) {
-      Stage.drainTo(this.#stage, time, this.#applyCommand)
+      Stage.drain_to(this.#stage, time, this.#apply_command)
       this.#tick++
     }
   }
@@ -367,22 +367,22 @@ export class World {
     entity: Entity.T,
     type: Type.Unitary<U>,
   ): GetSingle<U> {
-    const node = SparseMap.get(this.#entityNodes, entity)
+    const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity could not be located")
-    const component = type.componentSpec[0]
-    if (Component.isRelation(component)) {
+    const component = type.component_spec[0]
+    if (Component.is_relation(component)) {
       const out = [] as Array<Commands.InitRelationship<unknown>>
       for (let i = 0; i < node.type.relationships.length; i++) {
         const relationship = node.type.relationships[i]
-        const relationshipRelationId = Entity.parseHi(relationship.id)
-        if (relationshipRelationId === component.id) {
-          const relationshipEntityId = Entity.parseEntityId(relationship.id)
-          const relationshipEntity = EntityRegistry.hydrate(
-            this.#entityRegistry,
-            relationshipEntityId,
+        const relationship_relation_id = Entity.parse_hi(relationship.id)
+        if (relationship_relation_id === component.id) {
+          const relationship_entity_id = Entity.parse_entity_id(relationship.id)
+          const relationship_entity = EntityRegistry.hydrate(
+            this.#entity_registry,
+            relationship_entity_id,
           )
-          const relationshipValue = this.store(relationship.id)[entity]
-          out.push([relationshipEntity, relationshipValue])
+          const relationship_value = this.store(relationship.id)[entity]
+          out.push([relationship_entity, relationship_value])
         }
       }
       return out as GetSingle<U>

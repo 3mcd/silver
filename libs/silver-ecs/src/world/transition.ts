@@ -8,17 +8,17 @@ import {exists} from "../assert"
 
 export type Iteratee = (
   batch: SparseSet.T<Entity.T>,
-  prevNode?: Graph.Node,
-  nextNode?: Graph.Node,
+  prev_node?: Graph.Node,
+  next_node?: Graph.Node,
 ) => void
 
-const makeBatchKey = (prevNodeId: number, nextNodeId: number) =>
-  (BigInt(nextNodeId) << 31n) | BigInt(prevNodeId)
+const make_batch_key = (prev_node_id: number, next_node_id: number) =>
+  (BigInt(next_node_id) << 31n) | BigInt(prev_node_id)
 
-const decomposeBatchKeyNext = (key: bigint) =>
+const decompose_batch_key_next = (key: bigint) =>
   Number((key & 0xffffffff00000000n) >> 31n)
 
-const decomposeBatchKeyPrev = (key: bigint) => Number(key & 0xffffffffn)
+const decompose_batch_key_prev = (key: bigint) => Number(key & 0xffffffffn)
 
 export class Event {
   phase
@@ -32,7 +32,7 @@ export class Event {
   }
 }
 
-const makeMoveEvent = (
+const make_move_event = (
   phase: string,
   entities: SparseSet.T<Entity.T>,
   node: Graph.Node,
@@ -40,82 +40,97 @@ const makeMoveEvent = (
   return new Event(phase, SparseSet.values(entities), node)
 }
 
-const emitSpawnedEntities = (
+const emit_spawned_entities = (
   phase: string,
   batch: SparseSet.T<Entity.T>,
-  nextNode: Graph.Node,
+  next_node: Graph.Node,
 ) => {
-  const event = makeMoveEvent(phase, batch, nextNode)
-  Graph.traversePrev(nextNode, function emitSpawnedEntities(node: Graph.Node) {
-    Signal.emit(node.$included, event)
-  })
-}
-
-const emitIncludedEntities = (
-  phase: string,
-  entities: SparseSet.T<Entity.T>,
-  prevNode: Graph.Node,
-  nextNode: Graph.Node,
-) => {
-  const event = makeMoveEvent(phase, entities, nextNode)
-  Graph.traversePrev(nextNode, function emitIncludedEntities(node: Graph.Node) {
-    if (node !== prevNode && !Type.isSuperset(prevNode.type, node.type)) {
+  const event = make_move_event(phase, batch, next_node)
+  Graph.traverse_prev(
+    next_node,
+    function emit_spawned_entities(node: Graph.Node) {
       Signal.emit(node.$included, event)
-    }
-  })
+    },
+  )
 }
 
-const emitExcludedEntities = (
+const emit_included_entities = (
   phase: string,
   entities: SparseSet.T<Entity.T>,
-  prevNode: Graph.Node,
-  nextNode: Graph.Node,
+  prev_node: Graph.Node,
+  next_node: Graph.Node,
 ) => {
-  const event = makeMoveEvent(phase, entities, prevNode)
-  Graph.traversePrev(prevNode, function emitExcludedEntities(node: Graph.Node) {
-    if (node !== nextNode && !Type.isSuperset(node.type, nextNode.type)) {
-      Signal.emit(node.$excluded, event)
-    }
-  })
+  const event = make_move_event(phase, entities, next_node)
+  Graph.traverse_prev(
+    next_node,
+    function emit_included_entities(node: Graph.Node) {
+      if (node !== prev_node && !Type.is_superset(prev_node.type, node.type)) {
+        Signal.emit(node.$included, event)
+      }
+    },
+  )
 }
 
-const emitDespawnedEntities = (
+const emit_excluded_entities = (
   phase: string,
   entities: SparseSet.T<Entity.T>,
-  prevNode: Graph.Node,
+  prev_node: Graph.Node,
+  next_node: Graph.Node,
 ) => {
-  const event = makeMoveEvent(phase, entities, prevNode)
-  Graph.traversePrev(
-    prevNode,
-    function emitDespawnedEntities(node: Graph.Node) {
+  const event = make_move_event(phase, entities, prev_node)
+  Graph.traverse_prev(
+    prev_node,
+    function emit_excluded_entities(node: Graph.Node) {
+      if (node !== next_node && !Type.is_superset(node.type, next_node.type)) {
+        Signal.emit(node.$excluded, event)
+      }
+    },
+  )
+}
+
+const emit_despawned_entities = (
+  phase: string,
+  entities: SparseSet.T<Entity.T>,
+  prev_node: Graph.Node,
+) => {
+  const event = make_move_event(phase, entities, prev_node)
+  Graph.traverse_prev(
+    prev_node,
+    function emit_despawned_entities(node: Graph.Node) {
       Signal.emit(node.$excluded, event)
     },
   )
 }
 
-const emitMovedEntities = (
+const emit_moved_entities = (
   phase: string,
   entities: SparseSet.T<Entity.T>,
-  prevNode: Graph.Node,
-  nextNode: Graph.Node,
+  prev_node: Graph.Node,
+  next_node: Graph.Node,
 ) => {
-  const included = makeMoveEvent(phase, entities, nextNode)
-  const excluded = makeMoveEvent(phase, entities, prevNode)
-  Graph.traversePrev(nextNode, function emitIncludedEntities(node: Graph.Node) {
-    Signal.emit(node.$included, included)
-  })
-  Graph.traversePrev(prevNode, function emitExcludedEntities(node: Graph.Node) {
-    Signal.emit(node.$excluded, excluded)
-  })
+  const included = make_move_event(phase, entities, next_node)
+  const excluded = make_move_event(phase, entities, prev_node)
+  Graph.traverse_prev(
+    next_node,
+    function emit_included_entities(node: Graph.Node) {
+      Signal.emit(node.$included, included)
+    },
+  )
+  Graph.traverse_prev(
+    prev_node,
+    function emit_excluded_entities(node: Graph.Node) {
+      Signal.emit(node.$excluded, excluded)
+    },
+  )
 }
 
 class Transition {
-  entityIndex
-  entityBatches
+  entity_index
+  entity_batches
 
   constructor() {
-    this.entityIndex = SparseMap.make<bigint>()
-    this.entityBatches = new Map<bigint, SparseSet.T<Entity.T>>()
+    this.entity_index = SparseMap.make<bigint>()
+    this.entity_batches = new Map<bigint, SparseSet.T<Entity.T>>()
   }
 }
 export type T = Transition
@@ -126,64 +141,67 @@ export const drain = (
   phase: string,
   iteratee?: Iteratee,
 ) => {
-  if (transition.entityBatches.size === 0) {
+  if (transition.entity_batches.size === 0) {
     return
   }
-  const emitEntities = (entities: SparseSet.T<Entity.T>, batchKey: bigint) => {
-    const prevNodeId = decomposeBatchKeyPrev(batchKey)
-    const nextNodeId = decomposeBatchKeyNext(batchKey)
-    const prevNode = Graph.findById(graph, prevNodeId)
-    const nextNode = Graph.findById(graph, nextNodeId)
-    iteratee?.(entities, prevNode, nextNode)
-    if (prevNode && prevNode !== graph.root) {
-      if (nextNodeId === graph.root.id) {
-        emitDespawnedEntities(phase, entities, prevNode)
+  const emit_entities = (
+    entities: SparseSet.T<Entity.T>,
+    batch_key: bigint,
+  ) => {
+    const prev_node_id = decompose_batch_key_prev(batch_key)
+    const next_node_id = decompose_batch_key_next(batch_key)
+    const prev_node = Graph.find_by_id(graph, prev_node_id)
+    const next_node = Graph.find_by_id(graph, next_node_id)
+    iteratee?.(entities, prev_node, next_node)
+    if (prev_node && prev_node !== graph.root) {
+      if (next_node_id === graph.root.id) {
+        emit_despawned_entities(phase, entities, prev_node)
       } else {
-        const nextNode = exists(Graph.findById(graph, nextNodeId))
-        if (Type.isSuperset(nextNode.type, prevNode.type)) {
-          emitIncludedEntities(phase, entities, prevNode, nextNode)
-        } else if (Type.isSuperset(prevNode.type, nextNode.type)) {
-          emitExcludedEntities(phase, entities, prevNode, nextNode)
+        const next_node = exists(Graph.find_by_id(graph, next_node_id))
+        if (Type.is_superset(next_node.type, prev_node.type)) {
+          emit_included_entities(phase, entities, prev_node, next_node)
+        } else if (Type.is_superset(prev_node.type, next_node.type)) {
+          emit_excluded_entities(phase, entities, prev_node, next_node)
         } else {
-          emitMovedEntities(phase, entities, prevNode, nextNode)
+          emit_moved_entities(phase, entities, prev_node, next_node)
         }
       }
     } else {
-      emitSpawnedEntities(phase, entities, exists(nextNode))
+      emit_spawned_entities(phase, entities, exists(next_node))
     }
   }
-  transition.entityBatches.forEach(emitEntities)
-  transition.entityBatches.clear()
-  SparseMap.clear(transition.entityIndex)
+  transition.entity_batches.forEach(emit_entities)
+  transition.entity_batches.clear()
+  SparseMap.clear(transition.entity_index)
 }
 
 export const locate = (transition: T, entity: Entity.T): number | undefined => {
-  const currBatchKey = SparseMap.get(transition.entityIndex, entity)
-  if (currBatchKey === undefined) {
+  const curr_batch_key = SparseMap.get(transition.entity_index, entity)
+  if (curr_batch_key === undefined) {
     return
   }
-  return decomposeBatchKeyNext(currBatchKey)
+  return decompose_batch_key_next(curr_batch_key)
 }
 
 export const move = (
   transition: T,
   entity: Entity.T,
-  prevNode: Graph.Node,
-  nextNode: Graph.Node,
+  prev_node: Graph.Node,
+  next_node: Graph.Node,
 ) => {
-  const prevBatchKey = SparseMap.get(transition.entityIndex, entity) ?? 0n
-  const prevBatch = transition.entityBatches.get(prevBatchKey)
-  if (prevBatch !== undefined) {
-    SparseSet.delete(prevBatch, entity)
+  const prev_batch_key = SparseMap.get(transition.entity_index, entity) ?? 0n
+  const prev_batch = transition.entity_batches.get(prev_batch_key)
+  if (prev_batch !== undefined) {
+    SparseSet.delete(prev_batch, entity)
   }
-  const nextBatchKey = makeBatchKey(prevNode.id, nextNode.id)
-  let nextBatch = transition.entityBatches.get(nextBatchKey)
-  if (nextBatch === undefined) {
-    nextBatch = SparseSet.make()
-    transition.entityBatches.set(nextBatchKey, nextBatch)
+  const next_batch_key = make_batch_key(prev_node.id, next_node.id)
+  let next_batch = transition.entity_batches.get(next_batch_key)
+  if (next_batch === undefined) {
+    next_batch = SparseSet.make()
+    transition.entity_batches.set(next_batch_key, next_batch)
   }
-  SparseSet.add(nextBatch, entity)
-  SparseMap.set(transition.entityIndex, entity, nextBatchKey)
+  SparseSet.add(next_batch, entity)
+  SparseMap.set(transition.entity_index, entity, next_batch_key)
 }
 
 export const make = (): T => new Transition()

@@ -21,74 +21,75 @@ export const make = (
 ): T => new EntityRegistry(head, generations, free)
 
 export const check = (registry: T, entity: Entity.T) => {
-  Entity.assertValid(entity)
-  const entityId = Entity.parseEntityId(entity)
-  const entityGen = Entity.parseHi(entity)
+  Entity.assert_valid(entity)
+  const entity_id = Entity.parse_entity_id(entity)
+  const entity_gen = Entity.parse_hi(entity)
   Assert.ok(
-    checkGeneration(registry, entityId, entityGen),
+    check_generation(registry, entity_id, entity_gen),
     DEBUG && "Entity version is invalid. Was it deleted?",
   )
-  return entityId
+  return entity_id
 }
 
-export const hydrate = (registry: T, entityId: number): Entity.T => {
-  const entityGen = registry.generations[entityId] ?? 0
-  return Entity.make(entityId, entityGen)
+export const hydrate = (registry: T, entity_id: number): Entity.T => {
+  const entity_gen = registry.generations[entity_id] ?? 0
+  return Entity.make(entity_id, entity_gen)
 }
 
-export const checkGeneration = (
+export const check_generation = (
   registry: T,
-  entityId: number,
-  entityGen: number,
+  entity_id: number,
+  entity_gen: number,
 ) => {
-  return registry.generations[entityId] === entityGen
+  return registry.generations[entity_id] === entity_gen
 }
 
 export const retain = (registry: T): Entity.T => {
-  let entityId: number
-  let entityGen: number
+  let entity_id: number
+  let entity_gen: number
   if (registry.free.length > 0) {
-    entityId = Assert.exists(registry.free.pop())
-    entityGen = registry.generations[entityId] ?? 0
+    entity_id = Assert.exists(registry.free.pop())
+    entity_gen = registry.generations[entity_id] ?? 0
   } else {
     // Skip over reserved entity ids.
     while (registry.generations[registry.head] !== undefined) {
       registry.head++
     }
-    Entity.assertValidId(registry.head)
-    entityId = registry.head
-    entityGen = registry.generations[entityId] = 0
+    Entity.assert_valid_id(registry.head)
+    entity_id = registry.head
+    entity_gen = registry.generations[entity_id] = 0
   }
-  return Entity.make(entityId, entityGen)
+  return Entity.make(entity_id, entity_gen)
 }
 
 export const release = (registry: T, entity: Entity.T) => {
-  Entity.assertValid(entity)
-  const entityId = Entity.parseEntityId(entity)
-  const entityGen = Entity.parseHi(entity)
+  Entity.assert_valid(entity)
+  const entity_id = Entity.parse_entity_id(entity)
+  const entity_gen = Entity.parse_hi(entity)
   Assert.ok(
-    checkGeneration(registry, entityId, entityGen),
+    check_generation(registry, entity_id, entity_gen),
     DEBUG && "Entity version is invalid. Was it deleted?",
   )
   // Recycle the entity id if the entity can be invalidated.
-  if (entityGen < Entity.HI) {
-    registry.free.push(entityId)
-    registry.generations[entityId] = entityGen + 1
+  if (entity_gen < Entity.HI) {
+    registry.free.push(entity_id)
+    registry.generations[entity_id] = entity_gen + 1
   }
 }
 
 export const rollback = (registry: T, entity: Entity.T) => {
-  Entity.assertValid(entity)
-  const entityId = Entity.parseEntityId(entity)
-  const entityGen = Entity.parseHi(entity)
-  registry.generations[entityId] = entityGen === 0 ? undefined! : entityGen - 1
-  registry.free.push(entityId)
+  Entity.assert_valid(entity)
+  const entity_id = Entity.parse_entity_id(entity)
+  const entity_gen = Entity.parse_hi(entity)
+  registry.generations[entity_id] =
+    entity_gen === 0 ? undefined! : entity_gen - 1
+  registry.free.push(entity_id)
 }
 
 if (import.meta.vitest) {
   const {describe, it, expect} = await import("vitest")
 
-  describe("entityRegistry", () => {
+  describe("entity_registry", () => {
     it("allocates entities", () => {
       const registry = make()
       const entity = retain(registry)
@@ -99,26 +100,26 @@ if (import.meta.vitest) {
       const registry = make()
       const entity = retain(registry)
       release(registry, entity)
-      expect(() => check(registry, entity)).toThrow()
+      expect(() => check(registry, entity)).to_throw()
     })
 
     it("recycles entity ids", () => {
       const registry = make()
-      const entityA = retain(registry)
-      release(registry, entityA)
-      const entityB = retain(registry)
-      expect(Entity.parseEntityId(entityA)).to.equal(
-        Entity.parseEntityId(entityB),
+      const entity_a = retain(registry)
+      release(registry, entity_a)
+      const entity_b = retain(registry)
+      expect(Entity.parse_entity_id(entity_a)).to.equal(
+        Entity.parse_entity_id(entity_b),
       )
     })
 
     it("recycles generations", () => {
       const registry = make()
-      const entityA = retain(registry)
-      release(registry, entityA)
-      const entityB = retain(registry)
-      expect(Entity.parseHi(entityA)).to.equal(0)
-      expect(Entity.parseHi(entityB)).to.equal(1)
+      const entity_a = retain(registry)
+      release(registry, entity_a)
+      const entity_b = retain(registry)
+      expect(Entity.parse_hi(entity_a)).to.equal(0)
+      expect(Entity.parse_hi(entity_b)).to.equal(1)
     })
 
     it("throws when the limit of active registry is surpassed", () => {
@@ -136,11 +137,11 @@ if (import.meta.vitest) {
 
     it("does not recycle entity ids when they reach the maximum generation", () => {
       const registry = make(1, [Entity.HI])
-      const entityA = Entity.make(0, Entity.HI)
-      release(registry, entityA)
-      const entityB = retain(registry)
-      expect(Entity.parseEntityId(entityA)).not.to.equal(
-        Entity.parseEntityId(entityB),
+      const entity_a = Entity.make(0, Entity.HI)
+      release(registry, entity_a)
+      const entity_b = retain(registry)
+      expect(Entity.parse_entity_id(entity_a)).not.to.equal(
+        Entity.parse_entity_id(entity_b),
       )
     })
 
@@ -162,7 +163,7 @@ if (import.meta.vitest) {
       const registry = make()
       const entity = retain(registry)
       rollback(registry, entity)
-      expect(() => check(registry, entity)).toThrow()
+      expect(() => check(registry, entity)).to_throw()
       expect(retain(registry)).to.equal(entity)
     })
   })

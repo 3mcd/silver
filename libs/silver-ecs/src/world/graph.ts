@@ -5,18 +5,18 @@ import * as Signal from "../signal"
 import * as SparseSet from "../sparse/sparse_set"
 import * as Transition from "./transition"
 
-type NodeIteratee = (node: Node) => boolean | void
+type Node_iteratee = (node: Node) => boolean | void
 
-let nextNodeId = 0
-const makeNodeId = () => nextNodeId++
+let next_node_id = 0
+const make_node_id = () => next_node_id++
 
 export class Node {
   $created
   $excluded
   $included
   $removed
-  edgesNext
-  edgesPrev
+  edges_next
+  edges_prev
   entities
   id
   type
@@ -26,184 +26,187 @@ export class Node {
     this.$excluded = Signal.make<Transition.Event>()
     this.$included = Signal.make<Transition.Event>()
     this.$removed = Signal.make<Node>()
-    this.edgesNext = new Map<number, Node>()
-    this.edgesPrev = new Map<number, Node>()
+    this.edges_next = new Map<number, Node>()
+    this.edges_prev = new Map<number, Node>()
     this.entities = SparseSet.make<Entity.T>()
-    this.id = makeNodeId()
+    this.id = make_node_id()
     this.type = type
   }
 }
 
-const unlinkNodes = (
-  nextNode: Node,
-  prevNode: Node,
-  xor = Type.xor(nextNode.type, prevNode.type),
+const unlink_nodes = (
+  next_node: Node,
+  prev_node: Node,
+  xor = Type.xor(next_node.type, prev_node.type),
 ): void => {
-  nextNode.edgesPrev.delete(xor)
-  prevNode.edgesNext.delete(xor)
+  next_node.edges_prev.delete(xor)
+  prev_node.edges_next.delete(xor)
 }
 
-const linkNodes = (
-  nextNode: Node,
-  prevNode: Node,
-  xor = Type.xor(nextNode.type, prevNode.type),
+const link_nodes = (
+  next_node: Node,
+  prev_node: Node,
+  xor = Type.xor(next_node.type, prev_node.type),
 ): void => {
-  nextNode.edgesPrev.set(xor, prevNode)
-  prevNode.edgesNext.set(xor, nextNode)
+  next_node.edges_prev.set(xor, prev_node)
+  prev_node.edges_next.set(xor, next_node)
 }
 
-export const insertEntity = (node: Node, entity: Entity.T): void => {
+export const insert_entity = (node: Node, entity: Entity.T): void => {
   SparseSet.add(node.entities, entity)
 }
 
-export const removeEntity = (node: Node, entity: Entity.T): void => {
+export const remove_entity = (node: Node, entity: Entity.T): void => {
   SparseSet.delete(node.entities, entity)
 }
 
-export const traverse = (node: Node, iteratee: NodeIteratee): void => {
+export const traverse = (node: Node, iteratee: Node_iteratee): void => {
   const stack: Node[] = [node]
   const visited = new Set<Node>()
   let cursor = 1
   while (cursor > 0) {
-    const currNode = stack[--cursor]
-    if (visited.has(currNode) || iteratee(currNode) === false) continue
-    visited.add(currNode)
-    currNode.edgesNext.forEach(function traverseNext(nextNode) {
-      stack[cursor++] = nextNode
+    const curr_node = stack[--cursor]
+    if (visited.has(curr_node) || iteratee(curr_node) === false) continue
+    visited.add(curr_node)
+    curr_node.edges_next.forEach(function traverse_next(next_node) {
+      stack[cursor++] = next_node
     })
   }
 }
 
-export const traversePrev = (node: Node, iteratee: NodeIteratee): void => {
+export const traverse_prev = (node: Node, iteratee: Node_iteratee): void => {
   const stack: Node[] = [node]
   const visited = new Set<Node>()
   let cursor = 1
   while (cursor > 0) {
-    const currNode = stack[--cursor]
-    if (visited.has(currNode) || iteratee(currNode) === false) continue
-    visited.add(currNode)
-    currNode.edgesPrev.forEach(function traversePrev(prevNode) {
-      stack[cursor++] = prevNode
+    const curr_node = stack[--cursor]
+    if (visited.has(curr_node) || iteratee(curr_node) === false) continue
+    visited.add(curr_node)
+    curr_node.edges_prev.forEach(function traverse_prev(prev_node) {
+      stack[cursor++] = prev_node
     })
   }
 }
 
-const linkNodesTraverse = (graph: Graph, node: Node): void => {
-  traverse(graph.root, function traverseLink(visitedNode) {
-    if (Type.isSuperset(visitedNode.type, node.type)) {
-      linkNodes(visitedNode, node)
+const link_nodes_traverse = (graph: Graph, node: Node): void => {
+  traverse(graph.root, function traverse_link(visited_node) {
+    if (Type.is_superset(visited_node.type, node.type)) {
+      link_nodes(visited_node, node)
       return false
     }
-    if (Type.isSuperset(node.type, visitedNode.type)) {
+    if (Type.is_superset(node.type, visited_node.type)) {
       // Otherwise, look ahead for nodes that are also supersets of the
       // inserted node and create an intermediate edge.
-      for (const nextNode of visitedNode.edgesNext.values()) {
-        // node=[a,b,d] visitedNode=[a,b]->[a,b,d,e] result=[a,b]->[a,b,d]->[a,b,d,e]
-        if (Type.isSuperset(nextNode.type, node.type)) {
-          unlinkNodes(nextNode, visitedNode)
-          linkNodes(nextNode, node)
-        } else if (Type.supersetMayContain(nextNode.type, node.type)) {
+      for (const next_node of visited_node.edges_next.values()) {
+        // node=[a,b,d] visited_node=[a,b]->[a,b,d,e] result=[a,b]->[a,b,d]->[a,b,d,e]
+        if (Type.is_superset(next_node.type, node.type)) {
+          unlink_nodes(next_node, visited_node)
+          link_nodes(next_node, node)
+        } else if (Type.superset_may_contain(next_node.type, node.type)) {
           return true
         }
       }
-      linkNodes(node, visitedNode)
+      link_nodes(node, visited_node)
       return false
     }
-    return Type.supersetMayContain(visitedNode.type, node.type)
+    return Type.superset_may_contain(visited_node.type, node.type)
   })
 }
 
-const emitNodeTraverse = (node: Node): void => {
-  traversePrev(node, function emitNode(visit) {
+const emit_node_traverse = (node: Node): void => {
+  traverse_prev(node, function emit_node(visit) {
     Signal.emit(visit.$created, node)
   })
 }
 
-const insertNode = (graph: Graph, type: Type.T): Node => {
+const insert_node = (graph: Graph, type: Type.T): Node => {
   let node: Node = graph.root
   for (let i = 0; i < type.components.length; i++) {
-    const nextType = Type.withComponent(node.type, type.components[i])
-    let nextNode = graph.nodesByComponentsHash.get(nextType.hash)
-    if (nextNode === undefined) {
-      nextNode = new Node(nextType)
-      graph.nodesByComponentsHash.set(nextType.hash, nextNode)
-      graph.nodesById[nextNode.id] = nextNode
-      linkNodes(nextNode, node, Type.xor(nextNode.type, node.type))
-      linkNodesTraverse(graph, nextNode)
-      emitNodeTraverse(nextNode)
+    const next_type = Type.with_component(node.type, type.components[i])
+    let next_node = graph.nodes_by_components_hash.get(next_type.hash)
+    if (next_node === undefined) {
+      next_node = new Node(next_type)
+      graph.nodes_by_components_hash.set(next_type.hash, next_node)
+      graph.nodes_by_id[next_node.id] = next_node
+      link_nodes(next_node, node, Type.xor(next_node.type, node.type))
+      link_nodes_traverse(graph, next_node)
+      emit_node_traverse(next_node)
     }
-    node = nextNode
+    node = next_node
   }
   return node
 }
 
-const dropNode = (graph: Graph, node: Node): void => {
-  node.edgesNext.forEach(function dropNodeUnlinkNext(nextNode, xor) {
-    unlinkNodes(nextNode, node, xor)
+const drop_node = (graph: Graph, node: Node): void => {
+  node.edges_next.forEach(function drop_node_unlink_next(next_node, xor) {
+    unlink_nodes(next_node, node, xor)
   })
-  node.edgesPrev.forEach(function dropNodeUnlinkPrev(prevNode, xor) {
-    unlinkNodes(node, prevNode, xor)
+  node.edges_prev.forEach(function drop_node_unlink_prev(prev_node, xor) {
+    unlink_nodes(node, prev_node, xor)
   })
-  graph.nodesByComponentsHash.delete(node.type.hash)
-  graph.nodesById[node.id] = undefined!
+  graph.nodes_by_components_hash.delete(node.type.hash)
+  graph.nodes_by_id[node.id] = undefined!
   Signal.dispose(node.$removed)
   Signal.dispose(node.$created)
 }
 
-export const deleteNode = (graph: Graph, node: Node): void => {
-  const droppedNodes: Node[] = []
+export const delete_node = (graph: Graph, node: Node): void => {
+  const dropped_nodes: Node[] = []
   // for every node to the right of the deleted node (inclusive)
-  traverse(node, function traverseDrop(nextNode) {
+  traverse(node, function traverse_drop(next_node) {
     // notify nodes to the left that it is being dropped
-    traversePrev(nextNode, function traverseRemDrop(visit) {
-      Signal.emit(visit.$removed, nextNode)
+    traverse_prev(next_node, function traverse_rem_drop(visit) {
+      Signal.emit(visit.$removed, next_node)
     })
-    droppedNodes.push(nextNode)
+    dropped_nodes.push(next_node)
   })
   // release nodes to the right of the deleted node
-  for (let i = 0; i < droppedNodes.length; i++) {
-    dropNode(graph, droppedNodes[i])
+  for (let i = 0; i < dropped_nodes.length; i++) {
+    drop_node(graph, dropped_nodes[i])
   }
 }
 
-export const moveEntitiesRem = (
+export const move_entities_rem = (
   graph: Graph,
   node: Node,
   component: Component.T,
   iteratee: (entity: Entity.T, node: Node) => void,
 ): void => {
-  traverse(node, function traverseMoveEntitiesRem(nextNode) {
-    const prevType = Type.withoutComponent(nextNode.type, component)
-    const prevNode = resolve(graph, prevType)
-    SparseSet.each(nextNode.entities, function moveEntitiesRemInner(entity) {
-      removeEntity(nextNode, entity)
-      insertEntity(prevNode, entity)
-      iteratee(entity, prevNode)
-    })
+  traverse(node, function traverse_move_entities_rem(next_node) {
+    const prev_type = Type.without_component(next_node.type, component)
+    const prev_node = resolve(graph, prev_type)
+    SparseSet.each(
+      next_node.entities,
+      function move_entities_rem_inner(entity) {
+        remove_entity(next_node, entity)
+        insert_entity(prev_node, entity)
+        iteratee(entity, prev_node)
+      },
+    )
   })
 }
 
 export const resolve = (graph: Graph, type: Type.T): Node => {
   const node =
-    graph.nodesByComponentsHash.get(type.hash) ?? insertNode(graph, type)
+    graph.nodes_by_components_hash.get(type.hash) ?? insert_node(graph, type)
   return node
 }
 
-export const findById = (graph: Graph, hash: number): Node | undefined => {
-  return graph.nodesById[hash]
+export const find_by_id = (graph: Graph, hash: number): Node | undefined => {
+  return graph.nodes_by_id[hash]
 }
 
 class Graph {
-  nodesById
-  nodesByComponentsHash
+  nodes_by_id
+  nodes_by_components_hash
   root
 
   constructor() {
     this.root = new Node()
-    this.nodesById = [] as Node[]
-    this.nodesByComponentsHash = new Map<number, Node>()
-    this.nodesByComponentsHash.set(this.root.type.hash, this.root)
-    this.nodesById[this.root.id] = this.root
+    this.nodes_by_id = [] as Node[]
+    this.nodes_by_components_hash = new Map<number, Node>()
+    this.nodes_by_components_hash.set(this.root.type.hash, this.root)
+    this.nodes_by_id[this.root.id] = this.root
   }
 }
 export type T = Graph
@@ -229,15 +232,15 @@ if (import.meta.vitest) {
     })
     it("unlinks nodes adjacent to deleted ones", () => {
       const graph = make()
-      const nodeA = resolve(graph, A)
-      const nodeB = resolve(graph, B)
-      const nodeC = resolve(graph, C)
-      const nodeAbc = resolve(graph, ABC)
-      deleteNode(graph, nodeB)
-      expect(nodeA.edgesNext.size).toBe(0)
-      expect(nodeB.edgesNext.size).toBe(0)
-      expect(nodeC.edgesNext.size).toBe(0)
-      expect(nodeAbc.edgesPrev.size).toBe(0)
+      const node_a = resolve(graph, A)
+      const node_b = resolve(graph, B)
+      const node_c = resolve(graph, C)
+      const node_abc = resolve(graph, ABC)
+      delete_node(graph, node_b)
+      expect(node_a.edges_next.size).toBe(0)
+      expect(node_b.edges_next.size).toBe(0)
+      expect(node_c.edges_next.size).toBe(0)
+      expect(node_abc.edges_prev.size).toBe(0)
     })
     it("traverses nodes left to right", () => {
       const graph = make()
@@ -259,11 +262,11 @@ if (import.meta.vitest) {
     it("traverses nodes right to left", () => {
       const graph = make()
       const visited: number[] = []
-      const nodeAbc = resolve(graph, ABC)
+      const node_abc = resolve(graph, ABC)
       resolve(graph, B)
       resolve(graph, C)
       resolve(graph, D)
-      traversePrev(nodeAbc, node => {
+      traverse_prev(node_abc, node => {
         visited.push(node.type.hash)
       })
       expect(visited.length).toBe(6)
@@ -276,83 +279,83 @@ if (import.meta.vitest) {
     })
     it("inserts entities", () => {
       const graph = make()
-      const nodeA = resolve(graph, A)
+      const node_a = resolve(graph, A)
       const entity = Entity.make(0, 0)
-      insertEntity(nodeA, entity)
-      expect(SparseSet.has(nodeA.entities, entity)).toBe(true)
+      insert_entity(node_a, entity)
+      expect(SparseSet.has(node_a.entities, entity)).toBe(true)
     })
     it("removes entities", () => {
       const graph = make()
-      const nodeA = resolve(graph, A)
+      const node_a = resolve(graph, A)
       const entity = Entity.make(0, 0)
-      insertEntity(nodeA, entity)
-      removeEntity(nodeA, entity)
-      expect(SparseSet.has(nodeA.entities, entity)).toBe(false)
+      insert_entity(node_a, entity)
+      remove_entity(node_a, entity)
+      expect(SparseSet.has(node_a.entities, entity)).toBe(false)
     })
     it("moves entities from the right to left", () => {
       const graph = make()
-      const nodeAbc = resolve(graph, ABC)
-      const nodeAb = resolve(graph, AB)
+      const node_abc = resolve(graph, ABC)
+      const node_ab = resolve(graph, AB)
       const entity = Entity.make(0, 0)
       const moved: Entity.T[] = []
-      insertEntity(nodeAbc, entity)
-      moveEntitiesRem(graph, nodeAbc, C.components[0], entity => {
+      insert_entity(node_abc, entity)
+      move_entities_rem(graph, node_abc, C.components[0], entity => {
         moved.push(entity)
       })
       expect(moved.length).toBe(1)
       expect(moved).toContain(entity)
-      expect(SparseSet.has(nodeAbc.entities, entity)).toBe(false)
-      expect(SparseSet.has(nodeAb.entities, entity)).toBe(true)
+      expect(SparseSet.has(node_abc.entities, entity)).toBe(false)
+      expect(SparseSet.has(node_ab.entities, entity)).toBe(true)
     })
     it("emits inserted signal", () => {
       const graph = make()
-      const nodeA = resolve(graph, A)
-      const nodeB = resolve(graph, B)
-      const nodeC = resolve(graph, C)
-      const nodeAb = resolve(graph, AB)
+      const node_a = resolve(graph, A)
+      const node_b = resolve(graph, B)
+      const node_c = resolve(graph, C)
+      const node_ab = resolve(graph, AB)
       const visited = {a: [], b: [], c: [], ab: []} as Record<string, Node[]>
-      Signal.subscribe(nodeA.$created, node => visited.a.push(node))
-      Signal.subscribe(nodeB.$created, node => visited.b.push(node))
-      Signal.subscribe(nodeC.$created, node => visited.c.push(node))
-      Signal.subscribe(nodeAb.$created, node => visited.ab.push(node))
-      const nodeBc = resolve(graph, BC)
-      const nodeAbc = resolve(graph, ABC)
+      Signal.subscribe(node_a.$created, node => visited.a.push(node))
+      Signal.subscribe(node_b.$created, node => visited.b.push(node))
+      Signal.subscribe(node_c.$created, node => visited.c.push(node))
+      Signal.subscribe(node_ab.$created, node => visited.ab.push(node))
+      const node_bc = resolve(graph, BC)
+      const node_abc = resolve(graph, ABC)
       expect(visited.a.length).toBe(1)
-      expect(visited.a).toContain(nodeAbc)
+      expect(visited.a).toContain(node_abc)
       expect(visited.b.length).toBe(2)
-      expect(visited.b).toContain(nodeAbc)
-      expect(visited.b).toContain(nodeBc)
+      expect(visited.b).toContain(node_abc)
+      expect(visited.b).toContain(node_bc)
       expect(visited.c.length).toBe(2)
-      expect(visited.b).toContain(nodeAbc)
-      expect(visited.b).toContain(nodeBc)
+      expect(visited.b).toContain(node_abc)
+      expect(visited.b).toContain(node_bc)
       expect(visited.ab.length).toBe(1)
-      expect(visited.ab).toContain(nodeAbc)
+      expect(visited.ab).toContain(node_abc)
     })
     it("emits disposed signal", () => {
       const graph = make()
-      const nodeA = resolve(graph, A)
-      const nodeB = resolve(graph, B)
-      const nodeC = resolve(graph, C)
-      const nodeAb = resolve(graph, AB)
+      const node_a = resolve(graph, A)
+      const node_b = resolve(graph, B)
+      const node_c = resolve(graph, C)
+      const node_ab = resolve(graph, AB)
       const visited = {a: [], b: [], c: [], ab: []} as Record<string, Node[]>
-      Signal.subscribe(nodeA.$removed, node => visited.a.push(node))
-      Signal.subscribe(nodeB.$removed, node => visited.b.push(node))
-      Signal.subscribe(nodeC.$removed, node => visited.c.push(node))
-      Signal.subscribe(nodeAb.$removed, node => visited.ab.push(node))
-      const nodeBc = resolve(graph, BC)
-      const nodeAbc = resolve(graph, ABC)
-      deleteNode(graph, nodeBc)
-      deleteNode(graph, nodeAbc)
+      Signal.subscribe(node_a.$removed, node => visited.a.push(node))
+      Signal.subscribe(node_b.$removed, node => visited.b.push(node))
+      Signal.subscribe(node_c.$removed, node => visited.c.push(node))
+      Signal.subscribe(node_ab.$removed, node => visited.ab.push(node))
+      const node_bc = resolve(graph, BC)
+      const node_abc = resolve(graph, ABC)
+      delete_node(graph, node_bc)
+      delete_node(graph, node_abc)
       expect(visited.a.length).toBe(1)
-      expect(visited.a).toContain(nodeAbc)
+      expect(visited.a).toContain(node_abc)
       expect(visited.b.length).toBe(2)
-      expect(visited.b).toContain(nodeAbc)
-      expect(visited.b).toContain(nodeBc)
+      expect(visited.b).toContain(node_abc)
+      expect(visited.b).toContain(node_bc)
       expect(visited.c.length).toBe(2)
-      expect(visited.b).toContain(nodeAbc)
-      expect(visited.b).toContain(nodeBc)
+      expect(visited.b).toContain(node_abc)
+      expect(visited.b).toContain(node_bc)
       expect(visited.ab.length).toBe(1)
-      expect(visited.ab).toContain(nodeAbc)
+      expect(visited.ab).toContain(node_abc)
     })
   })
 }

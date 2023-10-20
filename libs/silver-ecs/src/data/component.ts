@@ -48,7 +48,7 @@ export interface Tag extends Base<void> {
  */
 export interface Value<U = unknown> extends Base<U> {
   kind: Kind.Value
-  schema?: Data.SchemaOf<U>
+  schema?: Data.Schema_of<U>
 }
 
 /**
@@ -56,7 +56,7 @@ export interface Value<U = unknown> extends Base<U> {
  */
 export interface Relation<U = unknown> extends Base<U> {
   kind: Kind.Relation
-  schema?: Data.SchemaOf<U>
+  schema?: Data.Schema_of<U>
 }
 
 /**
@@ -72,11 +72,11 @@ export interface Relationship extends Base<void> {
 
 export type T = Value | Tag | Relation | RelationTag | Relationship
 
-let nextComponentId = 1
-export const makeComponentId = () => {
-  const componentId = nextComponentId++
-  Entity.assertValidHi(componentId)
-  return componentId
+let next_component_id = 1
+export const make_component_id = () => {
+  const component_id = next_component_id++
+  Entity.assert_valid_hi(component_id)
+  return component_id
 }
 
 class Component {
@@ -140,7 +140,7 @@ export function value<U extends Data.Schema>(
  * const Position = ecs.value<Position>({x: "f32", y: "f32"}) // Value<Position>
  * const entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function value<U>(schema: Data.SchemaOf<U>): Type.Type<[Value<U>]>
+export function value<U>(schema: Data.Schema_of<U>): Type.Type<[Value<U>]>
 /**
  * Define a schemaless component with a statically-typed shape.
  *
@@ -164,18 +164,18 @@ export function value<U>(): Type.Type<[Value<U>]>
  */
 export function value(): Type.Type<[Value<unknown>]>
 export function value(schema?: Data.Schema) {
-  return Type.make(make(makeComponentId(), Kind.Value, schema))
+  return Type.make(make(make_component_id(), Kind.Value, schema))
 }
 
 /**
  * Define a tag. Tags are components with no data.
  *
  * @example <caption>Define a tag and add it to an entity.</caption>
- * const RedTeam = ecs.tag()
- * const entity = world.spawn(RedTeam)
+ * const Red_team = ecs.tag()
+ * const entity = world.spawn(Red_team)
  */
 export const tag = (): Type.Type<[Tag]> =>
-  Type.make(make(makeComponentId(), Kind.Tag))
+  Type.make(make(make_component_id(), Kind.Tag))
 
 /**
  * Define a relation using the given schema.
@@ -205,7 +205,7 @@ export function relation<U extends Data.Schema>(
  * const Owes = ecs.relation<number>("f32")
  * const entity = world.spawn(Owes, [bank, 1_000])
  */
-export function relation<U>(schema: Data.SchemaOf<U>): Type.Type<[Relation<U>]>
+export function relation<U>(schema: Data.Schema_of<U>): Type.Type<[Relation<U>]>
 /**
  * Define a schemaless relation with a statically-typed shape.
  *
@@ -230,12 +230,12 @@ export function relation<U>(): Type.Type<[Relation<U>]>
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define an untyped relation and add it to an entity.</caption>
- * const OwesAnything = ecs.relation()
- * const entity = world.spawn(OwesAnything, [[[]]])
+ * const Owes_anything = ecs.relation()
+ * const entity = world.spawn(Owes_anything, [[[]]])
  */
 export function relation(): Type.Type<[Relation<unknown>]>
 export function relation(schema?: Data.Schema) {
-  return Type.make(make(makeComponentId(), Kind.Relation, schema))
+  return Type.make(make(make_component_id(), Kind.Relation, schema))
 }
 
 /**
@@ -244,75 +244,77 @@ export function relation(schema?: Data.Schema) {
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with no data and add it to an entity.</caption>
- * const ChildOf = ecs.relationTag()
+ * const ChildOf = ecs.relation_tag()
  * const entity = world.spawn(ChildOf, [parent])
  */
-export const relationTag = (): Type.Type<[RelationTag]> =>
-  Type.make(make(makeComponentId(), Kind.RelationTag))
+export const relation_tag = (): Type.Type<[RelationTag]> =>
+  Type.make(make(make_component_id(), Kind.RelationTag))
 
-export const makeRelationship = (
+export const make_relationship = (
   component: Relation | RelationTag,
   entity: Entity.T,
 ): Relationship =>
   make(
-    Entity.make(Entity.parseEntityId(entity), component.id),
+    Entity.make(Entity.parse_entity_id(entity), component.id),
     Kind.Relationship,
   )
 
-export const isValue = (component: T): component is Value | Relation =>
+export const is_value = (component: T): component is Value | Relation =>
   component.kind === Kind.Value || component.kind === Kind.Relation
 
-export const isRelation = (component: T): component is Relation | RelationTag =>
+export const is_relation = (
+  component: T,
+): component is Relation | RelationTag =>
   component.kind === Kind.Relation || component.kind === Kind.RelationTag
 
-export const isRelationship = (component: T): component is Relationship =>
+export const is_relationship = (component: T): component is Relationship =>
   component.kind === Kind.Relationship
 
-export const isTag = (component: T): component is Tag | RelationTag =>
+export const is_tag = (component: T): component is Tag | RelationTag =>
   component.kind === Kind.Tag || component.kind === Kind.RelationTag
 
 if (import.meta.vitest) {
   const {describe, it, expect} = await import("vitest")
 
-  describe("isValue", () => {
+  describe("is_value", () => {
     it("returns true for value components", () => {
-      expect(isValue(value().components[0])).true
-      expect(isValue(relation().components[0])).true
+      expect(is_value(value().components[0])).true
+      expect(is_value(relation().components[0])).true
     })
     it("returns false for tag components", () => {
-      expect(isValue(tag().components[0])).false
+      expect(is_value(tag().components[0])).false
     })
   })
 
-  describe("isRelation", () => {
+  describe("is_relation", () => {
     it("returns true for relation components", () => {
-      expect(isRelation(relation().components[0])).true
+      expect(is_relation(relation().components[0])).true
     })
     it("returns false for tag components", () => {
-      expect(isRelation(tag().components[0])).false
+      expect(is_relation(tag().components[0])).false
     })
   })
 
-  describe("isRelationship", () => {
+  describe("is_relationship", () => {
     it("returns true for relationship components", () => {
       expect(
-        isRelationship(
-          makeRelationship(relation().componentSpec[0], Entity.make(1, 2)),
+        is_relationship(
+          make_relationship(relation().component_spec[0], Entity.make(1, 2)),
         ),
       ).true
     })
     it("returns false for tag components", () => {
-      expect(isRelationship(relation().components[0])).false
+      expect(is_relationship(relation().components[0])).false
     })
   })
 
-  describe("isTag", () => {
+  describe("is_tag", () => {
     it("returns true for tag components", () => {
-      expect(isTag(tag().components[0])).true
+      expect(is_tag(tag().components[0])).true
     })
     it("returns false for value components", () => {
-      expect(isTag(value().components[0])).false
-      expect(isTag(relation().components[0])).false
+      expect(is_tag(value().components[0])).false
+      expect(is_tag(relation().components[0])).false
     })
   })
 }

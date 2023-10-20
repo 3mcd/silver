@@ -31,19 +31,19 @@ export const size = (map: SparseMap): number => {
 }
 
 export const get = <U>(map: SparseMap<U>, key: number): U | undefined => {
-  const denseIndex = map.sparse[key]
-  if (denseIndex === undefined) return undefined
-  return map.dense[denseIndex]
+  const dense_index = map.sparse[key]
+  if (dense_index === undefined) return undefined
+  return map.dense[dense_index]
 }
 
 export const set = <U>(map: SparseMap<U>, key: number, value: U): void => {
-  const denseIndex = map.sparse[key]
-  if (denseIndex === undefined) {
+  const dense_index = map.sparse[key]
+  if (dense_index === undefined) {
     map.sparse[key] = map.dense.length
     map.dense.push(value)
     map.indices.push(key)
   } else {
-    map.dense[denseIndex] = value
+    map.dense[dense_index] = value
   }
 }
 
@@ -51,19 +51,19 @@ export const has = (map: SparseMap, key: number): boolean =>
   map.sparse[key] !== undefined
 
 const delete_ = (map: SparseMap, key: number): void => {
-  const denseIndex = map.sparse[key]
-  if (denseIndex === undefined) return
-  const sparseIndex = map.indices[map.indices.length - 1]
-  map.dense[denseIndex] = map.dense[map.dense.length - 1]
+  const dense_index = map.sparse[key]
+  if (dense_index === undefined) return
+  const sparse_index = map.indices[map.indices.length - 1]
+  map.dense[dense_index] = map.dense[map.dense.length - 1]
   map.dense.pop()
-  map.indices[denseIndex] = sparseIndex
+  map.indices[dense_index] = sparse_index
   map.indices.pop()
-  map.sparse[sparseIndex] = denseIndex
+  map.sparse[sparse_index] = dense_index
   map.sparse[key] = undefined!
 }
 export {delete_ as delete}
 
-export const eachValue = <U>(
+export const each_value = <U>(
   map: SparseMap<U>,
   iteratee: ForEachValueIteratee<U>,
 ): void => {
@@ -89,11 +89,11 @@ export const clear = (map: SparseMap): void => {
   }
 }
 
-export const values = <U>(map: SparseMap<U>): readonly U[] => {
+export const values = <U>(map: SparseMap<U>): U[] => {
   return map.dense
 }
 
-export const toSparseArray = <U>(map: SparseMap<U>): U[] => {
+export const to_sparse_array = <U>(map: SparseMap<U>): U[] => {
   const sparse = new Array(map.sparse.length)
   for (let i = 0; i < map.dense.length; i++) {
     sparse[map.indices[i]] = map.dense[i]
@@ -190,7 +190,7 @@ if (import.meta.vitest) {
           }, [] as string[]),
         )
         const sort = (entries: [number, string][]) =>
-          entries.sort(([keyA], [keyB]) => keyA - keyB)
+          entries.sort(([key_a], [key_b]) => key_a - key_b)
         each(map, (key, value) => entries.push([key, value]))
         expect(sort(entries)).toEqual(sort(data))
       })

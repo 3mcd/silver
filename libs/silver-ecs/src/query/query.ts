@@ -56,42 +56,42 @@ class QueryChangedRecord {
 
 export class Query<U extends Component.T[] = Component.T[]> {
   #each: Each<U>
-  readonly changed
-  readonly isMonitor
-  readonly matches
-  readonly node
-  readonly not
-  readonly relationshipMatches
-  readonly type
+  changed
+  is_monitor
+  matches
+  node
+  not
+  relationship_matches
+  type
 
   constructor(world: World.T, type: Type.T<U>, filters: Filter.T[]) {
-    let isMonitor = false
+    let is_monitor = false
     for (let i = 0; i < filters.length; i++) {
       const filter = filters[i]
       if (filter.kind === Filter.Kind.In || filter.kind === Filter.Kind.Out) {
-        isMonitor = true
+        is_monitor = true
         break
       }
     }
     const matches = SparseMap.make<Entity.T[][]>()
-    const {changed, not} = initializeFilters(filters, world)
-    const relationshipMatches = new QueryRelationshipMatch()
+    const {changed, not} = initialize_filters(filters, world)
+    const relationship_matches = new QueryRelationshipMatch()
     this.changed = changed
-    this.isMonitor = isMonitor
+    this.is_monitor = is_monitor
     this.matches = matches
     this.node = Graph.resolve(world.graph, type)
     this.not = not
-    this.relationshipMatches = relationshipMatches
+    this.relationship_matches = relationship_matches
     this.type = type
     this.#each =
-      type.sparseRelations.length > 0
-        ? compileEachIteratorWithRelationships(
+      type.sparse_relations.length > 0
+        ? compile_each_iterator_with_relationships(
             world,
             type,
-            relationshipMatches,
+            relationship_matches,
             changed,
           )
-        : compileEachIterator(world, type, SparseMap.values(matches), changed)
+        : compile_each_iterator(world, type, SparseMap.values(matches), changed)
   }
 
   each(...args: [...parents: Parents<U>, iteratee: EachIteratee<U>]): void
@@ -103,14 +103,14 @@ export class Query<U extends Component.T[] = Component.T[]> {
         state.changes[key] = version
       })
     }
-    if (this.isMonitor) {
-      forgetNode(this, this.node)
+    if (this.is_monitor) {
+      forget_node(this, this.node)
     }
   }
 }
 export type T<U extends Component.T[] = Component.T[]> = Query<U>
 
-const getValueStores = (type: Type.T, world: World.T) => {
+const get_value_stores = (type: Type.T, world: World.T) => {
   const stores = SparseMap.make<unknown[]>()
   for (let i = 0; i < type.components.length; i++) {
     const component = type.components[i]
@@ -121,7 +121,9 @@ const getValueStores = (type: Type.T, world: World.T) => {
   return stores
 }
 
-const makeIteratorFilterPredicateExpression = (changed: Query["changed"]) => {
+const make_iterator_filter_predicate_expression = (
+  changed: Query["changed"],
+) => {
   let s = ""
   for (let i = 0; i < changed.length; i++) {
     s += `c${i}(e)===false||`
@@ -129,10 +131,10 @@ const makeIteratorFilterPredicateExpression = (changed: Query["changed"]) => {
   return s.slice(0, s.length - 2)
 }
 
-const makeIteratorIterateeArgsExpression = (type: Type.T) => {
+const make_iterator_iteratee_args_expression = (type: Type.T) => {
   let s = ""
-  for (let i = 0; i < type.componentSpec.length; i++) {
-    const {id, kind} = type.componentSpec[i]
+  for (let i = 0; i < type.component_spec.length; i++) {
+    const {id, kind} = type.component_spec[i]
     if (kind === Component.Kind.Value) {
       s += `s${id}[e],`
     } else if (kind === Component.Kind.Relation) {
@@ -142,7 +144,7 @@ const makeIteratorIterateeArgsExpression = (type: Type.T) => {
   return s.slice(0, s.length - 1)
 }
 
-const makeIteratorParamsExpression = (type: Type.T) => {
+const make_iterator_params_expression = (type: Type.T) => {
   let s = ""
   for (let i = 0; i < type.relations.length; i++) {
     const relation = type.relations[i]
@@ -151,7 +153,7 @@ const makeIteratorParamsExpression = (type: Type.T) => {
   return s
 }
 
-const makeIteratorIterator = (fetch: string, filter: string) => {
+const make_iterator_iterator = (fetch: string, filter: string) => {
   let s = ""
   s += "for(let i=0;i<M.length;i++){"
   s += "const m=M[i];"
@@ -167,7 +169,7 @@ const makeIteratorIterator = (fetch: string, filter: string) => {
   return s
 }
 
-const makeChangedDeclarations = (changed: Query["changed"]) => {
+const make_changed_declarations = (changed: Query["changed"]) => {
   let s = ""
   for (let i = 0; i < changed.length; i++) {
     s += `const c${i}=C[${i}];`
@@ -175,15 +177,15 @@ const makeChangedDeclarations = (changed: Query["changed"]) => {
   return s
 }
 
-const makeStoreDeclarations = (stores: SparseMap.T<unknown[]>) => {
+const make_store_declarations = (stores: SparseMap.T<unknown[]>) => {
   let s = ""
-  SparseMap.each(stores, componentId => {
-    s += `const s${componentId}=S[${componentId}];`
+  SparseMap.each(stores, component_id => {
+    s += `const s${component_id}=S[${component_id}];`
   })
   return s
 }
 
-const makeRelationMatchesDeclaration = (type: Type.T) => {
+const make_relation_matches_declaration = (type: Type.T) => {
   let s = "const M=R"
   for (let i = 0; i < type.relations.length; i++) {
     const relation = type.relations[i]
@@ -192,87 +194,94 @@ const makeRelationMatchesDeclaration = (type: Type.T) => {
   return s + "?.entities;"
 }
 
-const makeCommonExpressions = (
+const make_common_expressions = (
   type: Type.T,
   changed: Query["changed"],
   stores: SparseMap.SparseMap<unknown[]>,
 ) => {
-  const filter = makeIteratorFilterPredicateExpression(changed)
-  const fetch = makeIteratorIterateeArgsExpression(type)
-  const args = makeIteratorParamsExpression(type)
-  const body = makeStoreDeclarations(stores) + makeChangedDeclarations(changed)
+  const filter = make_iterator_filter_predicate_expression(changed)
+  const fetch = make_iterator_iteratee_args_expression(type)
+  const args = make_iterator_params_expression(type)
+  const body =
+    make_store_declarations(stores) + make_changed_declarations(changed)
   return {filter, fetch, args, body}
 }
 
-const compileEachIteratorWithRelationships = <U extends Component.T[]>(
+const compile_each_iterator_with_relationships = <U extends Component.T[]>(
   world: World.T,
   type: Type.T<U>,
-  relationshipMatches: QueryRelationshipMatch,
+  relationship_matches: QueryRelationshipMatch,
   changed: Query["changed"],
 ): Each<U> => {
-  const changedPredicates = changed.map(changed => changed.predicate)
-  const stores = getValueStores(type, world)
-  const storesSparse = SparseMap.toSparseArray(stores)
-  const exps = makeCommonExpressions(type, changed, stores)
+  const changed_predicates = changed.map(changed => changed.predicate)
+  const stores = get_value_stores(type, world)
+  const stores_sparse = SparseMap.to_sparse_array(stores)
+  const exps = make_common_expressions(type, changed, stores)
   let body = exps.body
-  body += `return function eachIterator(${exps.args}$){`
-  body += makeRelationMatchesDeclaration(type)
+  body += `return function each_iterator(${exps.args}$){`
+  body += make_relation_matches_declaration(type)
   body += "if(M===undefined)return;"
-  body += makeIteratorIterator(exps.fetch, exps.filter)
+  body += make_iterator_iterator(exps.fetch, exps.filter)
   body += "}"
   const closure = Function("S", "C", "R", "W", body)
   return closure(
-    storesSparse,
-    changedPredicates,
-    relationshipMatches,
+    stores_sparse,
+    changed_predicates,
+    relationship_matches,
     world.stores,
   )
 }
 
-const compileEachIterator = <U extends Component.T[]>(
+const compile_each_iterator = <U extends Component.T[]>(
   world: World.T,
   type: Type.T<U>,
-  matches: ReadonlyArray<readonly Entity.T[][]>,
+  matches: Entity.T[][][],
   changed: Query["changed"],
 ): Each<U> => {
-  const changedPredicates = changed.map(changed => changed.predicate)
-  const stores = getValueStores(type, world)
-  const storesSparse = SparseMap.toSparseArray(stores)
-  const exps = makeCommonExpressions(type, changed, stores)
+  const changed_predicates = changed.map(changed => changed.predicate)
+  const stores = get_value_stores(type, world)
+  const stores_sparse = SparseMap.to_sparse_array(stores)
+  const exps = make_common_expressions(type, changed, stores)
   let body = exps.body
-  body += `return function eachIterator(${exps.args}$){`
-  body += makeIteratorIterator(exps.fetch, exps.filter)
+  body += `return function each_iterator(${exps.args}$){`
+  body += make_iterator_iterator(exps.fetch, exps.filter)
   body += "}"
   const closure = Function("S", "C", "M", body)
-  return closure(storesSparse, changedPredicates, matches)
+  return closure(stores_sparse, changed_predicates, matches)
 }
 
-const makeRelationshipPath = (type: Type.T) => {
-  const relationshipPath: number[] = []
+const make_relationship_path = (type: Type.T) => {
+  const relationship_path: number[] = []
   for (let i = 0; i < type.relationships.length; i++) {
     const relationship = type.relationships[i]
-    const relationComponentId = Entity.parseHi(relationship.id)
-    const relationComponentIndex = type.sparseRelations[relationComponentId]
-    relationshipPath[relationComponentIndex] = Entity.parseEntityId(
+    const relation_component_id = Entity.parse_hi(relationship.id)
+    const relation_component_index =
+      type.sparse_relations[relation_component_id]
+    relationship_path[relation_component_index] = Entity.parse_entity_id(
       relationship.id,
     )
   }
-  return relationshipPath
+  return relationship_path
 }
 
-const rememberNode = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
+const remember_node = (
+  query: Query,
+  node: Graph.Node,
+  entities: Entity.T[],
+) => {
   for (let i = 0; i < query.not.length; i++) {
     if (Type.has(node.type, query.not[i].type)) return false
   }
-  const relationshipPath = makeRelationshipPath(node.type)
-  if (relationshipPath.length > 0) {
+  const relationship_path = make_relationship_path(node.type)
+  if (relationship_path.length > 0) {
     let i = 0
-    let relationshipMatches = query.relationshipMatches
-    while (i < relationshipPath.length) {
-      relationshipMatches = relationshipMatches.next[relationshipPath[i++]] ??=
-        {entities: [], next: []}
+    let relationship_matches = query.relationship_matches
+    while (i < relationship_path.length) {
+      relationship_matches = relationship_matches.next[
+        relationship_path[i++]
+      ] ??= {entities: [], next: []}
     }
-    relationshipMatches.entities.push([entities])
+    relationship_matches.entities.push([entities])
   }
   let matches = SparseMap.get(query.matches, node.type.hash)
   if (matches === undefined) {
@@ -283,20 +292,20 @@ const rememberNode = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
   return true
 }
 
-const forgetNode = (query: Query, node: Graph.Node) => {
-  const relationshipPath = makeRelationshipPath(node.type)
-  if (relationshipPath.length > 0) {
+const forget_node = (query: Query, node: Graph.Node) => {
+  const relationship_path = make_relationship_path(node.type)
+  if (relationship_path.length > 0) {
     let i = 0
-    let relationshipMatch = query.relationshipMatches
-    while (i < relationshipPath.length - 1) {
-      relationshipMatch = relationshipMatch.next[relationshipPath[i++]]
+    let relationship_match = query.relationship_matches
+    while (i < relationship_path.length - 1) {
+      relationship_match = relationship_match.next[relationship_path[i++]]
     }
-    relationshipMatch.next[relationshipPath[i]] = undefined!
+    relationship_match.next[relationship_path[i]] = undefined!
   }
   SparseMap.delete(query.matches, node.type.hash)
 }
 
-const initializeFilters = (filters: Filter.T[], world: World.T) => {
+const initialize_filters = (filters: Filter.T[], world: World.T) => {
   const changed: QueryChangedRecord[] = []
   const not: Filter.T[] = []
   for (let i = 0; i < filters.length; i++) {
@@ -306,13 +315,13 @@ const initializeFilters = (filters: Filter.T[], world: World.T) => {
         not.push(filter)
         break
       case Filter.Kind.Changed: {
-        const changedState = Changed.makeFilterState()
-        const changedPredicate = Changed.compilePredicate(
+        const changed_state = Changed.make_filter_state()
+        const changed_predicate = Changed.compile_predicate(
           filter.type,
           world.changes,
-          changedState,
+          changed_state,
         )
-        changed.push(new QueryChangedRecord(changedState, changedPredicate))
+        changed.push(new QueryChangedRecord(changed_state, changed_predicate))
         break
       }
     }
@@ -320,7 +329,7 @@ const initializeFilters = (filters: Filter.T[], world: World.T) => {
   return {changed, not}
 }
 
-const initMonitorGraphListeners = (query: Query, filters: Filter.T[]) => {
+const init_monitor_graph_listeners = (query: Query, filters: Filter.T[]) => {
   for (let i = 0; i < filters.length; i++) {
     const {kind} = filters[i]
     switch (kind) {
@@ -328,8 +337,8 @@ const initMonitorGraphListeners = (query: Query, filters: Filter.T[]) => {
       case Filter.Kind.Out:
         Signal.subscribe(
           kind === Filter.Kind.In ? query.node.$included : query.node.$excluded,
-          function onEntitiesIncludedOrExcluded(event) {
-            rememberNode(query, query.node, event.entities)
+          function on_entities_included_or_excluded(event) {
+            remember_node(query, query.node, event.entities)
           },
         )
         break
@@ -337,16 +346,16 @@ const initMonitorGraphListeners = (query: Query, filters: Filter.T[]) => {
   }
 }
 
-const initQueryGraphListeners = (query: Query) => {
-  const onNodeCreated = (node: Graph.Node) => {
-    rememberNode(query, node, SparseSet.values(node.entities))
+const init_query_graph_listeners = (query: Query) => {
+  const on_node_created = (node: Graph.Node) => {
+    remember_node(query, node, SparseSet.values(node.entities))
   }
-  const onNodeRemoved = (node: Graph.Node) => {
-    forgetNode(query, node)
+  const on_node_removed = (node: Graph.Node) => {
+    forget_node(query, node)
   }
-  Signal.subscribe(query.node.$created, onNodeCreated)
-  Signal.subscribe(query.node.$removed, onNodeRemoved)
-  Graph.traverse(query.node, onNodeCreated)
+  Signal.subscribe(query.node.$created, on_node_created)
+  Signal.subscribe(query.node.$removed, on_node_removed)
+  Graph.traverse(query.node, on_node_created)
 }
 
 export const make = <U extends Component.T[]>(
@@ -355,10 +364,10 @@ export const make = <U extends Component.T[]>(
   filters: Filter.T[],
 ): Query<U> => {
   const query = new Query(world, type, filters)
-  if (query.isMonitor) {
-    initMonitorGraphListeners(query, filters)
+  if (query.is_monitor) {
+    init_monitor_graph_listeners(query, filters)
   } else {
-    initQueryGraphListeners(query)
+    init_query_graph_listeners(query)
   }
   return query
 }

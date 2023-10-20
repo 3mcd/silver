@@ -69,13 +69,13 @@ export type Express<T extends Schema> = T extends Object
  * Derive a schema from a type.
  *
  * @example <caption>Derive a schema from a scalar value.</caption>
- * type T = SchemaOf<number> // "u8" | "u16" ...
+ * type T = Schema_of<number> // "u8" | "u16" ...
  *
  * @example <caption>Derive a schema from an object.</caption>
- * type T = SchemaOf<{x: number, y: number}> // {x: "u8" | "u16" ..., y: "u8" | "u16" ...}
+ * type T = Schema_of<{x: number, y: number}> // {x: "u8" | "u16" ..., y: "u8" | "u16" ...}
  */
-export type SchemaOf<T> = T extends object
-  ? {[K in keyof T]: SchemaOf<T[K]>}
+export type Schema_of<T> = T extends object
+  ? {[K in keyof T]: Schema_of<T[K]>}
   : T extends number
   ? Numeric
   : T extends string

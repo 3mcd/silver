@@ -6,7 +6,7 @@
 const Pot = ecs.tag()
 const Plant = ecs.tag()
 // Define a component that relates plants to a pot
-const InPot = ecs.relationTag()
+const InPot = ecs.relation_tag()
 // Define a type that represents a plant in a pot
 const PottedPlant = ecs.type(Plant, InPot)
 

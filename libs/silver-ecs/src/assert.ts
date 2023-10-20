@@ -1,7 +1,7 @@
 const ERR_INTERNAL = "Unexpected error"
 
-class AssertionError extends Error {
-  name = "AssertionError"
+class Assertion_error extends Error {
+  name = "Assertion_error"
 }
 
 export function ok(
@@ -9,7 +9,7 @@ export function ok(
   message: string = ERR_INTERNAL,
 ): asserts condition {
   if (!condition) {
-    throw new AssertionError(message)
+    throw new Assertion_error(message)
   }
 }
 

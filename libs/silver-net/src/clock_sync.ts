@@ -1,62 +1,68 @@
 export class ClockSync {
-  lagCompensationLatency = 0.3
-  maxOffsetDeviation = 0.1
-  minOffsetSampleCount = 8
-  minOffsetSampleCountWithOutliers = 0
+  lag_compensation_latency = 0.3
+  max_offset_deviation = 0.1
+  min_offset_samples_count = 8
+  min_offset_samples_count_with_outliers = 0
   offset = 0
-  offsetSampleOutlierRate = 0.2
-  offsetSamples: number[] = []
-  offsetSamplesToDiscardPerExtreme = 2
+  offset_samples_outlier_rate = 0.2
+  offset_samples_to_discard_per_extreme = 2
+  offset_samples: number[] = []
 
   constructor(
-    maxOffsetDeviation?: number,
-    minSampleCount?: number,
-    offsetSampleOutlierRate?: number,
+    max_offset_deviation?: number,
+    min_offset_samples_count?: number,
+    offset_samples_outlier_rate?: number,
   ) {
-    this.maxOffsetDeviation = maxOffsetDeviation ?? this.maxOffsetDeviation
-    this.minOffsetSampleCount = minSampleCount ?? this.minOffsetSampleCount
-    this.offsetSampleOutlierRate =
-      offsetSampleOutlierRate ?? this.offsetSampleOutlierRate
-    this.offsetSamplesToDiscardPerExtreme = Math.ceil(
+    this.max_offset_deviation =
+      max_offset_deviation ?? this.max_offset_deviation
+    this.min_offset_samples_count =
+      min_offset_samples_count ?? this.min_offset_samples_count
+    this.offset_samples_outlier_rate =
+      offset_samples_outlier_rate ?? this.offset_samples_outlier_rate
+    this.offset_samples_to_discard_per_extreme = Math.ceil(
       Math.max(
-        (this.minOffsetSampleCount * this.offsetSampleOutlierRate) / 2,
+        (this.min_offset_samples_count * this.offset_samples_outlier_rate) / 2,
         1,
       ),
     )
-    this.minOffsetSampleCountWithOutliers =
-      this.minOffsetSampleCount + this.offsetSamplesToDiscardPerExtreme * 2
+    this.min_offset_samples_count_with_outliers =
+      this.min_offset_samples_count +
+      this.offset_samples_to_discard_per_extreme * 2
   }
 }
 
-export const addOffsetSample = (
-  clockSync: ClockSync,
-  serverTime: number,
-  clientTime: number,
-  currentTime: number,
+export const add_offset_sample = (
+  clock_sync: ClockSync,
+  payload_server_time: number,
+  payload_client_time: number,
+  current_client_time: number,
 ) => {
-  const offsetSample = serverTime - (clientTime + currentTime) / 2
+  const offsetSample =
+    payload_server_time - (payload_client_time + current_client_time) / 2
   if (
-    clockSync.offsetSamples.unshift(offsetSample) ===
-    clockSync.minOffsetSampleCountWithOutliers
+    clock_sync.offset_samples.unshift(offsetSample) ===
+    clock_sync.min_offset_samples_count_with_outliers
   ) {
-    const samples = clockSync.offsetSamples.slice().sort()
-    const lo = clockSync.offsetSamplesToDiscardPerExtreme
+    const samples = clock_sync.offset_samples.slice().sort()
+    const lo = clock_sync.offset_samples_to_discard_per_extreme
     const hi =
-      clockSync.offsetSamples.length -
-      clockSync.offsetSamplesToDiscardPerExtreme
+      clock_sync.offset_samples.length -
+      clock_sync.offset_samples_to_discard_per_extreme
     let offset = 0
     for (let i = lo; i < hi; i++) {
       offset += samples[i]
     }
-    offset = offset / (hi - clockSync.offsetSamplesToDiscardPerExtreme)
-    if (Math.abs(offset - clockSync.offset) > clockSync.maxOffsetDeviation) {
-      clockSync.offset = offset
+    offset = offset / (hi - clock_sync.offset_samples_to_discard_per_extreme)
+    if (
+      Math.abs(offset - clock_sync.offset) > clock_sync.max_offset_deviation
+    ) {
+      clock_sync.offset = offset
     }
-    clockSync.offsetSamples.pop()
+    clock_sync.offset_samples.pop()
   }
-  return clockSync.offset
+  return clock_sync.offset
 }
 
-export const getEstimatedServerTime = (clockSync: ClockSync, time: number) => {
-  return time + clockSync.offset + clockSync.lagCompensationLatency
+export const estimate_server_time = (clock_sync: ClockSync, time: number) => {
+  return time + clock_sync.offset + clock_sync.lag_compensation_latency
 }

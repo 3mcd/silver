@@ -9,10 +9,10 @@ export enum Kind {
   Out,
 }
 
-const notComponentId = Component.makeComponentId()
-const changedComponentId = Component.makeComponentId()
-const inComponentId = Component.makeComponentId()
-const outComponentId = Component.makeComponentId()
+const not_component_id = Component.make_component_id()
+const changed_component_id = Component.make_component_id()
+const in_component_id = Component.make_component_id()
+const out_component_id = Component.make_component_id()
 
 export class Filter {
   hash
@@ -27,21 +27,21 @@ export class Filter {
 export type T = Filter
 
 export const Not = (type: Type.T) => {
-  return new Filter(Hash.words([type.hash, notComponentId]), Kind.Not, type)
+  return new Filter(Hash.words([type.hash, not_component_id]), Kind.Not, type)
 }
 
 export const Changed = (type: Type.T) => {
   return new Filter(
-    Hash.words([type.hash, changedComponentId]),
+    Hash.words([type.hash, changed_component_id]),
     Kind.Changed,
     type,
   )
 }
 
 export const In = (type: Type.T) => {
-  return new Filter(Hash.words([type.hash, inComponentId]), Kind.In, type)
+  return new Filter(Hash.words([type.hash, in_component_id]), Kind.In, type)
 }
 
 export const Out = (type: Type.T) => {
-  return new Filter(Hash.words([type.hash, outComponentId]), Kind.Out, type)
+  return new Filter(Hash.words([type.hash, out_component_id]), Kind.Out, type)
 }

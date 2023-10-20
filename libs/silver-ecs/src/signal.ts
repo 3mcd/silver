@@ -1,5 +1,4 @@
 export type SignalListener<T> = (event: T) => void
-export type ReadonlySignal<T> = Omit<Signal<T>, "dispatch">
 
 export class Signal<T> {
   listeners
@@ -21,9 +20,9 @@ export const subscribe = <U>(
   signal: Signal<U>,
   listener: SignalListener<U>,
 ) => {
-  const listenerIndex = signal.listeners.push(listener) - 1
+  const listener_index = signal.listeners.push(listener) - 1
   return () => {
-    signal.listeners.splice(listenerIndex, 1)
+    signal.listeners.splice(listener_index, 1)
   }
 }
 

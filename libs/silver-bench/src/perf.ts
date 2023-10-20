@@ -5,13 +5,13 @@ import {PerfWorkerData} from "./types.js"
 
 const {name, path, config} = workerData as PerfWorkerData
 
-Object.assign(globalThis, config.benchGlobals)
+Object.assign(globalThis, config.bench_globals)
 await import(path)
 
 const perf = perfs.get(name)!
 const samples: bigint[] = []
-const iterations = perf[$iterations] ?? config.perfIterations
-const iterationsBigInt = BigInt(iterations)
+const iterations = perf[$iterations] ?? config.perf_iterations
+const iterations_bigint = BigInt(iterations)
 
 for (let i = 0; i < iterations; i++) {
   perf.init()()
@@ -26,33 +26,33 @@ for (let i = 0; i < iterations; i++) {
 
 samples.sort((a, b) => (a === b ? 0 : a < b ? -1 : 1))
 
-const finalIterations =
-  iterationsBigInt - BigInt(config.perfSamplesToDiscardPerExtreme * 2)
+const final_iterations =
+  iterations_bigint - BigInt(config.perf_samples_to_discard_per_extreme * 2)
 
 let mean = 0n
 
 for (
-  let i = config.perfSamplesToDiscardPerExtreme;
-  i < samples.length - config.perfSamplesToDiscardPerExtreme;
+  let i = config.perf_samples_to_discard_per_extreme;
+  i < samples.length - config.perf_samples_to_discard_per_extreme;
   i++
 ) {
   mean += samples[i]
 }
 
-mean /= finalIterations
+mean /= final_iterations
 
-let sumStdev = 0n
+let sum_stdev = 0n
 
 for (
-  let i = config.perfSamplesToDiscardPerExtreme;
-  i < samples.length - config.perfSamplesToDiscardPerExtreme;
+  let i = config.perf_samples_to_discard_per_extreme;
+  i < samples.length - config.perf_samples_to_discard_per_extreme;
   i++
 ) {
-  sumStdev += (samples[i] - mean) ** 2n
+  sum_stdev += (samples[i] - mean) ** 2n
 }
 
-const stdev = Math.sqrt(Number(sumStdev / finalIterations))
-const margin = 1.96 * (stdev / Math.sqrt(Number(finalIterations)))
+const stdev = Math.sqrt(Number(sum_stdev / final_iterations))
+const margin = 1.96 * (stdev / Math.sqrt(Number(final_iterations)))
 
 parentPort!.postMessage({
   name: perf.name,

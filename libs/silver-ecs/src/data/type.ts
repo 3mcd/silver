@@ -23,142 +23,142 @@ type Spec<
 
 export type Unitary<U extends Component.T = Component.T> = Type<[U]>
 
-export const isSuperset = (typeA: Type, typeB: Type): boolean => {
+export const is_superset = (type_a: Type, type_b: Type): boolean => {
   // This type is a void type.
-  if (typeA.componentIds.length === 0) return false
+  if (type_a.component_ids.length === 0) return false
   // Compared type is a void type.
-  if (typeB.componentIds.length === 0) return true
+  if (type_b.component_ids.length === 0) return true
   // Compared type is equivalent to this type.
-  if (typeA.hash === typeB.hash) return false
-  let cursorA = 0
-  let cursorB = 0
+  if (type_a.hash === type_b.hash) return false
+  let cursor_a = 0
+  let cursor_b = 0
   while (
-    cursorA < typeA.componentIds.length &&
-    cursorB < typeB.componentIds.length
+    cursor_a < type_a.component_ids.length &&
+    cursor_b < type_b.component_ids.length
   ) {
-    const componentIdA = typeA.componentIds[cursorA]
-    const componentIdB = typeB.componentIds[cursorB]
-    if (componentIdA < componentIdB) {
-      cursorA++
-    } else if (componentIdA > componentIdB) {
+    const component_id_a = type_a.component_ids[cursor_a]
+    const component_id_b = type_b.component_ids[cursor_b]
+    if (component_id_a < component_id_b) {
+      cursor_a++
+    } else if (component_id_a > component_id_b) {
       return false
     } else {
-      cursorA++
-      cursorB++
+      cursor_a++
+      cursor_b++
     }
   }
-  return cursorB === typeB.componentIds.length
+  return cursor_b === type_b.component_ids.length
 }
 
-export const supersetMayContain = (typeA: Type, typeB: Type): boolean => {
-  let cursorA = 0
-  let cursorB = 0
+export const superset_may_contain = (type_a: Type, type_b: Type): boolean => {
+  let cursor_a = 0
+  let cursor_b = 0
   while (
-    cursorA < typeA.componentIds.length &&
-    cursorB < typeB.componentIds.length
+    cursor_a < type_a.component_ids.length &&
+    cursor_b < type_b.component_ids.length
   ) {
-    const componentIdA = typeA.componentIds[cursorA]
-    const componentIdB = typeB.componentIds[cursorB]
-    if (componentIdA < componentIdB) {
-      cursorB++
-    } else if (componentIdA > componentIdB) {
+    const component_id_a = type_a.component_ids[cursor_a]
+    const component_id_b = type_b.component_ids[cursor_b]
+    if (component_id_a < component_id_b) {
+      cursor_b++
+    } else if (component_id_a > component_id_b) {
       return false
     } else {
-      cursorA++
-      cursorB++
+      cursor_a++
+      cursor_b++
     }
   }
   return true
 }
 
-export const xor = (typeA: Type, typeB: Type): number => {
-  if (typeA.hash === typeB.hash) return 0
+export const xor = (type_a: Type, type_b: Type): number => {
+  if (type_a.hash === type_b.hash) return 0
   let xor = 0
-  let cursorA = 0
-  let cursorB = 0
+  let cursor_a = 0
+  let cursor_b = 0
   while (
-    cursorA < typeA.componentIds.length &&
-    cursorB < typeB.componentIds.length
+    cursor_a < type_a.component_ids.length &&
+    cursor_b < type_b.component_ids.length
   ) {
-    const componentIdA = typeA.componentIds[cursorA]
-    const componentIdB = typeB.componentIds[cursorB]
-    if (componentIdA === componentIdB) {
-      cursorA++
-      cursorB++
-    } else if (componentIdA < componentIdB) {
-      xor = Hash.word(xor, componentIdA)
-      cursorA++
-    } else if (componentIdA > componentIdB) {
-      xor = Hash.word(xor, componentIdB)
-      cursorB++
+    const component_id_a = type_a.component_ids[cursor_a]
+    const component_id_b = type_b.component_ids[cursor_b]
+    if (component_id_a === component_id_b) {
+      cursor_a++
+      cursor_b++
+    } else if (component_id_a < component_id_b) {
+      xor = Hash.word(xor, component_id_a)
+      cursor_a++
+    } else if (component_id_a > component_id_b) {
+      xor = Hash.word(xor, component_id_b)
+      cursor_b++
     }
   }
-  while (cursorA < typeA.componentIds.length) {
-    xor = Hash.word(xor, typeA.componentIds[cursorA])
-    cursorA++
+  while (cursor_a < type_a.component_ids.length) {
+    xor = Hash.word(xor, type_a.component_ids[cursor_a])
+    cursor_a++
   }
-  while (cursorB < typeB.componentIds.length) {
-    xor = Hash.word(xor, typeB.componentIds[cursorB])
-    cursorB++
+  while (cursor_b < type_b.component_ids.length) {
+    xor = Hash.word(xor, type_b.component_ids[cursor_b])
+    cursor_b++
   }
   return xor
 }
 
 const with_ = <U extends Component.T[], V extends Component.T[]>(
-  typeA: Type<U>,
-  typeB: Type<V>,
+  type_a: Type<U>,
+  type_b: Type<V>,
 ): Type<[...U, ...V]> => {
-  const components = typeA.componentSpec.concat(
-    typeB.componentSpec as Component.T[],
+  const components = type_a.component_spec.concat(
+    type_b.component_spec as Component.T[],
   )
   return make(...components)
 }
 export {with_ as with}
 
 export const without = <U extends Component.T[], V extends Component.T[]>(
-  typeA: Type<U>,
-  typeB: Type<V>,
+  type_a: Type<U>,
+  type_b: Type<V>,
 ): Type<[...U, ...V]> => {
-  const components = typeA.componentSpec.filter(
-    component => typeB.sparse[component.id] === undefined,
+  const components = type_a.component_spec.filter(
+    component => type_b.sparse[component.id] === undefined,
   )
   return make(...components)
 }
 
-export const withComponent = <U extends Component.T[], V extends Component.T>(
+export const with_component = <U extends Component.T[], V extends Component.T>(
   type: Type<U>,
   component: V,
 ): Type<[...U, V]> => {
-  const components = type.componentSpec.concat(component)
+  const components = type.component_spec.concat(component)
   return make(...components)
 }
 
-export const withoutComponent = <
+export const without_component = <
   U extends Component.T[],
   V extends Component.T,
 >(
   type: Type<U>,
   component: V,
 ): Type<ExcludeFromTuple<U, V>> => {
-  const components = type.componentSpec.filter(
-    typeComponent => typeComponent.id !== component.id,
+  const components = type.component_spec.filter(
+    type_component => type_component.id !== component.id,
   )
   return make(...components)
 }
 
-const isType = (obj: unknown): obj is Type =>
+const is_type = (obj: unknown): obj is Type =>
   typeof obj === "object" && obj !== null && "components" in obj
 
-const sortSpec = (components: Component.T[]) =>
-  components.sort((componentA, componentB) => componentA.id - componentB.id)
+const sort_spec = (components: Component.T[]) =>
+  components.sort((component_a, component_b) => component_a.id - component_b.id)
 
-const makeSpec = <U extends Array<Type | Component.T>>(types: U): Spec<U> => {
+const make_spec = <U extends Array<Type | Component.T>>(types: U): Spec<U> => {
   const components = [] as Component.T[]
   for (let i = 0; i < types.length; i++) {
     const type = types[i]
-    if (isType(type)) {
-      for (let j = 0; j < type.componentSpec.length; j++) {
-        const component = type.componentSpec[j]
+    if (is_type(type)) {
+      for (let j = 0; j < type.component_spec.length; j++) {
+        const component = type.component_spec[j]
         components.push(component)
       }
     } else {
@@ -168,10 +168,10 @@ const makeSpec = <U extends Array<Type | Component.T>>(types: U): Spec<U> => {
   return components as Spec<U>
 }
 
-export const has = (typeA: Type, typeB: Type): boolean => {
-  for (let i = 0; i < typeB.componentIds.length; i++) {
-    const componentId = typeB.componentIds[i]
-    if (typeA.sparse[componentId] === undefined) {
+export const has = (type_a: Type, type_b: Type): boolean => {
+  for (let i = 0; i < type_b.component_ids.length; i++) {
+    const component_id = type_b.component_ids[i]
+    if (type_a.sparse[component_id] === undefined) {
       return false
     }
   }
@@ -179,48 +179,48 @@ export const has = (typeA: Type, typeB: Type): boolean => {
 }
 
 export class Type<U extends Component.T[] = Component.T[]> {
-  componentIds
-  componentSpec
+  component_ids
+  component_spec
   components
   hash
   relations
   relationships
   sparse
-  sparseInit
-  sparseRelations
+  sparse_init
+  sparse_relations
 
-  constructor(componentSpec: U) {
-    const components = sortSpec(componentSpec.slice())
+  constructor(component_spec: U) {
+    const components = sort_spec(component_spec.slice())
     const sparse: number[] = []
-    const sparseInit: number[] = []
-    const sparseRelations: number[] = []
+    const sparse_init: number[] = []
+    const sparse_relations: number[] = []
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
       sparse[component.id] = i
     }
     let j = 0
-    for (let i = 0; i < componentSpec.length; i++) {
-      const component = componentSpec[i]
-      if (Component.isValue(component) || Component.isRelation(component)) {
-        sparseInit[component.id] = j++
+    for (let i = 0; i < component_spec.length; i++) {
+      const component = component_spec[i]
+      if (Component.is_value(component) || Component.is_relation(component)) {
+        sparse_init[component.id] = j++
       }
     }
     j = 0
-    for (let i = 0; i < componentSpec.length; i++) {
-      const component = componentSpec[i]
-      if (Component.isRelation(component)) {
-        sparseRelations[component.id] = j++
+    for (let i = 0; i < component_spec.length; i++) {
+      const component = component_spec[i]
+      if (Component.is_relation(component)) {
+        sparse_relations[component.id] = j++
       }
     }
-    this.componentIds = components.map(component => component.id)
+    this.component_ids = components.map(component => component.id)
     this.components = components
-    this.hash = Hash.words(this.componentIds)
-    this.componentSpec = componentSpec
-    this.relations = components.filter(Component.isRelation)
-    this.relationships = components.filter(Component.isRelationship)
+    this.hash = Hash.words(this.component_ids)
+    this.component_spec = component_spec
+    this.relations = components.filter(Component.is_relation)
+    this.relationships = components.filter(Component.is_relationship)
     this.sparse = sparse
-    this.sparseInit = sparseInit
-    this.sparseRelations = sparseRelations
+    this.sparse_init = sparse_init
+    this.sparse_relations = sparse_relations
   }
 }
 
@@ -229,23 +229,23 @@ export type T<U extends Component.T[] = Component.T[]> = Type<U>
 export const make = <U extends Array<Component.T | Type>>(
   ...types: U
 ): Type<Spec<U>> => {
-  return new Type(makeSpec(types))
+  return new Type(make_spec(types))
 }
 
-export const withRelationships = (type: T, values: unknown[]) => {
-  let relationshipType = type
+export const with_relationships = (type: T, values: unknown[]) => {
+  let relationship_type = type
   for (let i = 0; i < type.relations.length; i++) {
     const relation = type.relations[i]
-    const relationshipInitIndex = type.sparseInit[relation.id]
-    const relationshipInit = Component.isValue(relation)
-      ? (values[relationshipInitIndex] as [Entity.T, unknown])[0]
-      : (values[relationshipInitIndex] as Entity.T)
-    relationshipType = withComponent(
-      relationshipType,
-      Component.makeRelationship(relation, relationshipInit),
+    const relationship_init_index = type.sparse_init[relation.id]
+    const relationship_init = Component.is_value(relation)
+      ? (values[relationship_init_index] as [Entity.T, unknown])[0]
+      : (values[relationship_init_index] as Entity.T)
+    relationship_type = with_component(
+      relationship_type,
+      Component.make_relationship(relation, relationship_init),
     )
   }
-  return relationshipType
+  return relationship_type
 }
 
 if (import.meta.vitest) {
@@ -257,10 +257,10 @@ if (import.meta.vitest) {
   describe("type", () => {
     it("makes a sorted version of a type's components", () => {
       const type = make(A, C, B)
-      expect(type.componentIds).toEqual([
-        A.componentIds[0],
-        B.componentIds[0],
-        C.componentIds[0],
+      expect(type.component_ids).toEqual([
+        A.component_ids[0],
+        B.component_ids[0],
+        C.component_ids[0],
       ])
     })
     it("can be defined with other types", () => {
@@ -276,20 +276,20 @@ if (import.meta.vitest) {
     it("determines if a type is a superset of another", () => {
       const AB = make(A, B)
       const ABC = make(A, B, C)
-      expect(isSuperset(ABC, AB)).toBe(true)
-      expect(isSuperset(AB, ABC)).toBe(false)
+      expect(is_superset(ABC, AB)).toBe(true)
+      expect(is_superset(AB, ABC)).toBe(false)
     })
     it("determines if a superset of a type could contain another", () => {
       const AC = make(A, C)
       const ABC = make(A, B, C)
       const CD = make(C, D)
-      expect(supersetMayContain(AC, ABC)).toBe(false)
-      expect(supersetMayContain(AC, CD)).toBe(true)
-      expect(supersetMayContain(CD, A)).toBe(false)
-      expect(supersetMayContain(ABC, D)).toBe(true)
-      expect(supersetMayContain(ABC, AC)).toBe(true)
-      expect(supersetMayContain(ABC, CD)).toBe(true)
-      expect(supersetMayContain(D, ABC)).toBe(false)
+      expect(superset_may_contain(AC, ABC)).toBe(false)
+      expect(superset_may_contain(AC, CD)).toBe(true)
+      expect(superset_may_contain(CD, A)).toBe(false)
+      expect(superset_may_contain(ABC, D)).toBe(true)
+      expect(superset_may_contain(ABC, AC)).toBe(true)
+      expect(superset_may_contain(ABC, CD)).toBe(true)
+      expect(superset_may_contain(D, ABC)).toBe(false)
     })
   })
 }

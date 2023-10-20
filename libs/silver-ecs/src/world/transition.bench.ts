@@ -19,11 +19,11 @@ perf("relocate 1000 entities", () => {
   const {transition} = fixture()
   const count = 1_000
   const graph = Graph.make()
-  const nodeA = Graph.resolve(graph, A)
-  const nodeB = Graph.resolve(graph, B)
+  const node_a = Graph.resolve(graph, A)
+  const node_b = Graph.resolve(graph, B)
   return () => {
     for (let i = 0; i < count; i++) {
-      Transition.move(transition, i as Entity.T, nodeA, nodeB)
+      Transition.move(transition, i as Entity.T, node_a, node_b)
     }
   }
 })
@@ -32,14 +32,14 @@ perf("relocate 1000 times", () => {
   const {transition} = fixture()
   const count = 1_000
   const graph = Graph.make()
-  const nodeA = Graph.resolve(graph, A)
-  const nodeB = Graph.resolve(graph, B)
-  const nodeC = Graph.resolve(graph, C)
+  const node_a = Graph.resolve(graph, A)
+  const node_b = Graph.resolve(graph, B)
+  const node_c = Graph.resolve(graph, C)
   const entity = 0 as Entity.T
-  Transition.move(transition, entity, nodeA, nodeB)
+  Transition.move(transition, entity, node_a, node_b)
   return () => {
     for (let i = 0; i < count; i++) {
-      Transition.move(transition, entity, nodeB, nodeC)
+      Transition.move(transition, entity, node_b, node_c)
     }
   }
 })
