@@ -18,10 +18,10 @@ type GetSingle<U extends Component.T> = U extends Component.Relation<infer V>
   : never
 
 export class World {
-  #stage
   #entity_nodes
   #entity_registry
   #entity_relationship_nodes
+  #stage
   #tick
   #transition
 
@@ -30,25 +30,16 @@ export class World {
   readonly changes
 
   constructor(time: number) {
-    this.#stage = Stage.make<Commands.T>()
     this.#entity_nodes = SparseMap.make<Graph.Node>()
     this.#entity_registry = EntityRegistry.make()
     this.#entity_relationship_nodes = [] as Graph.Node[][]
+    this.#stage = Stage.make<Commands.T>()
     this.#tick = time
     this.#transition = Transition.make()
+    this.changes = Changes.make()
     this.graph = Graph.make()
     this.stores = [] as unknown[][]
-    this.changes = Changes.make()
     Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
-  }
-
-  get tick() {
-    return this.#tick
-  }
-
-  store(component_id: number) {
-    const store = (this.stores[component_id] ??= [])
-    return store
   }
 
   #move(entity: Entity.T, prev_node: Graph.Node, next_node: Graph.Node) {
@@ -62,7 +53,11 @@ export class World {
     Changes.bump(this.changes, Changes.make_key(entity, component.id))
   }
 
-  #write<U extends Component.Value | Component.Relation>(
+  #read<U extends Component.T>(entity: Entity.T, component: U) {
+    return this.store(component.id)[entity]
+  }
+
+  #write<U extends Component.T>(
     entity: Entity.T,
     component: U,
     init: Commands.InitSingle<U>,
@@ -77,11 +72,8 @@ export class World {
       const component = type.components[i]
       if (Component.is_relationship(component)) {
         const value = (values[j++] as [Entity.T, unknown])[1]
-        this.store(component.id)[entity] = value
-      } else if (
-        Component.is_value(component) &&
-        !Component.is_relation(component)
-      ) {
+        this.#write(entity, component, value)
+      } else if (Component.is_plain_value(component)) {
         this.#write(entity, component, values[j++])
       }
     }
@@ -112,14 +104,14 @@ export class World {
   #commit_despawn(command: Commands.Despawn) {
     const {entity} = command
     const node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     Graph.remove_entity(node, entity)
     SparseMap.delete(this.#entity_nodes, entity)
     EntityRegistry.release(this.#entity_registry, entity)
     for (let i = 0; i < node.type.components.length; i++) {
       const component = node.type.components[i]
       if (Component.is_value(component)) {
-        this.store(component.id)[entity] = undefined!
+        this.#write(entity, component, undefined)
       }
     }
     this.#clear_entity_relationships(entity)
@@ -129,7 +121,7 @@ export class World {
   #commit_add(command: Commands.Add) {
     const {entity, type, init} = command
     const prev_node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(prev_node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const next_type = Type.with(prev_node.type, type)
     const next_node = Graph.resolve(this.graph, next_type)
     if (prev_node !== next_node) {
@@ -142,7 +134,7 @@ export class World {
   #commit_remove(command: Commands.Remove) {
     const {entity, type} = command
     const prev_node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(prev_node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const next_type = Type.without(prev_node.type, type)
     const next_node = Graph.resolve(this.graph, next_type)
     if (prev_node !== next_node) {
@@ -151,11 +143,8 @@ export class World {
     for (let i = 0; i < type.components.length; i++) {
       const component = type.components[i]
       if (Component.is_relationship(component)) {
-        this.store(component.id)[entity] = undefined!
-      } else if (
-        Component.is_value(component) &&
-        !Component.is_relation(component)
-      ) {
+        this.#write(entity, component, undefined)
+      } else if (Component.is_plain_value(component)) {
         this.#write(entity, component, undefined!)
       }
     }
@@ -165,7 +154,7 @@ export class World {
   #commit_link(command: Commands.Link) {
     const {entity, type, parent, value} = command
     const prev_node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(prev_node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const component = type.component_spec[0]
     const next_type = Type.with_component(
       prev_node.type,
@@ -182,7 +171,7 @@ export class World {
   #commit_unlink(command: Commands.Unlink) {
     const {entity, type, parent} = command
     const prev_node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(prev_node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const component = type.component_spec[0]
     const next_type = Type.without_component(
       prev_node.type,
@@ -257,8 +246,21 @@ export class World {
     }
   }
 
+  get tick() {
+    return this.#tick
+  }
+
+  store(component_id: number) {
+    return (this.stores[component_id] ??= [])
+  }
+
+  spawn(): Entity.T
   spawn<U extends Component.T[]>(
     type: Type.Type<U>,
+    ...values: Commands.Init<U>
+  ): Entity.T
+  spawn<U extends Component.T[]>(
+    type?: Type.Type<U>,
     ...values: Commands.Init<U>
   ): Entity.T {
     const entity = EntityRegistry.retain(this.#entity_registry)
@@ -266,7 +268,9 @@ export class World {
       this.#stage,
       this.#tick,
       Commands.spawn(
-        Type.with_relationships(type, values) as Type.T<U>,
+        (type
+          ? Type.with_relationships(type, values)
+          : Type.make()) as Type.T<U>,
         entity,
         values,
       ),
@@ -319,7 +323,7 @@ export class World {
     value?: U extends Component.Relation<infer V> ? V : never,
   ) {
     const node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     Stage.insert(
       this.#stage,
       this.#tick,
@@ -333,7 +337,7 @@ export class World {
     parent: Entity.T,
   ) {
     const node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     Stage.insert(this.#stage, this.#tick, Commands.unlink(entity, type, parent))
   }
 
@@ -344,11 +348,12 @@ export class World {
   ) {
     const component = type.component_spec[0]
     const next_node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(next_node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(next_node !== undefined, DEBUG && "entity does not exist")
     if (Component.is_relation(component)) {
-      const [parent, value] = init as Commands.InitRelationship<
+      type RelationInit = Commands.InitRelationship<
         U extends Component.Relation<infer V> ? V : never
       >
+      const [parent, value] = init as RelationInit
       this.#write_relationship(entity, component, parent, value)
     } else {
       this.#write(entity, component, init)
@@ -368,7 +373,7 @@ export class World {
     type: Type.Unitary<U>,
   ): GetSingle<U> {
     const node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity could not be located")
+    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     const component = type.component_spec[0]
     if (Component.is_relation(component)) {
       const out = [] as Array<Commands.InitRelationship<unknown>>
@@ -381,15 +386,31 @@ export class World {
             this.#entity_registry,
             relationship_entity_id,
           )
-          const relationship_value = this.store(relationship.id)[entity]
+          const relationship_value = this.#read(entity, relationship)
           out.push([relationship_entity, relationship_value])
         }
       }
       return out as GetSingle<U>
     }
-    return this.store(component.id)[entity] as GetSingle<U>
+    return this.#read(entity, component) as GetSingle<U>
   }
 }
 export type T = World
 
 export const make = (time = 0): World => new World(time)
+
+if (import.meta.vitest) {
+  const {describe, it, expect} = await import("vitest")
+  const A = Component.tag()
+
+  describe("World", () => {
+    it("throws an error when adding a component to a non-existent entity", () => {
+      const world = make()
+      expect(() => world.add(123 as Entity.T, A)).to.throw()
+    })
+    it("throws an error when removing a component from a non-existent entity", () => {
+      const world = make()
+      expect(() => world.remove(123 as Entity.T, A)).to.throw()
+    })
+  })
+}

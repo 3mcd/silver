@@ -262,6 +262,9 @@ export const make_relationship = (
 export const is_value = (component: T): component is Value | Relation =>
   component.kind === Kind.Value || component.kind === Kind.Relation
 
+export const is_plain_value = (component: T): component is Value =>
+  component.kind === Kind.Value
+
 export const is_relation = (
   component: T,
 ): component is Relation | RelationTag =>

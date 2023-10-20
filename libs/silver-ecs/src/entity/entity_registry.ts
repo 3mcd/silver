@@ -100,7 +100,7 @@ if (import.meta.vitest) {
       const registry = make()
       const entity = retain(registry)
       release(registry, entity)
-      expect(() => check(registry, entity)).to_throw()
+      expect(() => check(registry, entity)).toThrow()
     })
 
     it("recycles entity ids", () => {
@@ -163,7 +163,7 @@ if (import.meta.vitest) {
       const registry = make()
       const entity = retain(registry)
       rollback(registry, entity)
-      expect(() => check(registry, entity)).to_throw()
+      expect(() => check(registry, entity)).toThrow()
       expect(retain(registry)).to.equal(entity)
     })
   })

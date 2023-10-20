@@ -85,6 +85,10 @@ importers:
         specifier: workspace:*
         version: link:../silver-ecs
 
+  libs/silver-net/debug: {}
+
+  libs/silver-net/dev: {}
+
 packages:
 
   /@cspotcode/source-map-support@0.8.1:

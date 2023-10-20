@@ -66,3 +66,11 @@ export const add_offset_sample = (
 export const estimate_server_time = (clock_sync: ClockSync, time: number) => {
   return time + clock_sync.offset + clock_sync.lag_compensation_latency
 }
+
+if (import.meta.vitest) {
+  const {describe, it, expect} = await import("vitest")
+
+  describe("ClockSync", () => {
+    it.todo("should work")
+  })
+}

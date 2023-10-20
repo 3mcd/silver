@@ -10,6 +10,8 @@ export type InitSingle<U extends Component.T> = U extends Component.RelationTag
   ? InitRelationship<V>
   : U extends Component.Value<infer V>
   ? V
+  : U extends Component.Relationship
+  ? unknown
   : never
 
 export type Init<
