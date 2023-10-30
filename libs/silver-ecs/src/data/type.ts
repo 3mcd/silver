@@ -178,6 +178,10 @@ export const has = (type_a: Type, type_b: Type): boolean => {
   return true
 }
 
+export const single = <U extends Component.T>(type: Unitary<U>): U => {
+  return type.component_spec[0] as U
+}
+
 export class Type<U extends Component.T[] = Component.T[]> {
   component_ids
   component_spec

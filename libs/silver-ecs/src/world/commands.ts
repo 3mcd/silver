@@ -32,55 +32,32 @@ export type Init<
     : never
   : never
 
-export interface Spawn<U extends Component.T[] = Component.T[]> {
+export type Spawn<U extends Component.T[] = Component.T[]> = {
   kind: "spawn"
   entity: Entity.T
   type: Type.T<U>
   init: Init<U>
 }
 
-export interface Despawn {
+export type Despawn = {
   kind: "despawn"
   entity: Entity.T
 }
 
-export interface Add<U extends Component.T[] = Component.T[]> {
+export type Add<U extends Component.T[] = Component.T[]> = {
   kind: "add"
   entity: Entity.T
   type: Type.T<U>
   init: Init<U>
 }
 
-export interface Remove<U extends Component.T[] = Component.T[]> {
+export type Remove<U extends Component.T[] = Component.T[]> = {
   kind: "remove"
   entity: Entity.T
   type: Type.T<U>
 }
 
-export interface Link<
-  U extends Component.Relation | Component.RelationTag =
-    | Component.Relation
-    | Component.RelationTag,
-> {
-  kind: "link"
-  entity: Entity.T
-  type: Type.Unitary<U>
-  parent: Entity.T
-  value?: U extends Component.Relation<infer V> ? V : never
-}
-
-export interface Unlink<
-  U extends Component.Relation | Component.RelationTag =
-    | Component.Relation
-    | Component.RelationTag,
-> {
-  kind: "unlink"
-  entity: Entity.T
-  type: Type.Unitary<U>
-  parent: Entity.T
-}
-
-export type T = Spawn | Despawn | Add | Remove | Link | Unlink
+export type T = Spawn | Despawn | Add | Remove
 
 class Command {
   kind
@@ -123,16 +100,3 @@ export const remove = <U extends Component.T[]>(
   type: Type.T<U>,
   entity: Entity.T,
 ) => new Command("remove", entity, type) as Remove<U>
-
-export const link = <U extends Component.Relation | Component.RelationTag>(
-  entity: Entity.T,
-  type: Type.Unitary<U>,
-  parent: Entity.T,
-  init?: U extends Component.Relation<infer V> ? V : never,
-) => new Command("link", entity, type, init, parent) as Link<U>
-
-export const unlink = <U extends Component.Relation | Component.RelationTag>(
-  entity: Entity.T,
-  type: Type.Unitary<U>,
-  parent: Entity.T,
-) => new Command("unlink", entity, type, undefined, parent) as Unlink<U>

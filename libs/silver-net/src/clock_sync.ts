@@ -37,30 +37,33 @@ export const add_offset_sample = (
   payload_client_time: number,
   current_client_time: number,
 ) => {
-  const offsetSample =
+  const offset_sample =
     payload_server_time - (payload_client_time + current_client_time) / 2
   if (
-    clock_sync.offset_samples.unshift(offsetSample) ===
+    clock_sync.offset_samples.unshift(offset_sample) ===
     clock_sync.min_offset_samples_count_with_outliers
   ) {
     const samples = clock_sync.offset_samples.slice().sort()
-    const lo = clock_sync.offset_samples_to_discard_per_extreme
-    const hi =
+    const min_sample_index = clock_sync.offset_samples_to_discard_per_extreme
+    const max_sample_index =
       clock_sync.offset_samples.length -
       clock_sync.offset_samples_to_discard_per_extreme
     let offset = 0
-    for (let i = lo; i < hi; i++) {
+    for (let i = min_sample_index; i < max_sample_index; i++) {
       offset += samples[i]
     }
-    offset = offset / (hi - clock_sync.offset_samples_to_discard_per_extreme)
+    offset =
+      offset /
+      (max_sample_index - clock_sync.offset_samples_to_discard_per_extreme)
     if (
       Math.abs(offset - clock_sync.offset) > clock_sync.max_offset_deviation
     ) {
       clock_sync.offset = offset
     }
     clock_sync.offset_samples.pop()
+    return true
   }
-  return clock_sync.offset
+  return false
 }
 
 export const estimate_server_time = (clock_sync: ClockSync, time: number) => {

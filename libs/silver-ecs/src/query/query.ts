@@ -9,27 +9,13 @@ import * as World from "../world/world"
 import * as Changed from "./changed"
 import * as Filter from "./filter"
 
-type Parents<U extends Component.T[], Out extends Entity.T[] = []> = U extends [
-  infer Head,
-  ...infer Tail,
-]
-  ? Tail extends Component.T[]
-    ? Parents<
-        Tail,
-        Head extends Component.Relation<unknown> | Component.RelationTag
-          ? [...Out, Entity.T]
-          : Out
-      >
-    : never
-  : Out
-
 type EachIteratee<U extends Component.T[]> = (
   entity: Entity.T,
   ...values: Component.ValuesOf<U>
 ) => void
 
 type EachArgs<U extends Component.T[]> = [
-  ...parents: Parents<U>,
+  ...parents: Component.Parents<U>,
   iteratee: EachIteratee<U>,
 ]
 type Each<U extends Component.T[]> = (...args: EachArgs<U>) => void
@@ -94,7 +80,9 @@ export class Query<U extends Component.T[] = Component.T[]> {
         : compile_each_iterator(world, type, SparseMap.values(matches), changed)
   }
 
-  each(...args: [...parents: Parents<U>, iteratee: EachIteratee<U>]): void
+  each(
+    ...args: [...parents: Component.Parents<U>, iteratee: EachIteratee<U>]
+  ): void
   each() {
     this.#each.apply(null, arguments as unknown as Parameters<Each<U>>)
     for (let i = 0; i < this.changed.length; i++) {

@@ -11,6 +11,18 @@ export enum Kind {
   Relationship,
 }
 
+export type Parents<U extends T[], Out extends Entity.T[] = []> = U extends [
+  infer Head,
+  ...infer Tail,
+]
+  ? Tail extends T[]
+    ? Parents<
+        Tail,
+        Head extends Relation<unknown> | RelationTag ? [...Out, Entity.T] : Out
+      >
+    : never
+  : Out
+
 export type ValueOf<U extends T> = U extends RelationTag
   ? never
   : U extends Relation<infer V>

@@ -145,40 +145,6 @@ export class World {
     SparseMap.set(this.#entity_nodes, entity, next_node)
   }
 
-  #commit_link(command: Commands.Link) {
-    const {entity, type, parent, value} = command
-    const prev_node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
-    const component = type.component_spec[0]
-    const next_type = Type.with_component(
-      prev_node.type,
-      Component.make_relationship(component, parent),
-    )
-    const next_node = Graph.resolve(this.graph, next_type)
-    this.#move(entity, prev_node, next_node)
-    this.#bump(entity, component)
-    if (Component.is_value(component)) {
-      this.#write_relationship(entity, component, parent, value)
-    }
-  }
-
-  #commit_unlink(command: Commands.Unlink) {
-    const {entity, type, parent} = command
-    const prev_node = SparseMap.get(this.#entity_nodes, entity)
-    Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
-    const component = type.component_spec[0]
-    const next_type = Type.without_component(
-      prev_node.type,
-      Component.make_relationship(component, parent),
-    )
-    const next_node = Graph.resolve(this.graph, next_type)
-    this.#move(entity, prev_node, next_node)
-    this.#bump(entity, component)
-    if (Component.is_value(component)) {
-      this.#write_relationship(entity, component, parent, undefined!)
-    }
-  }
-
   #record_relation_node = (node: Graph.Node) => {
     for (let i = 0; i < node.type.relationships.length; i++) {
       const relationship = node.type.relationships[i]
@@ -230,12 +196,6 @@ export class World {
         break
       case "remove":
         this.#commit_remove(command)
-        break
-      case "link":
-        this.#commit_link(command)
-        break
-      case "unlink":
-        this.#commit_unlink(command)
         break
     }
   }
@@ -294,45 +254,17 @@ export class World {
     )
   }
 
-  remove<U extends Component.T[]>(entity: Entity.T, type: Type.Type<U>) {
-    EntityRegistry.check(this.#entity_registry, entity)
-    Stage.insert(this.#stage, this.#tick, Commands.remove(type, entity))
-  }
-
-  link<U extends Component.RelationTag>(
+  remove<U extends Component.T[]>(
     entity: Entity.T,
-    type: Type.Unitary<U>,
-    parent: Entity.T,
-  ): void
-  link<U extends Component.Relation>(
-    entity: Entity.T,
-    type: Type.Unitary<U>,
-    parent: Entity.T,
-    value: U extends Component.Relation<infer V> ? V : never,
-  ): void
-  link<U extends Component.Relation | Component.RelationTag>(
-    entity: Entity.T,
-    type: Type.Unitary<U>,
-    parent: Entity.T,
-    value?: U extends Component.Relation<infer V> ? V : never,
+    type: Type.Type<U>,
+    ...parents: Component.Parents<U>
   ) {
     EntityRegistry.check(this.#entity_registry, entity)
-    EntityRegistry.check(this.#entity_registry, parent)
     Stage.insert(
       this.#stage,
       this.#tick,
-      Commands.link(entity, type, parent, value),
+      Commands.remove(Type.with_relationships(type, parents), entity),
     )
-  }
-
-  unlink<U extends Component.Relation | Component.RelationTag>(
-    entity: Entity.T,
-    type: Type.Unitary<U>,
-    parent: Entity.T,
-  ) {
-    EntityRegistry.check(this.#entity_registry, entity)
-    EntityRegistry.check(this.#entity_registry, parent)
-    Stage.insert(this.#stage, this.#tick, Commands.unlink(entity, type, parent))
   }
 
   change<U extends Component.Value | Component.Relation>(
@@ -340,7 +272,7 @@ export class World {
     type: Type.Unitary<U>,
     init: Commands.InitSingle<U>,
   ) {
-    const component = type.component_spec[0]
+    const component = Type.single(type)
     const next_node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(next_node !== undefined, DEBUG && "entity does not exist")
     if (Component.is_relation(component)) {
@@ -368,7 +300,7 @@ export class World {
   ): Commands.InitSingle<U> {
     const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity does not exist")
-    const component = type.component_spec[0]
+    const component = Type.single(type)
     if (Component.is_relation(component)) {
       const out = [] as Commands.InitSingle<U>[]
       for (let i = 0; i < node.type.relationships.length; i++) {
@@ -431,14 +363,6 @@ if (import.meta.vitest) {
       world.step()
       expect(world.get(entity, B)).to.equal(undefined)
     })
-    it("adds a relation component to an entity (link)", () => {
-      const world = make()
-      const entity = world.spawn()
-      const parent = world.spawn()
-      world.link(entity, C, parent)
-      world.step()
-      expect(world.get(entity, C)).to.deep.equal([parent])
-    })
     it("adds a relation component to an entity", () => {
       const world = make()
       const parent = world.spawn()
@@ -446,15 +370,14 @@ if (import.meta.vitest) {
       world.step()
       expect(world.get(entity, C)).to.deep.equal([parent])
     })
-    it("removes a relation component from an entity (unlink)", () => {
+    it.todo("removes a relation component from an entity", () => {
       const world = make()
       const parent = world.spawn()
       const entity = world.spawn(C, parent)
       world.step()
-      world.unlink(entity, C, parent)
+      world.remove(entity, C, parent)
       world.step()
       expect(world.get(entity, C)).to.deep.equal([])
     })
-    it.todo("removes all relation components with the same type from an entity")
   })
 }

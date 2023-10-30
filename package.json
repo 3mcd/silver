@@ -12,9 +12,9 @@
     "build": "pnpm build:lib && pnpm build:tsc",
     "build:lib": "tsx build/build.ts",
     "build:tsc": "pnpm --filter \"./libs/*\" -r exec tsc -b",
-    "reset": "pnpm reset:perf & pnpm reset:dist & pnpm i",
-    "reset:perf": "find ./packages -type f -name '*.perf-results' -delete",
-    "reset:dist": "find ./packages -type d -name 'dist' -prune -exec rm -rf {} \\;",
+    "reset": "pnpm reset:bench & pnpm reset:dist & pnpm i",
+    "reset:bench": "find ./libs -type f -name '*.bench-results' -delete",
+    "reset:dist": "find ./libs -type d -name 'dist' -prune -exec rm -rf {} \\;",
     "release": "pnpm build && pnpm publish -r"
   },
   "keywords": [],
