@@ -9,46 +9,10 @@ import {
   context,
   transform,
 } from "./canvas"
-import data from "./data.json"
-
-type Orbit = {radius: number; period: number}
-type Position = {x: number; y: number}
-
-const Name = ecs.value<string>()
-const Color = ecs.value<string>()
-const Radius = ecs.value<number>()
-const Orbits = ecs.relation<Orbit>()
-const Position = ecs.value<Position>()
-
-const Body = ecs.type(Name, Color, Radius, Position)
-const Satellite = ecs.type(Body, Orbits)
+import {Body, Orbits, Position, Radius, seed} from "./data"
 
 const world = ecs.make()
-const types = {Body, Satellite} as const
-type Data = {[K in keyof typeof types]: ecs.Data<(typeof types)[K]>[]}
-const keys = Object.keys(types) as Array<keyof typeof types>
-const load = (data: Data) => {
-  const entities: Record<string, ecs.Entity> = {}
-  for (const key of keys) {
-    switch (key) {
-      case "Body":
-        for (let i = 0; i < data[key].length; i++) {
-          const init = data[key][i]
-          entities[init[0]] = world.spawn(Body, ...init)
-        }
-        break
-      case "Satellite":
-        for (let i = 0; i < data[key].length; i++) {
-          const init = data[key][i]
-          init[4][0] = entities[init[4][0]]
-          entities[init[0]] = world.spawn(Satellite, ...init)
-        }
-        break
-    }
-  }
-}
-
-load(data as Data)
+seed(world)
 
 const FONT_SIZE = 12 * window.devicePixelRatio
 

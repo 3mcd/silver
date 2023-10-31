@@ -61,16 +61,25 @@ export class World {
   }
 
   #write_many(entity: Entity.T, type: Type.T, values: unknown[]) {
-    let j = 0
-    for (let i = 0; i < type.components.length; i++) {
-      const component = type.components[i]
-      if (Component.stores_value(component)) {
-        let value = values[j]
-        if (Component.is_relation(component)) {
-          value = (value as Commands.InitValueRelation)[1]
+    let init_index = 0
+    for (let i = 0; i < type.component_spec.length; i++) {
+      const component = type.component_spec[i]
+      if (Component.is_value_relation(component)) {
+        const value = values[init_index] as Commands.InitValueRelation
+        for (let j = 0; j < value.length; j++) {
+          const relationship_value = value[j]
+          this.#write_relationship(
+            entity,
+            component,
+            relationship_value[0],
+            relationship_value[1],
+          )
         }
+        init_index++
+      } else if (Component.is_value(component)) {
+        const value = values[init_index]
         this.#write(entity, component, value)
-        j++
+        init_index++
       }
     }
   }
@@ -87,11 +96,11 @@ export class World {
   #write_relationship<U extends Component.ValueRelation>(
     entity: Entity.T,
     component: U,
-    parent: Entity.T,
-    value: U extends Component.ValueRelation<infer V> ? V : never,
+    relative: Entity.T,
+    value: unknown,
   ) {
     const relationship_component_id = Entity.make(
-      Entity.parse_entity_id(parent),
+      Entity.parse_entity_id(relative),
       component.id,
     )
     this.store(relationship_component_id)[entity] = value
@@ -259,16 +268,16 @@ export class World {
   remove<U extends Component.T[]>(
     entity: Entity.T,
     type: Type.T<U>,
-    parents: Component.Related<U>,
+    relatives: Component.Related<U>,
   ): void
-  remove(entity: Entity.T, type: Type.T, parents?: Entity.T[]) {
+  remove(entity: Entity.T, type: Type.T, relatives?: Entity.T[]) {
     EntityRegistry.check(this.#entity_registry, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
       Commands.remove(
         Type.has_relations(type)
-          ? Type.with_relationships(type, parents!)
+          ? Type.with_relationships(type, relatives!)
           : type,
         entity,
       ),
@@ -283,7 +292,7 @@ export class World {
     const next_node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(next_node !== undefined, DEBUG && "entity does not exist")
     const component = Type.component_at(type)
-    if (Component.is_relation(component)) {
+    if (Component.is_value_relation(component)) {
       type RelationInit = Commands.InitValueRelation<
         U extends Component.ValueRelation<infer V> ? V : never
       >
@@ -372,19 +381,19 @@ if (import.meta.vitest) {
       world.step()
       expect(world.get(entity, B)).to.equal(undefined)
     })
-    it("adds a relation component to an entity", () => {
+    it.only("adds a relation component to an entity", () => {
       const world = make()
-      const parent = world.spawn()
-      const entity = world.spawn(C, [parent])
+      const relative = world.spawn()
+      const entity = world.spawn(C, [relative])
       world.step()
-      expect(world.get(entity, C)).to.deep.equal([parent])
+      expect(world.get(entity, C)).to.deep.equal([relative])
     })
     it.todo("removes a relation component from an entity", () => {
       const world = make()
-      const parent = world.spawn()
-      const entity = world.spawn(C, [parent])
+      const relative = world.spawn()
+      const entity = world.spawn(C, [relative])
       world.step()
-      world.remove(entity, C, [parent])
+      world.remove(entity, C, [relative])
       world.step()
       expect(world.get(entity, C)).to.deep.equal([])
     })

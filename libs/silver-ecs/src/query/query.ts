@@ -15,7 +15,7 @@ type EachIteratee<U extends Component.T[]> = (
 ) => void
 
 type EachArgs<U extends Component.T[]> = [
-  ...parents: Component.Related<U>,
+  ...relatives: Component.Related<U>,
   iteratee: EachIteratee<U>,
 ]
 type Each<U extends Component.T[]> = (...args: EachArgs<U>) => void
@@ -81,7 +81,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
   }
 
   each(
-    ...args: [...parents: Component.Related<U>, iteratee: EachIteratee<U>]
+    ...args: [...relatives: Component.Related<U>, iteratee: EachIteratee<U>]
   ): void
   each() {
     this.#each.apply(null, arguments as unknown as Parameters<Each<U>>)

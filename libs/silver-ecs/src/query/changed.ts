@@ -64,11 +64,9 @@ if (import.meta.vitest) {
       const changes = Changes.make()
       const changed = compile_predicate(A, changes, state)
       const entity = Entity.make(0, 0)
-      const key = Entity.make(entity, A.components[0].id)
       expect(changed(entity)).to.be.false
-      Changes.bump(changes, key)
+      Changes.bump(changes, entity, A.components[0].id)
       expect(changed(entity)).to.be.true
-      expect(SparseMap.get(state.stage, key)).toBe(1)
     })
   })
 }

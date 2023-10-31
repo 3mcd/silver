@@ -1,6 +1,7 @@
 import * as Entity from "../entity/entity"
 import * as Hash from "../hash"
 import {ExcludeFromTuple} from "../types"
+import * as Commands from "../world/commands"
 import * as Component from "./component"
 
 type Spec<
@@ -228,7 +229,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
     this.hash = Hash.words(this.component_ids)
     this.component_spec = component_spec
     this.relations = components.filter(Component.is_relation)
-    this.relationships = components.filter(Component.is_value_relationship)
+    this.relationships = components.filter(Component.is_relationship)
     this.sparse = sparse
     this.sparse_init = sparse_init
     this.sparse_relations = sparse_relations
@@ -248,13 +249,19 @@ export const with_relationships = (type: T, values: unknown[]): T => {
   for (let i = 0; i < type.relations.length; i++) {
     const relation = type.relations[i]
     const relationship_init_index = type.sparse_init[relation.id]
-    const relationship_init = Component.is_value(relation)
-      ? (values[relationship_init_index] as [Entity.T, unknown])[0]
-      : (values[relationship_init_index] as Entity.T)
-    relationship_type = with_component(
-      relationship_type,
-      Component.make_relationship(relation, relationship_init),
-    )
+    const relationship_init = values[relationship_init_index] as
+      | Commands.InitTagRelation
+      | Commands.InitValueRelation
+    for (let j = 0; j < relationship_init.length; j++) {
+      const value = relationship_init[j]
+      relationship_type = with_component(
+        relationship_type,
+        Component.make_relationship(
+          relation,
+          typeof value === "number" ? value : value[0],
+        ),
+      )
+    }
   }
   return relationship_type
 }

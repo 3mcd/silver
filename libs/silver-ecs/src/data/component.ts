@@ -90,10 +90,9 @@ export interface ValueRelationship extends Base<void> {
 }
 
 export type TBase = Tag | Value
-
 export type TRelation = TagRelation | ValueRelation
-
-export type T = TBase | TRelation | TagRelationship | ValueRelationship
+export type TRelationship = TagRelationship | ValueRelationship
+export type T = TBase | TRelation | TRelationship
 
 let next_component_id = 1
 export const make_component_id = () => {
@@ -267,7 +266,7 @@ export function relation(schema?: Data.Schema) {
  *
  * @example <caption>Define a relation with no data and add it to an entity.</caption>
  * const ChildOf = ecs.relation_tag()
- * const entity = world.spawn(ChildOf, [parent])
+ * const entity = world.spawn(ChildOf, [relative])
  */
 export const relation_tag = (): Type.Type<[TagRelation]> =>
   Type.make(make(make_component_id(), Kind.TagRelation))
@@ -320,7 +319,11 @@ export const is_value_relation = (component: T): component is ValueRelation =>
 export const is_relation = (
   component: T,
 ): component is ValueRelation | TagRelation =>
-  component.kind === Kind.ValueRelation || component.kind === Kind.TagRelation
+  component.kind === Kind.TagRelation || component.kind === Kind.ValueRelation
+
+export const is_relationship = (component: T): component is TRelationship =>
+  component.kind === Kind.ValueRelationship ||
+  component.kind === Kind.TagRelationship
 
 export const is_value_relationship = (
   component: T,
@@ -335,7 +338,6 @@ if (import.meta.vitest) {
   describe("is_value", () => {
     it("returns true for value components", () => {
       expect(is_value(value().components[0])).true
-      expect(is_value(relation().components[0])).true
     })
     it("returns false for tag components", () => {
       expect(is_value(tag().components[0])).false

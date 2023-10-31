@@ -3,7 +3,7 @@ import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
 
 export type InitTagRelation = Entity.T[]
-export type InitValueRelation<U = unknown> = [parent: Entity.T, value: U][]
+export type InitValueRelation<U = unknown> = [relative: Entity.T, value: U][]
 
 export type InitSingle<U extends Component.T> = U extends Component.TagRelation
   ? InitTagRelation
@@ -65,20 +65,20 @@ class Command {
   entity
   type?
   init?
-  parent?
+  relative?
 
   constructor(
     kind: T["kind"],
     entity: Entity.T,
     type?: Type.T,
     init?: unknown,
-    parent?: Entity.T,
+    relative?: Entity.T,
   ) {
     this.kind = kind
     this.type = type
     this.entity = entity
     this.init = init
-    this.parent = parent
+    this.relative = relative
   }
 }
 
