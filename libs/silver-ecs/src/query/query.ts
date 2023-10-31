@@ -15,7 +15,7 @@ type EachIteratee<U extends Component.T[]> = (
 ) => void
 
 type EachArgs<U extends Component.T[]> = [
-  ...parents: Component.Parents<U>,
+  ...parents: Component.Related<U>,
   iteratee: EachIteratee<U>,
 ]
 type Each<U extends Component.T[]> = (...args: EachArgs<U>) => void
@@ -81,7 +81,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
   }
 
   each(
-    ...args: [...parents: Component.Parents<U>, iteratee: EachIteratee<U>]
+    ...args: [...parents: Component.Related<U>, iteratee: EachIteratee<U>]
   ): void
   each() {
     this.#each.apply(null, arguments as unknown as Parameters<Each<U>>)
@@ -125,7 +125,7 @@ const make_iterator_iteratee_args_expression = (type: Type.T) => {
     const {id, kind} = type.component_spec[i]
     if (kind === Component.Kind.Value) {
       s += `s${id}[e],`
-    } else if (kind === Component.Kind.Relation) {
+    } else if (kind === Component.Kind.ValueRelation) {
       s += `W[((${id}&${Entity.HI})<<${Entity.LO_EXTENT})|p${id}][e],`
     }
   }

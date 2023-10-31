@@ -178,8 +178,15 @@ export const has = (type_a: Type, type_b: Type): boolean => {
   return true
 }
 
-export const single = <U extends Component.T>(type: Unitary<U>): U => {
-  return type.component_spec[0] as U
+export const has_relations = (type: Type): boolean => {
+  return type.relations.length > 0
+}
+
+export const component_at = <U extends Component.T>(
+  type: Unitary<U>,
+  index = 0,
+): U => {
+  return type.component_spec[index] as U
 }
 
 export class Type<U extends Component.T[] = Component.T[]> {
@@ -205,7 +212,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
     let j = 0
     for (let i = 0; i < component_spec.length; i++) {
       const component = component_spec[i]
-      if (Component.is_value(component) || Component.is_relation(component)) {
+      if (Component.is_initialized(component)) {
         sparse_init[component.id] = j++
       }
     }
@@ -221,7 +228,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
     this.hash = Hash.words(this.component_ids)
     this.component_spec = component_spec
     this.relations = components.filter(Component.is_relation)
-    this.relationships = components.filter(Component.is_relationship)
+    this.relationships = components.filter(Component.is_value_relationship)
     this.sparse = sparse
     this.sparse_init = sparse_init
     this.sparse_relations = sparse_relations
@@ -236,7 +243,7 @@ export const make = <U extends Array<Component.T | Type>>(
   return new Type(make_spec(types))
 }
 
-export const with_relationships = (type: T, values: unknown[]) => {
+export const with_relationships = (type: T, values: unknown[]): T => {
   let relationship_type = type
   for (let i = 0; i < type.relations.length; i++) {
     const relation = type.relations[i]

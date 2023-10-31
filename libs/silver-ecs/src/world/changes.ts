@@ -7,14 +7,28 @@ export const make = (): T => {
   return []
 }
 
-export const get = (changes: Changes, key: number): number => {
+const get_at_key = (changes: Changes, key: number): number => {
   return (changes[key] ??= 0)
 }
 
-export const bump = (changes: Changes, key: number): number => {
-  return (changes[key] = get(changes, key) + 1)
+const make_key = (entity: Entity.T, component_id: number): number => {
+  return Entity.make(Entity.parse_entity_id(entity), component_id)
 }
 
-export const make_key = (entity: Entity.T, component_id: number): number => {
-  return Entity.make(Entity.parse_entity_id(entity), component_id)
+export const get = (
+  changes: Changes,
+  entity: Entity.T,
+  component_id: number,
+): number => {
+  const key = make_key(entity, component_id)
+  return get_at_key(changes, key)
+}
+
+export const bump = (
+  changes: Changes,
+  entity: Entity.T,
+  component_id: number,
+): number => {
+  const key = make_key(entity, component_id)
+  return (changes[key] = get_at_key(changes, key) + 1)
 }

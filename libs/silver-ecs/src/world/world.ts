@@ -44,7 +44,7 @@ export class World {
   }
 
   #bump(entity: Entity.T, component: Component.T) {
-    Changes.bump(this.changes, Changes.make_key(entity, component.id))
+    Changes.bump(this.changes, entity, component.id)
   }
 
   #read<U extends Component.T>(entity: Entity.T, component: U) {
@@ -64,20 +64,31 @@ export class World {
     let j = 0
     for (let i = 0; i < type.components.length; i++) {
       const component = type.components[i]
-      if (Component.is_relationship(component)) {
-        const value = (values[j++] as [Entity.T, unknown])[1]
+      if (Component.stores_value(component)) {
+        let value = values[j]
+        if (Component.is_relation(component)) {
+          value = (value as Commands.InitValueRelation)[1]
+        }
         this.#write(entity, component, value)
-      } else if (Component.is_plain_value(component)) {
-        this.#write(entity, component, values[j++])
+        j++
       }
     }
   }
 
-  #write_relationship<U extends Component.Relation>(
+  #clear_many(entity: Entity.T, type: Type.T) {
+    for (let i = 0; i < type.components.length; i++) {
+      const component = type.components[i]
+      if (Component.stores_value(component)) {
+        this.#write(entity, component, undefined)
+      }
+    }
+  }
+
+  #write_relationship<U extends Component.ValueRelation>(
     entity: Entity.T,
     component: U,
     parent: Entity.T,
-    value: U extends Component.Relation<infer V> ? V : never,
+    value: U extends Component.ValueRelation<infer V> ? V : never,
   ) {
     const relationship_component_id = Entity.make(
       Entity.parse_entity_id(parent),
@@ -102,12 +113,7 @@ export class World {
     Graph.remove_entity(node, entity)
     SparseMap.delete(this.#entity_nodes, entity)
     EntityRegistry.release(this.#entity_registry, entity)
-    for (let i = 0; i < node.type.components.length; i++) {
-      const component = node.type.components[i]
-      if (Component.is_value(component)) {
-        this.#write(entity, component, undefined)
-      }
-    }
+    this.#clear_many(entity, node.type)
     this.#clear_entity_relationships(entity)
     Transition.move(this.#transition, entity, node, this.graph.root)
   }
@@ -120,9 +126,9 @@ export class World {
     const next_node = Graph.resolve(this.graph, next_type)
     if (prev_node !== next_node) {
       this.#move(entity, prev_node, next_node)
+      SparseMap.set(this.#entity_nodes, entity, next_node)
     }
     this.#write_many(entity, type, init)
-    SparseMap.set(this.#entity_nodes, entity, next_node)
   }
 
   #commit_remove(command: Commands.Remove) {
@@ -133,16 +139,9 @@ export class World {
     const next_node = Graph.resolve(this.graph, next_type)
     if (prev_node !== next_node) {
       this.#move(entity, prev_node, next_node)
+      SparseMap.set(this.#entity_nodes, entity, next_node)
     }
-    for (let i = 0; i < type.components.length; i++) {
-      const component = type.components[i]
-      if (Component.is_relationship(component)) {
-        this.#write(entity, component, undefined)
-      } else if (Component.is_plain_value(component)) {
-        this.#write(entity, component, undefined!)
-      }
-    }
-    SparseMap.set(this.#entity_nodes, entity, next_node)
+    this.#clear_many(entity, type)
   }
 
   #record_relation_node = (node: Graph.Node) => {
@@ -247,40 +246,51 @@ export class World {
       this.#stage,
       this.#tick,
       Commands.add(
-        Type.with_relationships(type, values) as Type.T<U>,
+        Type.has_relations(type)
+          ? (Type.with_relationships(type, values) as Type.T<U>)
+          : type,
         entity,
         values,
       ),
     )
   }
 
+  remove<U extends Component.TBase[]>(entity: Entity.T, type: Type.T<U>): void
   remove<U extends Component.T[]>(
     entity: Entity.T,
-    type: Type.Type<U>,
-    ...parents: Component.Parents<U>
-  ) {
+    type: Type.T<U>,
+    parents: Component.Related<U>,
+  ): void
+  remove(entity: Entity.T, type: Type.T, parents?: Entity.T[]) {
     EntityRegistry.check(this.#entity_registry, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
-      Commands.remove(Type.with_relationships(type, parents), entity),
+      Commands.remove(
+        Type.has_relations(type)
+          ? Type.with_relationships(type, parents!)
+          : type,
+        entity,
+      ),
     )
   }
 
-  change<U extends Component.Value | Component.Relation>(
+  change<U extends Component.Value | Component.ValueRelation>(
     entity: Entity.T,
     type: Type.Unitary<U>,
     init: Commands.InitSingle<U>,
   ) {
-    const component = Type.single(type)
     const next_node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(next_node !== undefined, DEBUG && "entity does not exist")
+    const component = Type.component_at(type)
     if (Component.is_relation(component)) {
-      type RelationInit = Commands.InitRelationship<
-        U extends Component.Relation<infer V> ? V : never
+      type RelationInit = Commands.InitValueRelation<
+        U extends Component.ValueRelation<infer V> ? V : never
       >
-      const [parent, value] = init as RelationInit
-      this.#write_relationship(entity, component, parent, value)
+      for (let i = 0; i < (init as RelationInit).length; i++) {
+        const value = (init as RelationInit)[i]
+        this.#write_relationship(entity, component, value[0], value[1])
+      }
     } else {
       this.#write(entity, component, init)
     }
@@ -294,13 +304,12 @@ export class World {
     }
   }
 
-  get<U extends Component.Value | Component.Relation | Component.RelationTag>(
-    entity: Entity.T,
-    type: Type.Unitary<U>,
-  ): Commands.InitSingle<U> {
+  get<
+    U extends Component.Value | Component.ValueRelation | Component.TagRelation,
+  >(entity: Entity.T, type: Type.Unitary<U>): Commands.InitSingle<U> {
     const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity does not exist")
-    const component = Type.single(type)
+    const component = Type.component_at(type)
     if (Component.is_relation(component)) {
       const out = [] as Commands.InitSingle<U>[]
       for (let i = 0; i < node.type.relationships.length; i++) {
@@ -366,16 +375,16 @@ if (import.meta.vitest) {
     it("adds a relation component to an entity", () => {
       const world = make()
       const parent = world.spawn()
-      const entity = world.spawn(C, parent)
+      const entity = world.spawn(C, [parent])
       world.step()
       expect(world.get(entity, C)).to.deep.equal([parent])
     })
     it.todo("removes a relation component from an entity", () => {
       const world = make()
       const parent = world.spawn()
-      const entity = world.spawn(C, parent)
+      const entity = world.spawn(C, [parent])
       world.step()
-      world.remove(entity, C, parent)
+      world.remove(entity, C, [parent])
       world.step()
       expect(world.get(entity, C)).to.deep.equal([])
     })

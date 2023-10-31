@@ -17,7 +17,12 @@ export type {World}
 export type {Query} from "./query/query"
 export type {Type}
 export type {Filter} from "./query/filter"
-export type {Tag, Value, Relation, RelationTag} from "./data/component"
+export type {
+  Tag,
+  Value,
+  ValueRelation as Relation,
+  TagRelation as RelationTag,
+} from "./data/component"
 
 export type Data<T extends Type> = T extends Type<infer U> ? Init<U> : never
 export const Any = type()

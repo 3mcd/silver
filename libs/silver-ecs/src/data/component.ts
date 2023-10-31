@@ -5,27 +5,30 @@ import * as Entity from "../entity/entity"
 
 export enum Kind {
   Tag,
+  TagRelation,
+  TagRelationship,
   Value,
-  Relation,
-  RelationTag,
-  Relationship,
+  ValueRelation,
+  ValueRelationship,
 }
 
-export type Parents<U extends T[], Out extends Entity.T[] = []> = U extends [
+export type Related<U extends T[], Out extends Entity.T[] = []> = U extends [
   infer Head,
   ...infer Tail,
 ]
   ? Tail extends T[]
-    ? Parents<
+    ? Related<
         Tail,
-        Head extends Relation<unknown> | RelationTag ? [...Out, Entity.T] : Out
+        Head extends ValueRelation<unknown> | TagRelation
+          ? [...Out, Entity.T]
+          : Out
       >
     : never
   : Out
 
-export type ValueOf<U extends T> = U extends RelationTag
+export type ValueOf<U extends T> = U extends TagRelation
   ? never
-  : U extends Relation<infer V>
+  : U extends ValueRelation<infer V>
   ? V
   : U extends Tag
   ? never
@@ -60,29 +63,37 @@ export interface Tag extends Base<void> {
  */
 export interface Value<U = unknown> extends Base<U> {
   kind: Kind.Value
-  schema?: Data.Schema_of<U>
+  schema?: Data.SchemaOf<U>
 }
 
 /**
- * A datatype that describes an entity's relation to another entity.
+ * A datatype that describes an entity's relationship to another entity.
  */
-export interface Relation<U = unknown> extends Base<U> {
-  kind: Kind.Relation
-  schema?: Data.Schema_of<U>
+export interface ValueRelation<U = unknown> extends Base<U> {
+  kind: Kind.ValueRelation
+  schema?: Data.SchemaOf<U>
 }
 
 /**
  * A zero-size datatype that describes an entity's relation to another entity.
  */
-export interface RelationTag extends Base<void> {
-  kind: Kind.RelationTag
+export interface TagRelation extends Base<void> {
+  kind: Kind.TagRelation
 }
 
-export interface Relationship extends Base<void> {
-  kind: Kind.Relationship
+export interface TagRelationship extends Base<void> {
+  kind: Kind.TagRelationship
 }
 
-export type T = Value | Tag | Relation | RelationTag | Relationship
+export interface ValueRelationship extends Base<void> {
+  kind: Kind.ValueRelationship
+}
+
+export type TBase = Tag | Value
+
+export type TRelation = TagRelation | ValueRelation
+
+export type T = TBase | TRelation | TagRelationship | ValueRelationship
 
 let next_component_id = 1
 export const make_component_id = () => {
@@ -103,19 +114,16 @@ class Component {
   }
 }
 
-function make<U extends Value>(
+function make(id: number, kind: Kind.Tag): Tag
+function make(id: number, kind: Kind.TagRelation): TagRelation
+function make(id: number, kind: Kind.TagRelationship): TagRelationship
+function make(id: number, kind: Kind.Value, schema?: Data.Schema): Value
+function make(
   id: number,
-  kind: Kind.Value,
+  kind: Kind.ValueRelation,
   schema?: Data.Schema,
-): U
-function make<U extends Tag>(id: number, kind: Kind.Tag): U
-function make<U extends Relationship>(id: number, kind: Kind.Relationship): U
-function make<U extends Relation>(
-  id: number,
-  kind: Kind.Relation,
-  schema?: Data.Schema,
-): U
-function make<U extends RelationTag>(id: number, kind: Kind.RelationTag): U
+): ValueRelation
+function make(id: number, kind: Kind.ValueRelationship): ValueRelationship
 function make(
   id: number,
   kind: Exclude<T, number>["kind"],
@@ -152,7 +160,7 @@ export function value<U extends Data.Schema>(
  * const Position = ecs.value<Position>({x: "f32", y: "f32"}) // Value<Position>
  * const entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function value<U>(schema: Data.Schema_of<U>): Type.Type<[Value<U>]>
+export function value<U>(schema: Data.SchemaOf<U>): Type.Type<[Value<U>]>
 /**
  * Define a schemaless component with a statically-typed shape.
  *
@@ -203,7 +211,7 @@ export const tag = (): Type.Type<[Tag]> =>
  */
 export function relation<U extends Data.Schema>(
   schema: U,
-): Type.Type<[Relation<Data.Express<U>>]>
+): Type.Type<[ValueRelation<Data.Express<U>>]>
 /**
  * Define a relation using the given generic type and schema. The schema must satisfy
  * the type provided to the generic parameter.
@@ -217,7 +225,9 @@ export function relation<U extends Data.Schema>(
  * const Owes = ecs.relation<number>("f32")
  * const entity = world.spawn(Owes, [bank, 1_000])
  */
-export function relation<U>(schema: Data.Schema_of<U>): Type.Type<[Relation<U>]>
+export function relation<U>(
+  schema: Data.SchemaOf<U>,
+): Type.Type<[ValueRelation<U>]>
 /**
  * Define a schemaless relation with a statically-typed shape.
  *
@@ -230,7 +240,7 @@ export function relation<U>(schema: Data.Schema_of<U>): Type.Type<[Relation<U>]>
  * const Owes = ecs.relation<number>()
  * const entity = world.spawn(Owes, [bank, 1_000])
  */
-export function relation<U>(): Type.Type<[Relation<U>]>
+export function relation<U>(): Type.Type<[ValueRelation<U>]>
 /**
  * Define a relation with an undefined shape.
  *
@@ -245,9 +255,9 @@ export function relation<U>(): Type.Type<[Relation<U>]>
  * const Owes_anything = ecs.relation()
  * const entity = world.spawn(Owes_anything, [[[]]])
  */
-export function relation(): Type.Type<[Relation<unknown>]>
+export function relation(): Type.Type<[ValueRelation<unknown>]>
 export function relation(schema?: Data.Schema) {
-  return Type.make(make(make_component_id(), Kind.Relation, schema))
+  return Type.make(make(make_component_id(), Kind.ValueRelation, schema))
 }
 
 /**
@@ -259,34 +269,65 @@ export function relation(schema?: Data.Schema) {
  * const ChildOf = ecs.relation_tag()
  * const entity = world.spawn(ChildOf, [parent])
  */
-export const relation_tag = (): Type.Type<[RelationTag]> =>
-  Type.make(make(make_component_id(), Kind.RelationTag))
+export const relation_tag = (): Type.Type<[TagRelation]> =>
+  Type.make(make(make_component_id(), Kind.TagRelation))
 
-export const make_relationship = (
-  component: Relation | RelationTag,
+type RelationshipOf<U extends ValueRelation | TagRelation> =
+  U extends ValueRelation ? ValueRelationship : TagRelationship
+
+export const make_relationship = <U extends ValueRelation | TagRelation>(
+  component: U,
   entity: Entity.T,
-): Relationship =>
-  make(
-    Entity.make(Entity.parse_entity_id(entity), component.id),
-    Kind.Relationship,
-  )
+): RelationshipOf<U> => {
+  const component_id = Entity.make(Entity.parse_entity_id(entity), component.id)
+  if (component.kind === Kind.TagRelation) {
+    return make(component_id, Kind.TagRelationship) as RelationshipOf<U>
+  } else {
+    return make(component_id, Kind.ValueRelationship) as RelationshipOf<U>
+  }
+}
 
-export const is_value = (component: T): component is Value | Relation =>
-  component.kind === Kind.Value || component.kind === Kind.Relation
+export const stores_value = (component: T): boolean => {
+  switch (component.kind) {
+    case Kind.Value:
+    case Kind.ValueRelationship:
+      return true
+    default:
+      return false
+  }
+}
 
-export const is_plain_value = (component: T): component is Value =>
+export const is_value = (component: T): component is Value =>
   component.kind === Kind.Value
+
+export const is_initialized = (component: T): boolean => {
+  switch (component.kind) {
+    case Kind.Value:
+    case Kind.ValueRelation:
+    case Kind.TagRelation:
+      return true
+    default:
+      return false
+  }
+}
+
+export const is_tag_relation = (component: T): component is TagRelation =>
+  component.kind === Kind.TagRelation
+
+export const is_value_relation = (component: T): component is ValueRelation =>
+  component.kind === Kind.ValueRelation
 
 export const is_relation = (
   component: T,
-): component is Relation | RelationTag =>
-  component.kind === Kind.Relation || component.kind === Kind.RelationTag
+): component is ValueRelation | TagRelation =>
+  component.kind === Kind.ValueRelation || component.kind === Kind.TagRelation
 
-export const is_relationship = (component: T): component is Relationship =>
-  component.kind === Kind.Relationship
+export const is_value_relationship = (
+  component: T,
+): component is ValueRelationship => component.kind === Kind.ValueRelationship
 
-export const is_tag = (component: T): component is Tag | RelationTag =>
-  component.kind === Kind.Tag || component.kind === Kind.RelationTag
+export const is_tag = (component: T): component is Tag | TagRelation =>
+  component.kind === Kind.Tag || component.kind === Kind.TagRelation
 
 if (import.meta.vitest) {
   const {describe, it, expect} = await import("vitest")
@@ -313,13 +354,13 @@ if (import.meta.vitest) {
   describe("is_relationship", () => {
     it("returns true for relationship components", () => {
       expect(
-        is_relationship(
+        is_value_relationship(
           make_relationship(relation().component_spec[0], Entity.make(1, 2)),
         ),
       ).true
     })
     it("returns false for tag components", () => {
-      expect(is_relationship(relation().components[0])).false
+      expect(is_value_relationship(relation().components[0])).false
     })
   })
 

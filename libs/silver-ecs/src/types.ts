@@ -1,13 +1,13 @@
 export declare const brand: unique symbol
-export type Brand<T> = {readonly [brand]: T}
+export type Brand<U> = {readonly [brand]: U}
 
-export type Opaque<T, U> = T & Brand<U>
+export type Opaque<U, V> = U & Brand<V>
 
-export type ExcludeFromTuple<T extends readonly any[], E> = T extends [
-  infer F,
-  ...infer R,
+export type ExcludeFromTuple<U extends readonly any[], V> = U extends [
+  infer Head,
+  ...infer Tail,
 ]
-  ? [F] extends [E]
-    ? ExcludeFromTuple<R, E>
-    : [F, ...ExcludeFromTuple<R, E>]
+  ? [Head] extends [V]
+    ? ExcludeFromTuple<Tail, V>
+    : [Head, ...ExcludeFromTuple<Tail, V>]
   : []

@@ -12,7 +12,7 @@ type BTreeMapOptions<K> = {
 
 const compare = (a: number, b: number): number => (a < b ? -1 : a > b ? 1 : 0)
 
-export class BTree_map<V, K extends number = number> {
+export class BTreeMap<V, K extends number = number> {
   compare: BTreeMapCompare<K> = compare
   values: V[][] = []
   order: number = 3
@@ -41,7 +41,7 @@ export class BTree_map<V, K extends number = number> {
     return this.values[key] !== undefined
   }
 
-  set(key: K, value: V): BTree_map<V, K> {
+  set(key: K, value: V): BTreeMap<V, K> {
     const values = this.values[key]
     if (values !== undefined) {
       values.push(value)
@@ -390,7 +390,7 @@ class Leaf<K extends number> extends NodeBase<K> {
 }
 
 export class Stage<U> {
-  map = new BTree_map<U>()
+  map = new BTreeMap<U>()
   min = 0
   max = 0
 }
