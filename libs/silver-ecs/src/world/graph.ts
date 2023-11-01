@@ -82,7 +82,21 @@ export const traverse_left = (node: Node, iteratee: NodeIteratee): void => {
     const curr_node = stack[--cursor]
     if (visited.has(curr_node) || iteratee(curr_node) === false) continue
     visited.add(curr_node)
-    curr_node.edges_left.forEach(function traverse_prev(prev_node) {
+    curr_node.edges_left.forEach(function traverse_left_inner(prev_node) {
+      stack[cursor++] = prev_node
+    })
+  }
+}
+
+export const traverse_right = (node: Node, iteratee: NodeIteratee): void => {
+  const stack: Node[] = [node]
+  const visited = new Set<Node>()
+  let cursor = 1
+  while (cursor > 0) {
+    const curr_node = stack[--cursor]
+    if (visited.has(curr_node) || iteratee(curr_node) === false) continue
+    visited.add(curr_node)
+    curr_node.edges_right.forEach(function traverse_right_inner(prev_node) {
       stack[cursor++] = prev_node
     })
   }

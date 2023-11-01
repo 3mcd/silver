@@ -5,6 +5,7 @@ import * as Entity from "../entity/entity"
 import * as EntityRegistry from "../entity/entity_registry"
 import * as Signal from "../signal"
 import * as SparseMap from "../sparse/sparse_map"
+import * as SparseSet from "../sparse/sparse_set"
 import * as Stage from "../stage"
 import * as Changes from "./changes"
 import * as Commands from "./commands"
@@ -34,6 +35,7 @@ export class World {
     this.graph = Graph.make()
     this.stores = [] as unknown[][]
     Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
+    Signal.subscribe(this.graph.root.$removed, this.#despawn_unhandled_entities)
   }
 
   /**
@@ -155,7 +157,10 @@ export class World {
    * relationships.
    */
   #commit_despawn(command: Commands.Despawn) {
-    const {entity} = command
+    this.#despawn(command.entity)
+  }
+
+  #despawn(entity: Entity.T) {
     const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     // Release all component values.
@@ -206,6 +211,12 @@ export class World {
     this.#clear_many(entity, type)
   }
 
+  #despawn_unhandled_entities = (node: Graph.Node) => {
+    SparseSet.each(node.entities, entity => {
+      this.#despawn(entity)
+    })
+  }
+
   /**
    * Marshal relationship nodes into a map indexed by the relationship's entity
    * id. This map is used to dispose an entity's relationship nodes when the
@@ -250,16 +261,18 @@ export class World {
       const relation_component = Assert.exists(
         Component.get_relation(relation_component_id),
       )
-      if (relation_component.topology === Component.Topology.Cyclical) {
-        Graph.move_entities_left(
-          this.graph,
-          relationship_root,
-          relationship_component,
-          (entity, node) => {
-            SparseMap.set(this.#entity_nodes, entity, node)
-            relationship_store[entity] = undefined!
-          },
-        )
+      switch (relation_component.topology) {
+        case Component.Topology.Cyclical:
+          Graph.move_entities_left(
+            this.graph,
+            relationship_root,
+            relationship_component,
+            (entity, node) => {
+              SparseMap.set(this.#entity_nodes, entity, node)
+              relationship_store[entity] = undefined!
+            },
+          )
+          break
       }
       Graph.delete_node(this.graph, relationship_root)
     }
