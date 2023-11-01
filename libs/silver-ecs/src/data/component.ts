@@ -286,7 +286,7 @@ export const make_relationship = <U extends ValueRelation | TagRelation>(
   }
 }
 
-export const stores_value = (component: T): boolean => {
+export const wraps_value = (component: T): boolean => {
   switch (component.kind) {
     case Kind.Value:
     case Kind.ValueRelationship:

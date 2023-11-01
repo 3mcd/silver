@@ -14,7 +14,7 @@ import * as Transition from "./transition"
 export class World {
   #entity_nodes
   #entity_registry
-  #entity_relationship_nodes
+  #entity_relationship_roots
   #stage
   #tick
   #transition
@@ -26,7 +26,7 @@ export class World {
   constructor(time: number) {
     this.#entity_nodes = SparseMap.make<Graph.Node>()
     this.#entity_registry = EntityRegistry.make()
-    this.#entity_relationship_nodes = [] as Graph.Node[][]
+    this.#entity_relationship_roots = [] as Graph.Node[][]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = time
     this.#transition = Transition.make()
@@ -36,21 +36,36 @@ export class World {
     Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
   }
 
+  /**
+   * Move an entity from its current node to a new node.
+   */
   #move(entity: Entity.T, prev_node: Graph.Node, next_node: Graph.Node) {
     Graph.remove_entity(prev_node, entity)
     Graph.insert_entity(next_node, entity)
     SparseMap.set(this.#entity_nodes, entity, next_node)
+    // Track the entity's transition from the previous node to the next node
+    // for monitor queries.
     Transition.move(this.#transition, entity, prev_node, next_node)
   }
 
+  /**
+   * Increment the version of a component for a given entity.
+   */
   #bump(entity: Entity.T, component: Component.T) {
     Changes.bump(this.changes, entity, component.id)
   }
 
+  /**
+   * Get the value of a component for a given entity.
+   */
   #read<U extends Component.T>(entity: Entity.T, component: U) {
     return this.store(component.id)[entity]
   }
 
+  /**
+   * Set the value of a component for a given entity and bump the entity's
+   * version at that component.
+   */
   #write<U extends Component.T>(
     entity: Entity.T,
     component: U,
@@ -60,11 +75,17 @@ export class World {
     this.#bump(entity, component)
   }
 
+  /**
+   * Update component values for an entity.
+   */
   #write_many(entity: Entity.T, type: Type.T, values: unknown[]) {
     let init_index = 0
     for (let i = 0; i < type.component_spec.length; i++) {
       const component = type.component_spec[i]
       if (Component.is_value_relation(component)) {
+        // Relation components may be initialized with a list of entity-value
+        // pairs. Iterate each pair and write the value into the relationship's
+        // component array.
         const value = values[init_index] as Commands.InitValueRelation
         for (let j = 0; j < value.length; j++) {
           const relationship_value = value[j]
@@ -84,21 +105,31 @@ export class World {
     }
   }
 
+  /**
+   * Clear component values for an entity.
+   */
   #clear_many(entity: Entity.T, type: Type.T) {
     for (let i = 0; i < type.components.length; i++) {
       const component = type.components[i]
-      if (Component.stores_value(component)) {
+      if (Component.wraps_value(component)) {
         this.#write(entity, component, undefined)
       }
     }
   }
 
+  /**
+   * Update the data of a value relationship for a given entity.
+   */
   #write_relationship<U extends Component.ValueRelation>(
     entity: Entity.T,
     component: U,
     relative: Entity.T,
     value: unknown,
   ) {
+    // Compute the virtual component id for the relationship. This id is unique
+    // to the relationship between the component and the relative. All entities
+    // associated to the relative through this component will store their
+    // values in the same component array.
     const relationship_component_id = Entity.make(
       Entity.parse_entity_id(relative),
       component.id,
@@ -107,6 +138,10 @@ export class World {
     this.#bump(entity, component)
   }
 
+  /**
+   * Insert a new entity into the entity graph and write initial component
+   * values.
+   */
   #commit_spawn(command: Commands.Spawn) {
     const {entity, type, init} = command
     const node = Graph.resolve(this.graph, type)
@@ -115,6 +150,10 @@ export class World {
     this.#move(entity, this.graph.root, node)
   }
 
+  /**
+   * Remove an entity from the entity graph and clear all component values and
+   * relationships.
+   */
   #commit_despawn(command: Commands.Despawn) {
     const {entity} = command
     const node = SparseMap.get(this.#entity_nodes, entity)
@@ -122,17 +161,25 @@ export class World {
     Graph.remove_entity(node, entity)
     SparseMap.delete(this.#entity_nodes, entity)
     EntityRegistry.release(this.#entity_registry, entity)
+    // Release all component values.
     this.#clear_many(entity, node.type)
+    // Release all relationship nodes associated with this entity and move the
+    // previously related entities to the left in the graph.
     this.#clear_entity_relationships(entity)
     Transition.move(this.#transition, entity, node, this.graph.root)
   }
 
+  /**
+   * Add or update a component for an entity.
+   */
   #commit_add(command: Commands.Add) {
     const {entity, type, init} = command
     const prev_node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const next_type = Type.with(prev_node.type, type)
     const next_node = Graph.resolve(this.graph, next_type)
+    // If the entity contains each component of the added type, do not move the
+    // entity to a different node.
     if (prev_node !== next_node) {
       this.#move(entity, prev_node, next_node)
       SparseMap.set(this.#entity_nodes, entity, next_node)
@@ -140,19 +187,30 @@ export class World {
     this.#write_many(entity, type, init)
   }
 
+  /**
+   * Remove components from an entity.
+   */
   #commit_remove(command: Commands.Remove) {
     const {entity, type} = command
     const prev_node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const next_type = Type.without(prev_node.type, type)
     const next_node = Graph.resolve(this.graph, next_type)
-    if (prev_node !== next_node) {
-      this.#move(entity, prev_node, next_node)
-      SparseMap.set(this.#entity_nodes, entity, next_node)
+    // If the entity does not contain a component of the added type, do
+    // nothing.
+    if (prev_node === next_node) {
+      return
     }
+    this.#move(entity, prev_node, next_node)
+    SparseMap.set(this.#entity_nodes, entity, next_node)
     this.#clear_many(entity, type)
   }
 
+  /**
+   * Marshal relationship nodes into a map indexed by the relationship's entity
+   * id. This map is used to dispose an entity's relationship nodes when the
+   * entity is despawned.
+   */
   #record_relation_node = (node: Graph.Node) => {
     for (let i = 0; i < node.type.relationships.length; i++) {
       const relationship = node.type.relationships[i]
@@ -161,20 +219,26 @@ export class World {
         this.#entity_registry,
         relationship_entity_id,
       )
-      const entity_relationship_nodes = (this.#entity_relationship_nodes[
+      // Get or create the list of relationship nodes for the relationship
+      // entity.
+      const entity_relationship_roots = (this.#entity_relationship_roots[
         relationship_entity
       ] ??= [])
-      entity_relationship_nodes.push(
+      // Get or create the root relationship node and insert it into the
+      // entity's list of relationship nodes.
+      // TODO: This results in duplicate nodes in the array when more specific
+      // nodes are created to the right of already-tracked nodes.
+      entity_relationship_roots.push(
         Graph.resolve(this.graph, Type.make(relationship)),
       )
     }
   }
 
   #clear_entity_relationships(entity: Entity.T) {
-    const entity_relationship_nodes = this.#entity_relationship_nodes[entity]
-    if (entity_relationship_nodes === undefined) return
-    for (let i = 0; i < entity_relationship_nodes.length; i++) {
-      const relationship_node = entity_relationship_nodes[i]
+    const entity_relationship_roots = this.#entity_relationship_roots[entity]
+    if (entity_relationship_roots === undefined) return
+    for (let i = 0; i < entity_relationship_roots.length; i++) {
+      const relationship_node = entity_relationship_roots[i]
       const relationship_component = relationship_node.type.relationships[0]
       const relationship_store = this.store(relationship_component.id)
       Graph.move_entities_rem(
@@ -188,7 +252,7 @@ export class World {
       )
       Graph.delete_node(this.graph, relationship_node)
     }
-    this.#entity_relationship_nodes[entity] = undefined!
+    this.#entity_relationship_roots[entity] = undefined!
   }
 
   #apply_command = (command: Commands.T) => {
