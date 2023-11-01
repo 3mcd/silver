@@ -5,7 +5,7 @@ import * as Signal from "../signal"
 import * as SparseSet from "../sparse/sparse_set"
 import * as Transition from "./transition"
 
-type Node_iteratee = (node: Node) => boolean | void
+type NodeIteratee = (node: Node) => boolean | void
 
 let next_node_id = 0
 const make_node_id = () => next_node_id++
@@ -15,8 +15,8 @@ export class Node {
   $excluded
   $included
   $removed
-  edges_next
-  edges_prev
+  edges_left
+  edges_right
   entities
   id
   type
@@ -26,8 +26,8 @@ export class Node {
     this.$excluded = Signal.make<Transition.Event>()
     this.$included = Signal.make<Transition.Event>()
     this.$removed = Signal.make<Node>()
-    this.edges_next = new Map<number, Node>()
-    this.edges_prev = new Map<number, Node>()
+    this.edges_left = new Map<number, Node>()
+    this.edges_right = new Map<number, Node>()
     this.entities = SparseSet.make<Entity.T>()
     this.id = make_node_id()
     this.type = type
@@ -39,8 +39,8 @@ const unlink_nodes = (
   prev_node: Node,
   xor = Type.xor(next_node.type, prev_node.type),
 ): void => {
-  next_node.edges_prev.delete(xor)
-  prev_node.edges_next.delete(xor)
+  next_node.edges_left.delete(xor)
+  prev_node.edges_right.delete(xor)
 }
 
 const link_nodes = (
@@ -48,8 +48,8 @@ const link_nodes = (
   prev_node: Node,
   xor = Type.xor(next_node.type, prev_node.type),
 ): void => {
-  next_node.edges_prev.set(xor, prev_node)
-  prev_node.edges_next.set(xor, next_node)
+  next_node.edges_left.set(xor, prev_node)
+  prev_node.edges_right.set(xor, next_node)
 }
 
 export const insert_entity = (node: Node, entity: Entity.T): void => {
@@ -60,7 +60,7 @@ export const remove_entity = (node: Node, entity: Entity.T): void => {
   SparseSet.delete(node.entities, entity)
 }
 
-export const traverse = (node: Node, iteratee: Node_iteratee): void => {
+export const traverse = (node: Node, iteratee: NodeIteratee): void => {
   const stack: Node[] = [node]
   const visited = new Set<Node>()
   let cursor = 1
@@ -68,13 +68,13 @@ export const traverse = (node: Node, iteratee: Node_iteratee): void => {
     const curr_node = stack[--cursor]
     if (visited.has(curr_node) || iteratee(curr_node) === false) continue
     visited.add(curr_node)
-    curr_node.edges_next.forEach(function traverse_next(next_node) {
+    curr_node.edges_right.forEach(function traverse_next(next_node) {
       stack[cursor++] = next_node
     })
   }
 }
 
-export const traverse_prev = (node: Node, iteratee: Node_iteratee): void => {
+export const traverse_left = (node: Node, iteratee: NodeIteratee): void => {
   const stack: Node[] = [node]
   const visited = new Set<Node>()
   let cursor = 1
@@ -82,7 +82,7 @@ export const traverse_prev = (node: Node, iteratee: Node_iteratee): void => {
     const curr_node = stack[--cursor]
     if (visited.has(curr_node) || iteratee(curr_node) === false) continue
     visited.add(curr_node)
-    curr_node.edges_prev.forEach(function traverse_prev(prev_node) {
+    curr_node.edges_left.forEach(function traverse_prev(prev_node) {
       stack[cursor++] = prev_node
     })
   }
@@ -97,7 +97,7 @@ const link_nodes_traverse = (graph: Graph, node: Node): void => {
     if (Type.is_superset(node.type, visited_node.type)) {
       // Otherwise, look ahead for nodes that are also supersets of the
       // inserted node and create an intermediate edge.
-      for (const next_node of visited_node.edges_next.values()) {
+      for (const next_node of visited_node.edges_right.values()) {
         // node=[a,b,d] visited_node=[a,b]->[a,b,d,e] result=[a,b]->[a,b,d]->[a,b,d,e]
         if (Type.is_superset(next_node.type, node.type)) {
           unlink_nodes(next_node, visited_node)
@@ -114,7 +114,7 @@ const link_nodes_traverse = (graph: Graph, node: Node): void => {
 }
 
 const emit_node_traverse = (node: Node): void => {
-  traverse_prev(node, function emit_node(visit) {
+  traverse_left(node, function emit_node(visit) {
     Signal.emit(visit.$created, node)
   })
 }
@@ -138,10 +138,10 @@ const insert_node = (graph: Graph, type: Type.T): Node => {
 }
 
 const drop_node = (graph: Graph, node: Node): void => {
-  node.edges_next.forEach(function drop_node_unlink_next(next_node, xor) {
+  node.edges_right.forEach(function drop_node_unlink_next(next_node, xor) {
     unlink_nodes(next_node, node, xor)
   })
-  node.edges_prev.forEach(function drop_node_unlink_prev(prev_node, xor) {
+  node.edges_left.forEach(function drop_node_unlink_prev(prev_node, xor) {
     unlink_nodes(node, prev_node, xor)
   })
   graph.nodes_by_components_hash.delete(node.type.hash)
@@ -152,32 +152,32 @@ const drop_node = (graph: Graph, node: Node): void => {
 
 export const delete_node = (graph: Graph, node: Node): void => {
   const dropped_nodes: Node[] = []
-  // for every node to the right of the deleted node (inclusive)
+  // For every node to the right of the deleted node (inclusive).
   traverse(node, function traverse_drop(next_node) {
-    // notify nodes to the left that it is being dropped
-    traverse_prev(next_node, function traverse_rem_drop(visit) {
+    // Notify nodes to the left that it is being dropped.
+    traverse_left(next_node, function traverse_left_drop(visit) {
       Signal.emit(visit.$removed, next_node)
     })
     dropped_nodes.push(next_node)
   })
-  // release nodes to the right of the deleted node
+  // Release nodes to the right of the deleted node.
   for (let i = 0; i < dropped_nodes.length; i++) {
     drop_node(graph, dropped_nodes[i])
   }
 }
 
-export const move_entities_rem = (
+export const move_entities_left = (
   graph: Graph,
   node: Node,
   component: Component.T,
   iteratee: (entity: Entity.T, node: Node) => void,
 ): void => {
-  traverse(node, function traverse_move_entities_rem(next_node) {
+  traverse(node, function traverse_move_entities_left(next_node) {
     const prev_type = Type.without_component(next_node.type, component)
     const prev_node = resolve(graph, prev_type)
     SparseSet.each(
       next_node.entities,
-      function move_entities_rem_inner(entity) {
+      function move_entities_left_inner(entity) {
         remove_entity(next_node, entity)
         insert_entity(prev_node, entity)
         iteratee(entity, prev_node)
@@ -237,10 +237,10 @@ if (import.meta.vitest) {
       const node_c = resolve(graph, C)
       const node_abc = resolve(graph, ABC)
       delete_node(graph, node_b)
-      expect(node_a.edges_next.size).toBe(0)
-      expect(node_b.edges_next.size).toBe(0)
-      expect(node_c.edges_next.size).toBe(0)
-      expect(node_abc.edges_prev.size).toBe(0)
+      expect(node_a.edges_right.size).toBe(0)
+      expect(node_b.edges_right.size).toBe(0)
+      expect(node_c.edges_right.size).toBe(0)
+      expect(node_abc.edges_left.size).toBe(0)
     })
     it("traverses nodes left to right", () => {
       const graph = make()
@@ -266,7 +266,7 @@ if (import.meta.vitest) {
       resolve(graph, B)
       resolve(graph, C)
       resolve(graph, D)
-      traverse_prev(node_abc, node => {
+      traverse_left(node_abc, node => {
         visited.push(node.type.hash)
       })
       expect(visited.length).toBe(6)
@@ -299,7 +299,7 @@ if (import.meta.vitest) {
       const entity = Entity.make(0, 0)
       const moved: Entity.T[] = []
       insert_entity(node_abc, entity)
-      move_entities_rem(graph, node_abc, C.components[0], entity => {
+      move_entities_left(graph, node_abc, C.components[0], entity => {
         moved.push(entity)
       })
       expect(moved.length).toBe(1)

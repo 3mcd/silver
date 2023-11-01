@@ -12,6 +12,11 @@ export enum Kind {
   ValueRelationship,
 }
 
+export enum Topology {
+  Cyclical,
+  Hierarchical,
+}
+
 export type Related<U extends T[], Out extends Entity.T[] = []> = U extends [
   infer Head,
   ...infer Tail,
@@ -72,6 +77,7 @@ export interface Value<U = unknown> extends Base<U> {
 export interface ValueRelation<U = unknown> extends Base<U> {
   kind: Kind.ValueRelation
   schema?: Data.SchemaOf<U>
+  topology: Topology
 }
 
 /**
@@ -79,6 +85,7 @@ export interface ValueRelation<U = unknown> extends Base<U> {
  */
 export interface TagRelation extends Base<void> {
   kind: Kind.TagRelation
+  topology: Topology
 }
 
 export interface TagRelationship extends Base<void> {
@@ -101,34 +108,65 @@ export const make_component_id = () => {
   return component_id
 }
 
-class Component {
-  id: number
-  kind: Kind
-  schema?: Data.Schema
+const relations = new Map<number, TRelation>()
+export const get_relation = (component_id: number): TRelation | undefined => {
+  return relations.get(component_id)
+}
 
-  constructor(id: number, kind: Kind, schema?: Data.Schema) {
+class Component {
+  id
+  kind
+  schema?
+  topology
+
+  constructor(
+    id: number,
+    kind: Kind,
+    topology?: Topology,
+    schema?: Data.Schema,
+  ) {
     this.id = id
     this.kind = kind
     this.schema = schema
+    this.topology = topology
   }
 }
 
-function make(id: number, kind: Kind.Tag): Tag
-function make(id: number, kind: Kind.TagRelation): TagRelation
-function make(id: number, kind: Kind.TagRelationship): TagRelationship
-function make(id: number, kind: Kind.Value, schema?: Data.Schema): Value
+function make(id: number, kind: Kind.Tag, topology?: Topology): Tag
+function make(
+  id: number,
+  kind: Kind.TagRelation,
+  topology?: Topology,
+): TagRelation
+function make(
+  id: number,
+  kind: Kind.TagRelationship,
+  topology?: Topology,
+): TagRelationship
+function make(
+  id: number,
+  kind: Kind.Value,
+  topology?: Topology,
+  schema?: Data.Schema,
+): Value
 function make(
   id: number,
   kind: Kind.ValueRelation,
+  topology?: Topology,
   schema?: Data.Schema,
 ): ValueRelation
-function make(id: number, kind: Kind.ValueRelationship): ValueRelationship
 function make(
   id: number,
-  kind: Exclude<T, number>["kind"],
+  kind: Kind.ValueRelationship,
+  topology?: Topology,
+): ValueRelationship
+function make(
+  id: number,
+  kind: Kind,
+  topology?: Topology,
   schema?: Data.Schema,
 ): T {
-  return new Component(id, kind, schema) as T
+  return new Component(id, kind, topology, schema) as T
 }
 
 /**
@@ -183,7 +221,7 @@ export function value<U>(): Type.Type<[Value<U>]>
  */
 export function value(): Type.Type<[Value<unknown>]>
 export function value(schema?: Data.Schema) {
-  return Type.make(make(make_component_id(), Kind.Value, schema))
+  return Type.make(make(make_component_id(), Kind.Value, undefined, schema))
 }
 
 /**
@@ -210,6 +248,7 @@ export const tag = (): Type.Type<[Tag]> =>
  */
 export function relation<U extends Data.Schema>(
   schema: U,
+  topology?: Topology,
 ): Type.Type<[ValueRelation<Data.Express<U>>]>
 /**
  * Define a relation using the given generic type and schema. The schema must satisfy
@@ -226,6 +265,7 @@ export function relation<U extends Data.Schema>(
  */
 export function relation<U>(
   schema: Data.SchemaOf<U>,
+  topology?: Topology,
 ): Type.Type<[ValueRelation<U>]>
 /**
  * Define a schemaless relation with a statically-typed shape.
@@ -239,7 +279,7 @@ export function relation<U>(
  * const Owes = ecs.relation<number>()
  * const entity = world.spawn(Owes, [bank, 1_000])
  */
-export function relation<U>(): Type.Type<[ValueRelation<U>]>
+export function relation<U>(topology?: Topology): Type.Type<[ValueRelation<U>]>
 /**
  * Define a relation with an undefined shape.
  *
@@ -251,12 +291,22 @@ export function relation<U>(): Type.Type<[ValueRelation<U>]>
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define an untyped relation and add it to an entity.</caption>
- * const Owes_anything = ecs.relation()
- * const entity = world.spawn(Owes_anything, [[[]]])
+ * const OwesAnything = ecs.relation()
+ * const entity = world.spawn(OwesAnything, [[[]]])
  */
-export function relation(): Type.Type<[ValueRelation<unknown>]>
-export function relation(schema?: Data.Schema) {
-  return Type.make(make(make_component_id(), Kind.ValueRelation, schema))
+export function relation(
+  topology?: Topology,
+): Type.Type<[ValueRelation<unknown>]>
+export function relation(schema?: Data.Schema | Topology, topology?: Topology) {
+  const component_id = make_component_id()
+  const component = make(
+    component_id,
+    Kind.ValueRelation,
+    (typeof schema === "number" ? schema : topology) ?? Topology.Cyclical,
+    typeof schema === "number" ? undefined : schema,
+  )
+  relations.set(component_id, component)
+  return Type.make(component)
 }
 
 /**
@@ -268,8 +318,14 @@ export function relation(schema?: Data.Schema) {
  * const ChildOf = ecs.relation_tag()
  * const entity = world.spawn(ChildOf, [relative])
  */
-export const relation_tag = (): Type.Type<[TagRelation]> =>
-  Type.make(make(make_component_id(), Kind.TagRelation))
+export const relation_tag = (
+  topology = Topology.Cyclical,
+): Type.Type<[TagRelation]> => {
+  const component_id = make_component_id()
+  const component = make(component_id, Kind.TagRelation, topology)
+  relations.set(component_id, component)
+  return Type.make(component)
+}
 
 type RelationshipOf<U extends ValueRelation | TagRelation> =
   U extends ValueRelation ? ValueRelationship : TagRelationship

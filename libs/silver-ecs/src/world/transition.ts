@@ -46,7 +46,7 @@ const emit_spawned_entities = (
   next_node: Graph.Node,
 ) => {
   const event = make_move_event(phase, batch, next_node)
-  Graph.traverse_prev(
+  Graph.traverse_left(
     next_node,
     function emit_spawned_entities(node: Graph.Node) {
       Signal.emit(node.$included, event)
@@ -61,7 +61,7 @@ const emit_included_entities = (
   next_node: Graph.Node,
 ) => {
   const event = make_move_event(phase, entities, next_node)
-  Graph.traverse_prev(
+  Graph.traverse_left(
     next_node,
     function emit_included_entities(node: Graph.Node) {
       if (node !== prev_node && !Type.is_superset(prev_node.type, node.type)) {
@@ -78,7 +78,7 @@ const emit_excluded_entities = (
   next_node: Graph.Node,
 ) => {
   const event = make_move_event(phase, entities, prev_node)
-  Graph.traverse_prev(
+  Graph.traverse_left(
     prev_node,
     function emit_excluded_entities(node: Graph.Node) {
       if (node !== next_node && !Type.is_superset(node.type, next_node.type)) {
@@ -94,7 +94,7 @@ const emit_despawned_entities = (
   prev_node: Graph.Node,
 ) => {
   const event = make_move_event(phase, entities, prev_node)
-  Graph.traverse_prev(
+  Graph.traverse_left(
     prev_node,
     function emit_despawned_entities(node: Graph.Node) {
       Signal.emit(node.$excluded, event)
@@ -110,13 +110,13 @@ const emit_moved_entities = (
 ) => {
   const included = make_move_event(phase, entities, next_node)
   const excluded = make_move_event(phase, entities, prev_node)
-  Graph.traverse_prev(
+  Graph.traverse_left(
     next_node,
     function emit_included_entities(node: Graph.Node) {
       Signal.emit(node.$included, included)
     },
   )
-  Graph.traverse_prev(
+  Graph.traverse_left(
     prev_node,
     function emit_excluded_entities(node: Graph.Node) {
       Signal.emit(node.$excluded, excluded)

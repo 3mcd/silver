@@ -183,11 +183,11 @@ export const has_relations = (type: Type): boolean => {
   return type.relations.length > 0
 }
 
-export const component_at = <U extends Component.T>(
-  type: Unitary<U>,
-  index = 0,
-): U => {
-  return type.component_spec[index] as U
+export const component_at = <U extends Component.T[], I extends number = 0>(
+  type: Type<U>,
+  index: I = 0 as I,
+): U[I] => {
+  return type.component_spec[index] as U[I]
 }
 
 export class Type<U extends Component.T[] = Component.T[]> {

@@ -23,12 +23,12 @@ export class World {
   readonly stores
   readonly changes
 
-  constructor(time: number) {
+  constructor(tick = 0) {
     this.#entity_nodes = SparseMap.make<Graph.Node>()
     this.#entity_registry = EntityRegistry.make()
     this.#entity_relationship_roots = [] as Graph.Node[][]
     this.#stage = Stage.make<Commands.T>()
-    this.#tick = time
+    this.#tick = tick
     this.#transition = Transition.make()
     this.changes = Changes.make()
     this.graph = Graph.make()
@@ -78,7 +78,7 @@ export class World {
   /**
    * Update component values for an entity.
    */
-  #write_many(entity: Entity.T, type: Type.T, values: unknown[]) {
+  #write_many(entity: Entity.T, type: Type.T, init: unknown[]) {
     let init_index = 0
     for (let i = 0; i < type.component_spec.length; i++) {
       const component = type.component_spec[i]
@@ -86,7 +86,7 @@ export class World {
         // Relation components may be initialized with a list of entity-value
         // pairs. Iterate each pair and write the value into the relationship's
         // component array.
-        const value = values[init_index] as Commands.InitValueRelation
+        const value = init[init_index] as Commands.InitValueRelation
         for (let j = 0; j < value.length; j++) {
           const relationship_value = value[j]
           this.#write_relationship(
@@ -98,7 +98,7 @@ export class World {
         }
         init_index++
       } else if (Component.is_value(component)) {
-        const value = values[init_index]
+        const value = init[init_index]
         this.#write(entity, component, value)
         init_index++
       }
@@ -158,14 +158,14 @@ export class World {
     const {entity} = command
     const node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(node !== undefined, DEBUG && "entity does not exist")
-    Graph.remove_entity(node, entity)
-    SparseMap.delete(this.#entity_nodes, entity)
-    EntityRegistry.release(this.#entity_registry, entity)
     // Release all component values.
     this.#clear_many(entity, node.type)
     // Release all relationship nodes associated with this entity and move the
     // previously related entities to the left in the graph.
     this.#clear_entity_relationships(entity)
+    Graph.remove_entity(node, entity)
+    SparseMap.delete(this.#entity_nodes, entity)
+    EntityRegistry.release(this.#entity_registry, entity)
     Transition.move(this.#transition, entity, node, this.graph.root)
   }
 
@@ -234,23 +234,34 @@ export class World {
     }
   }
 
+  /**
+   * Remove all relationship nodes associated with an entity and move related
+   * entities to the left in the graph.
+   */
   #clear_entity_relationships(entity: Entity.T) {
+    const entity_node = Assert.exists(SparseMap.get(this.#entity_nodes, entity))
     const entity_relationship_roots = this.#entity_relationship_roots[entity]
     if (entity_relationship_roots === undefined) return
     for (let i = 0; i < entity_relationship_roots.length; i++) {
-      const relationship_node = entity_relationship_roots[i]
-      const relationship_component = relationship_node.type.relationships[0]
+      const relationship_root = entity_relationship_roots[i]
+      const relationship_component = relationship_root.type.relationships[0]
       const relationship_store = this.store(relationship_component.id)
-      Graph.move_entities_rem(
-        this.graph,
-        relationship_node,
-        relationship_component,
-        (entity, node) => {
-          SparseMap.set(this.#entity_nodes, entity, node)
-          relationship_store[entity] = undefined!
-        },
+      const relation_component_id = Entity.parse_hi(relationship_component.id)
+      const relation_component = Assert.exists(
+        Component.get_relation(relation_component_id),
       )
-      Graph.delete_node(this.graph, relationship_node)
+      if (relation_component.topology === Component.Topology.Cyclical) {
+        Graph.move_entities_left(
+          this.graph,
+          relationship_root,
+          relationship_component,
+          (entity, node) => {
+            SparseMap.set(this.#entity_nodes, entity, node)
+            relationship_store[entity] = undefined!
+          },
+        )
+      }
+      Graph.delete_node(this.graph, relationship_root)
     }
     this.#entity_relationship_roots[entity] = undefined!
   }
@@ -369,10 +380,10 @@ export class World {
     }
   }
 
-  step(time: number = this.#tick + 1) {
+  step(tick: number = this.#tick + 1) {
     Transition.drain(this.#transition, this.graph, "stage")
-    while (this.#tick < time) {
-      Stage.drain_to(this.#stage, time, this.#apply_command)
+    while (this.#tick < tick) {
+      Stage.drain_to(this.#stage, tick, this.#apply_command)
       this.#tick++
     }
   }
@@ -412,7 +423,7 @@ export class World {
 }
 export type T = World
 
-export const make = (time = 0): World => new World(time)
+export const make = (tick = 0): World => new World(tick)
 
 if (import.meta.vitest) {
   const {describe, it, expect} = await import("vitest")
