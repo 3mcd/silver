@@ -19,6 +19,7 @@ export class World {
   #stage
   #tick
   #transition
+  #nodes_to_delete
 
   readonly graph
   readonly stores
@@ -28,6 +29,7 @@ export class World {
     this.#entity_nodes = SparseMap.make<Graph.Node>()
     this.#entity_registry = EntityRegistry.make()
     this.#entity_relationship_roots = [] as Graph.Node[][]
+    this.#nodes_to_delete = [] as Graph.Node[]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
     this.#transition = Transition.make()
@@ -35,7 +37,6 @@ export class World {
     this.graph = Graph.make()
     this.stores = [] as unknown[][]
     Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
-    Signal.subscribe(this.graph.root.$removed, this.#despawn_unhandled_entities)
   }
 
   /**
@@ -218,15 +219,6 @@ export class World {
   }
 
   /**
-   * Despawn all entities of a node when the node is removed from the graph.
-   */
-  #despawn_unhandled_entities = (node: Graph.Node) => {
-    SparseSet.each(node.entities, entity => {
-      this.#despawn(entity)
-    })
-  }
-
-  /**
    * Marshal relationship nodes into a map indexed by the relationship's entity
    * id. This map is used to dispose an entity's relationship nodes when the
    * entity is despawned.
@@ -277,7 +269,7 @@ export class World {
       )
       // If the relationship is cyclical (i.e. not hierarchical), remove the
       // relationship from all related entities.
-      if (relation_component.topology === Component.Topology.Cyclical) {
+      if (relation_component.topology === Component.Topology.Any) {
         Graph.move_entities_left(
           this.graph,
           relationship_root,
@@ -289,10 +281,8 @@ export class World {
         )
       }
       // Delete the root relationship node, which will also delete all
-      // relationship nodes that lead to the entity's relatives. If the
-      // relation is hierarchical, the entity's relatives will be despawned by
-      // a listener added to the graph's $removed signal.
-      Graph.delete_node(this.graph, relationship_root)
+      // relationship nodes that lead to the entity's relatives.
+      this.#nodes_to_delete.push(relationship_root)
     }
     this.#entity_relationship_roots[entity] = undefined!
   }
@@ -441,7 +431,23 @@ export class World {
   }
 
   step(tick: number = this.#tick + 1) {
+    // Immediately despawn all entities whose nodes are marked for deletion.
+    for (let i = 0; i < this.#nodes_to_delete.length; i++) {
+      const node = this.#nodes_to_delete[i]
+      Graph.traverse_right(node, node => {
+        SparseSet.each(node.entities, entity => {
+          this.#despawn(entity)
+        })
+      })
+    }
+    // Emit all entity transitions for monitor queries.
     Transition.drain(this.#transition, this.graph, "stage")
+    // Delete all nodes marked for deletion.
+    let node: Graph.Node
+    while ((node = this.#nodes_to_delete.pop()!)) {
+      Graph.delete_node(this.graph, node)
+    }
+    // Execute all commands in the stage up to the given tick.
     while (this.#tick < tick) {
       Stage.drain_to(this.#stage, tick, this.#apply_command)
       this.#tick++

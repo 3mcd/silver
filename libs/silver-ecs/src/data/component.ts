@@ -13,7 +13,7 @@ export enum Kind {
 }
 
 export enum Topology {
-  Cyclical,
+  Any,
   Hierarchical,
 }
 
@@ -302,7 +302,7 @@ export function relation(schema?: Data.Schema | Topology, topology?: Topology) {
   const component = make(
     component_id,
     Kind.ValueRelation,
-    (typeof schema === "number" ? schema : topology) ?? Topology.Cyclical,
+    (typeof schema === "number" ? schema : topology) ?? Topology.Any,
     typeof schema === "number" ? undefined : schema,
   )
   relations.set(component_id, component)
@@ -319,7 +319,7 @@ export function relation(schema?: Data.Schema | Topology, topology?: Topology) {
  * const entity = world.spawn(ChildOf, [relative])
  */
 export const relation_tag = (
-  topology = Topology.Cyclical,
+  topology = Topology.Any,
 ): Type.Type<[TagRelation]> => {
   const component_id = make_component_id()
   const component = make(component_id, Kind.TagRelation, topology)
