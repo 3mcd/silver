@@ -147,6 +147,8 @@ export class World {
   #commit_spawn(command: Commands.Spawn) {
     const {entity, type, init} = command
     const node = Graph.resolve(this.graph, type)
+    // Insert the entity into the graph, write initial component values and
+    // and remember its new node.
     Graph.insert_entity(node, entity)
     this.#write_many(entity, type, init)
     this.#move(entity, this.graph.root, node)
@@ -168,6 +170,8 @@ export class World {
     // Release all relationship nodes associated with this entity and move the
     // previously related entities to the left in the graph.
     this.#clear_entity_relationships(entity)
+    // Remove the entity from the graph, forget its node, release the entity id
+    // and record the move for monitor queries.
     Graph.remove_entity(node, entity)
     SparseMap.delete(this.#entity_nodes, entity)
     EntityRegistry.release(this.#entity_registry, entity)
@@ -183,12 +187,13 @@ export class World {
     Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const next_type = Type.with(prev_node.type, type)
     const next_node = Graph.resolve(this.graph, next_type)
-    // If the entity contains each component of the added type, do not move the
-    // entity to a different node.
+    // If the entity does not have one or more of the components in the added
+    // type, move the entity to its new node.
     if (prev_node !== next_node) {
       this.#move(entity, prev_node, next_node)
       SparseMap.set(this.#entity_nodes, entity, next_node)
     }
+    // Store added and updated component values.
     this.#write_many(entity, type, init)
   }
 
@@ -206,11 +211,15 @@ export class World {
     if (prev_node === next_node) {
       return
     }
+    // Move the entity to its new node (to the left) and release removed
+    // component values.
     this.#move(entity, prev_node, next_node)
-    SparseMap.set(this.#entity_nodes, entity, next_node)
     this.#clear_many(entity, type)
   }
 
+  /**
+   * Despawn all entities of a node when the node is removed from the graph.
+   */
   #despawn_unhandled_entities = (node: Graph.Node) => {
     SparseSet.each(node.entities, entity => {
       this.#despawn(entity)
@@ -250,33 +259,71 @@ export class World {
    * entities to the left in the graph.
    */
   #clear_entity_relationships(entity: Entity.T) {
-    const entity_node = Assert.exists(SparseMap.get(this.#entity_nodes, entity))
+    // Look up nodes that lead to the entity's relatives.
     const entity_relationship_roots = this.#entity_relationship_roots[entity]
-    if (entity_relationship_roots === undefined) return
+    if (entity_relationship_roots === undefined) {
+      return
+    }
     for (let i = 0; i < entity_relationship_roots.length; i++) {
       const relationship_root = entity_relationship_roots[i]
-      const relationship_component = relationship_root.type.relationships[0]
+      const relationship_component = Type.component_at(
+        relationship_root.type,
+        0,
+      ) as Component.TRelationship
       const relationship_store = this.store(relationship_component.id)
       const relation_component_id = Entity.parse_hi(relationship_component.id)
       const relation_component = Assert.exists(
         Component.get_relation(relation_component_id),
       )
-      switch (relation_component.topology) {
-        case Component.Topology.Cyclical:
-          Graph.move_entities_left(
-            this.graph,
-            relationship_root,
-            relationship_component,
-            (entity, node) => {
-              SparseMap.set(this.#entity_nodes, entity, node)
-              relationship_store[entity] = undefined!
-            },
-          )
-          break
+      // If the relationship is cyclical (i.e. not hierarchical), remove the
+      // relationship from all related entities.
+      if (relation_component.topology === Component.Topology.Cyclical) {
+        Graph.move_entities_left(
+          this.graph,
+          relationship_root,
+          relationship_component,
+          (entity, node) => {
+            SparseMap.set(this.#entity_nodes, entity, node)
+            relationship_store[entity] = undefined!
+          },
+        )
       }
+      // Delete the root relationship node, which will also delete all
+      // relationship nodes that lead to the entity's relatives. If the
+      // relation is hierarchical, the entity's relatives will be despawned by
+      // a listener added to the graph's $removed signal.
       Graph.delete_node(this.graph, relationship_root)
     }
     this.#entity_relationship_roots[entity] = undefined!
+  }
+
+  #get_relation<U extends Component.TRelation>(
+    entity: Entity.T,
+    relation: U,
+    node: Graph.Node,
+  ) {
+    const out = [] as Commands.InitSingle<U>[]
+    for (let i = 0; i < node.type.relationships.length; i++) {
+      const relationship = node.type.relationships[i]
+      const relationship_relation_id = Entity.parse_hi(relationship.id)
+      if (relationship_relation_id === relation.id) {
+        const relationship_entity_id = Entity.parse_entity_id(relationship.id)
+        const relationship_entity = EntityRegistry.hydrate(
+          this.#entity_registry,
+          relationship_entity_id,
+        )
+        if (Component.is_tag(relation)) {
+          out.push(relationship_entity as Commands.InitSingle<U>)
+        } else {
+          const relationship_value = this.#read(entity, relationship)
+          out.push([
+            relationship_entity,
+            relationship_value,
+          ] as Commands.InitSingle<U>)
+        }
+      }
+    }
+    return out as Commands.InitSingle<U>
   }
 
   #apply_command = (command: Commands.T) => {
@@ -408,28 +455,7 @@ export class World {
     Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     const component = Type.component_at(type)
     if (Component.is_relation(component)) {
-      const out = [] as Commands.InitSingle<U>[]
-      for (let i = 0; i < node.type.relationships.length; i++) {
-        const relationship = node.type.relationships[i]
-        const relationship_relation_id = Entity.parse_hi(relationship.id)
-        if (relationship_relation_id === component.id) {
-          const relationship_entity_id = Entity.parse_entity_id(relationship.id)
-          const relationship_entity = EntityRegistry.hydrate(
-            this.#entity_registry,
-            relationship_entity_id,
-          )
-          if (Component.is_tag(component)) {
-            out.push(relationship_entity as Commands.InitSingle<U>)
-          } else {
-            const relationship_value = this.#read(entity, relationship)
-            out.push([
-              relationship_entity,
-              relationship_value,
-            ] as Commands.InitSingle<U>)
-          }
-        }
-      }
-      return out as Commands.InitSingle<U>
+      return this.#get_relation(entity, component, node)
     }
     return this.#read(entity, component) as Commands.InitSingle<U>
   }
