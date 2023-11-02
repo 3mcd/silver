@@ -2,7 +2,7 @@ import {perf} from "silver-bench"
 import * as Component from "./component"
 import * as Type from "./type"
 
-const components = Array.from({length: 20}, Component.relation)
+const components = Array.from({length: 20}, Component.valueRelation)
 
 perf("create a type with 20 components", () => {
   return () => {

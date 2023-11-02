@@ -1,5 +1,5 @@
 export {run} from "./app/system"
-export {relation, tag, relation_tag, value, Topology} from "./data/component"
+export {valueRelation, tag, relation, value, Topology} from "./data/component"
 export * from "./data/data"
 import type {World} from "./world/world"
 import {make as type} from "./data/type"
@@ -21,7 +21,7 @@ export type {
   Tag,
   Value,
   ValueRelation as Relation,
-  TagRelation as RelationTag,
+  TagRelation,
 } from "./data/component"
 
 export type Data<T extends Type> = T extends Type<infer U> ? Init<U> : never

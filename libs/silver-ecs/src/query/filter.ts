@@ -38,10 +38,10 @@ export const Changed = (type: Type.T) => {
   )
 }
 
-export const In = (type: Type.T) => {
+export const In = (type: Type.T = Type.make()) => {
   return new Filter(Hash.words([type.hash, in_component_id]), Kind.In, type)
 }
 
-export const Out = (type: Type.T) => {
+export const Out = (type: Type.T = Type.make()) => {
   return new Filter(Hash.words([type.hash, out_component_id]), Kind.Out, type)
 }

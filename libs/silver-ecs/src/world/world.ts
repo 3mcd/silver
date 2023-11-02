@@ -474,7 +474,7 @@ if (import.meta.vitest) {
   const {describe, it, expect} = await import("vitest")
   const A = Component.tag()
   const B = Component.value()
-  const C = Component.relation_tag()
+  const C = Component.relation()
 
   describe("World", () => {
     it("throws an error when adding a component to a non-existent entity", () => {

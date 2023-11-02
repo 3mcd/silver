@@ -246,7 +246,7 @@ export const tag = (): Type.Type<[Tag]> =>
  * const Orbits = ecs.relation({distance: "f32", period: "f32"})
  * const entity = world.spawn(Orbits, [sun, {distance: 10, period: 0.5}])
  */
-export function relation<U extends Data.Schema>(
+export function valueRelation<U extends Data.Schema>(
   schema: U,
   topology?: Topology,
 ): Type.Type<[ValueRelation<Data.Express<U>>]>
@@ -263,7 +263,7 @@ export function relation<U extends Data.Schema>(
  * const Owes = ecs.relation<number>("f32")
  * const entity = world.spawn(Owes, [bank, 1_000])
  */
-export function relation<U>(
+export function valueRelation<U>(
   schema: Data.SchemaOf<U>,
   topology?: Topology,
 ): Type.Type<[ValueRelation<U>]>
@@ -279,7 +279,9 @@ export function relation<U>(
  * const Owes = ecs.relation<number>()
  * const entity = world.spawn(Owes, [bank, 1_000])
  */
-export function relation<U>(topology?: Topology): Type.Type<[ValueRelation<U>]>
+export function valueRelation<U>(
+  topology?: Topology,
+): Type.Type<[ValueRelation<U>]>
 /**
  * Define a relation with an undefined shape.
  *
@@ -294,10 +296,13 @@ export function relation<U>(topology?: Topology): Type.Type<[ValueRelation<U>]>
  * const OwesAnything = ecs.relation()
  * const entity = world.spawn(OwesAnything, [[[]]])
  */
-export function relation(
+export function valueRelation(
   topology?: Topology,
 ): Type.Type<[ValueRelation<unknown>]>
-export function relation(schema?: Data.Schema | Topology, topology?: Topology) {
+export function valueRelation(
+  schema?: Data.Schema | Topology,
+  topology?: Topology,
+) {
   const component_id = make_component_id()
   const component = make(
     component_id,
@@ -315,12 +320,10 @@ export function relation(schema?: Data.Schema | Topology, topology?: Topology) {
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with no data and add it to an entity.</caption>
- * const ChildOf = ecs.relation_tag()
+ * const ChildOf = ecs.tagRelation()
  * const entity = world.spawn(ChildOf, [relative])
  */
-export const relation_tag = (
-  topology = Topology.Any,
-): Type.Type<[TagRelation]> => {
+export const relation = (topology = Topology.Any): Type.Type<[TagRelation]> => {
   const component_id = make_component_id()
   const component = make(component_id, Kind.TagRelation, topology)
   relations.set(component_id, component)
@@ -402,7 +405,7 @@ if (import.meta.vitest) {
 
   describe("is_relation", () => {
     it("returns true for relation components", () => {
-      expect(is_relation(relation().components[0])).true
+      expect(is_relation(valueRelation().components[0])).true
     })
     it("returns false for tag components", () => {
       expect(is_relation(tag().components[0])).false
@@ -413,12 +416,15 @@ if (import.meta.vitest) {
     it("returns true for relationship components", () => {
       expect(
         is_value_relationship(
-          make_relationship(relation().component_spec[0], Entity.make(1, 2)),
+          make_relationship(
+            valueRelation().component_spec[0],
+            Entity.make(1, 2),
+          ),
         ),
       ).true
     })
     it("returns false for tag components", () => {
-      expect(is_value_relationship(relation().components[0])).false
+      expect(is_value_relationship(valueRelation().components[0])).false
     })
   })
 
@@ -428,7 +434,7 @@ if (import.meta.vitest) {
     })
     it("returns false for value components", () => {
       expect(is_tag(value().components[0])).false
-      expect(is_tag(relation().components[0])).false
+      expect(is_tag(valueRelation().components[0])).false
     })
   })
 }
