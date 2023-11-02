@@ -10,7 +10,7 @@ perf("create a type with 20 components", () => {
   }
 })
 
-perf("calculate the xor of 2 types", () => {
+perf("calculate the xor of 2 types with 6 components each", () => {
   const type_a = Type.make.apply(null, components.slice(0, 6))
   const type_b = Type.make.apply(null, components.slice(4, 10))
   return () => {
@@ -18,7 +18,7 @@ perf("calculate the xor of 2 types", () => {
   }
 })
 
-perf("hydrate a type's relationships", () => {
+perf("hydrate relationships of a type with 20 components", () => {
   const type = Type.make.apply(null, components)
   const init = components.map(() => [0, 0])
   return () => {

@@ -495,7 +495,7 @@ if (import.meta.vitest) {
       world.step()
       expect(world.get(entity, B)).to.equal(undefined)
     })
-    it.only("adds a relation component to an entity", () => {
+    it("adds a relation component to an entity", () => {
       const world = make()
       const relative = world.spawn()
       const entity = world.spawn(C, [relative])

@@ -11,7 +11,7 @@ let fixture = (insert = true) => {
   return {set}
 }
 
-perf("add", () => {
+perf("add 1000 values", () => {
   let {set} = fixture(false)
   return () => {
     for (let i = 0; i < 1_000; i++) {
@@ -20,7 +20,7 @@ perf("add", () => {
   }
 })
 
-perf("has", () => {
+perf("has 1000 values", () => {
   let {set} = fixture()
   return () => {
     for (let i = 0; i < 1_000; i++) {
@@ -29,7 +29,7 @@ perf("has", () => {
   }
 })
 
-perf("delete", () => {
+perf("delete 1000 values", () => {
   let {set} = fixture()
   return () => {
     for (let i = 0; i < 1_000; i++) {

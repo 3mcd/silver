@@ -11,7 +11,7 @@ let fixture = (insert = true) => {
   return {map}
 }
 
-perf("set", () => {
+perf("add 1000 entries", () => {
   let {map} = fixture(false)
   return () => {
     for (let i = 0; i < 1_000; i++) {
@@ -20,7 +20,7 @@ perf("set", () => {
   }
 })
 
-perf("get", () => {
+perf("get 1000 values", () => {
   let {map} = fixture()
   return () => {
     for (let i = 0; i < 1_000; i++) {
@@ -29,7 +29,7 @@ perf("get", () => {
   }
 })
 
-perf("has", () => {
+perf("has 1000 entries", () => {
   let {map} = fixture()
   return () => {
     for (let i = 0; i < 1_000; i++) {
@@ -38,7 +38,7 @@ perf("has", () => {
   }
 })
 
-perf("delete", () => {
+perf("delete 1000 entries", () => {
   let {map} = fixture()
   return () => {
     for (let i = 0; i < 1_000; i++) {
@@ -47,14 +47,14 @@ perf("delete", () => {
   }
 })
 
-perf("iterate 1000 values", () => {
+perf("iterate 1000 entries", () => {
   let {map} = fixture()
   return () => {
     SparseMap.each(map, () => {})
   }
 })
 
-perf("clear 1000 values", () => {
+perf("clear 1000 entries", () => {
   let {map} = fixture()
   return () => {
     SparseMap.clear(map)
