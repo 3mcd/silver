@@ -434,7 +434,7 @@ export class World {
     // Immediately despawn all entities whose nodes are marked for deletion.
     for (let i = 0; i < this.#nodes_to_delete.length; i++) {
       const node = this.#nodes_to_delete[i]
-      Graph.traverse_right(node, node => {
+      Graph.traverse(node, node => {
         SparseSet.each(node.entities, entity => {
           this.#despawn(entity)
         })

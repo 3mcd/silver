@@ -1,4 +1,3 @@
-import * as Entity from "../entity/entity"
 import * as Hash from "../hash"
 import {ExcludeFromTuple} from "../types"
 import * as Commands from "../world/commands"

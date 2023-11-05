@@ -43,15 +43,6 @@ const unlink_nodes = (
   prev_node.edges_right.delete(xor)
 }
 
-const link_nodes = (
-  next_node: Node,
-  prev_node: Node,
-  xor = Type.xor(next_node.type, prev_node.type),
-): void => {
-  next_node.edges_left.set(xor, prev_node)
-  prev_node.edges_right.set(xor, next_node)
-}
-
 export const insert_entity = (node: Node, entity: Entity.T): void => {
   SparseSet.add(node.entities, entity)
 }
@@ -88,22 +79,17 @@ export const traverse_left = (node: Node, iteratee: NodeIteratee): void => {
   }
 }
 
-export const traverse_right = (node: Node, iteratee: NodeIteratee): void => {
-  const stack: Node[] = [node]
-  const visited = new Set<Node>()
-  let cursor = 1
-  while (cursor > 0) {
-    const curr_node = stack[--cursor]
-    if (visited.has(curr_node) || iteratee(curr_node) === false) continue
-    visited.add(curr_node)
-    curr_node.edges_right.forEach(function traverse_right_inner(prev_node) {
-      stack[cursor++] = prev_node
-    })
-  }
+const link_nodes = (
+  next_node: Node,
+  prev_node: Node,
+  xor = Type.xor(next_node.type, prev_node.type),
+): void => {
+  next_node.edges_left.set(xor, prev_node)
+  prev_node.edges_right.set(xor, next_node)
 }
 
-const link_nodes_traverse = (graph: Graph, node: Node): void => {
-  traverse(graph.root, function traverse_link(visited_node) {
+const link_nodes_deep = (graph: Graph, node: Node): void => {
+  traverse(graph.root, function link_nodes_deep_traverse(visited_node) {
     if (Type.is_superset(visited_node.type, node.type)) {
       link_nodes(visited_node, node)
       return false
@@ -143,7 +129,7 @@ const insert_node = (graph: Graph, type: Type.T): Node => {
       graph.nodes_by_components_hash.set(next_type.hash, next_node)
       graph.nodes_by_id[next_node.id] = next_node
       link_nodes(next_node, node, Type.xor(next_node.type, node.type))
-      link_nodes_traverse(graph, next_node)
+      link_nodes_deep(graph, next_node)
       emit_node_traverse(next_node)
     }
     node = next_node
@@ -167,9 +153,9 @@ const drop_node = (graph: Graph, node: Node): void => {
 export const delete_node = (graph: Graph, node: Node): void => {
   const dropped_nodes: Node[] = []
   // For every node to the right of the deleted node (inclusive).
-  traverse(node, function traverse_drop(next_node) {
+  traverse(node, function delete_node_traverse(next_node) {
     // Notify nodes to the left that it is being dropped.
-    traverse_left(next_node, function traverse_left_drop(visit) {
+    traverse_left(next_node, function delete_node_traverse_left(visit) {
       Signal.emit(visit.$removed, next_node)
     })
     dropped_nodes.push(next_node)
@@ -186,7 +172,7 @@ export const move_entities_left = (
   component: Component.T,
   iteratee: (entity: Entity.T, node: Node) => void,
 ): void => {
-  traverse(node, function traverse_move_entities_left(next_node) {
+  traverse(node, function move_entities_left_traverse(next_node) {
     const prev_type = Type.without_component(next_node.type, component)
     const prev_node = resolve(graph, prev_type)
     SparseSet.each(

@@ -17,6 +17,7 @@ async function build(dir: string, debug = false) {
     format: "esm",
     target: "esnext",
     treeShaking: true,
+    minifySyntax: true,
     external: Array.from(
       new Set([
         ...Object.keys(pkg.dependencies ?? {}),
@@ -25,7 +26,7 @@ async function build(dir: string, debug = false) {
     ),
     define: {
       DEBUG: debug.toString(),
-      "import.meta.vitest": "false",
+      "import.meta.vitest": "undefined",
     },
     sourcemap: true,
   })

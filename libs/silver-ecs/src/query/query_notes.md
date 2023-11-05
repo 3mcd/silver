@@ -28,9 +28,7 @@ When a query learns of a new node that stores entities on a team and in a vehicl
 
 ```ts
 relationship_map = {
-  98: {
-    55: [e1], // live list of entities on team 98 and in vehicle 55
-  },
+  [hash(98, 55)]: [e1], // live list of entities on team 98 and in vehicle 55
 }
 ```
 
@@ -58,12 +56,8 @@ Because the query only accepts a single team argument, it stores the entities th
 
 ```ts
 relationship_map = {
-  98: {
-    55: [e1],
-  },
-  99: {
-    55: [e1],
-  },
+  [hash(98, 55)]: [e1],
+  [hash(99, 55)]: [e1],
 }
 ```
 
@@ -77,16 +71,8 @@ In this case, the query stores the entities in a slightly different way:
 
 ```ts
 relationship_map = {
-  98: {
-    99: {
-      55: [e1],
-    },
-  },
-  99: {
-    98: {
-      55: [e1],
-    },
-  },
+  [hash(98, 99, 55)]: [e1],
+  [hash(99, 98, 55)]: [e1],
 }
 ```
 

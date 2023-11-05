@@ -1,4 +1,5 @@
 import * as Component from "../data/component"
+import * as Hash from "../hash"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
 import * as Signal from "../signal"
@@ -8,6 +9,7 @@ import * as Graph from "../world/graph"
 import * as World from "../world/world"
 import * as Changed from "./changed"
 import * as Filter from "./filter"
+import {cartesian, permute} from "../array"
 
 type EachIteratee<U extends Component.T[]> = (
   entity: Entity.T,
@@ -19,16 +21,6 @@ type EachArgs<U extends Component.T[]> = [
   iteratee: EachIteratee<U>,
 ]
 type Each<U extends Component.T[]> = (...args: EachArgs<U>) => void
-
-class QueryRelationshipMatch {
-  entities: Entity.T[][][]
-  next: QueryRelationshipMatch[]
-
-  constructor() {
-    this.entities = []
-    this.next = []
-  }
-}
 
 class QueryChangedRecord {
   state
@@ -59,9 +51,9 @@ export class Query<U extends Component.T[] = Component.T[]> {
         break
       }
     }
-    const matches = SparseMap.make<Entity.T[][]>()
+    const matches = SparseMap.make<Entity.T[]>()
+    const relationship_matches = [] as Entity.T[][][]
     const {changed, not} = initialize_filters(filters, world)
-    const relationship_matches = new QueryRelationshipMatch()
     this.changed = changed
     this.is_monitor = is_monitor
     this.matches = matches
@@ -91,7 +83,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
         state.changes[key] = version
       })
     }
-    if (this.is_monitor) {
+    if (this.is_monitor && SparseMap.size(this.matches) > 0) {
       forget_node(this, this.node)
     }
   }
@@ -146,14 +138,12 @@ const make_iterator_iterator = (fetch: string, filter: string) => {
   s += "for(let i=0;i<M.length;i++){"
   s += "const m=M[i];"
   s += "for(let j=0;j<m.length;j++){"
-  s += "const E=m[j];"
-  s += "for(let k=0;k<E.length;k++){"
-  s += "const e=E[k];"
+  s += "const e=m[j];"
   if (filter) {
     s += `if(${filter})continue;`
   }
   s += `$(e,${fetch})`
-  s += "}}}"
+  s += "}}"
   return s
 }
 
@@ -174,12 +164,13 @@ const make_store_declarations = (stores: SparseMap.T<unknown[]>) => {
 }
 
 const make_relation_matches_declaration = (type: Type.T) => {
-  let s = "const M=R"
+  let s = `let h=0;`
   for (let i = 0; i < type.relations.length; i++) {
     const relation = type.relations[i]
-    s += `?.next[p${relation.id}]`
+    s += `h=Math.imul((h<<5)^(p${relation.id}|0),0x9e3779b9);`
   }
-  return s + "?.entities;"
+  s += "const M=R[h];"
+  return s
 }
 
 const make_common_expressions = (
@@ -198,7 +189,7 @@ const make_common_expressions = (
 const compile_each_iterator_with_relationships = <U extends Component.T[]>(
   world: World.T,
   type: Type.T<U>,
-  relationship_matches: QueryRelationshipMatch,
+  relationship_matches: Entity.T[][][],
   changed: Query["changed"],
 ): Each<U> => {
   const changed_predicates = changed.map(changed => changed.predicate)
@@ -223,7 +214,7 @@ const compile_each_iterator_with_relationships = <U extends Component.T[]>(
 const compile_each_iterator = <U extends Component.T[]>(
   world: World.T,
   type: Type.T<U>,
-  matches: Entity.T[][][],
+  matches: Entity.T[][],
   changed: Query["changed"],
 ): Each<U> => {
   const changed_predicates = changed.map(changed => changed.predicate)
@@ -238,18 +229,44 @@ const compile_each_iterator = <U extends Component.T[]>(
   return closure(stores_sparse, changed_predicates, matches)
 }
 
-const make_relationship_path = (type: Type.T) => {
-  const relationship_path: number[] = []
-  for (let i = 0; i < type.relationships.length; i++) {
-    const relationship = type.relationships[i]
-    const relation_component_id = Entity.parse_hi(relationship.id)
-    const relation_component_index =
-      type.sparse_relations[relation_component_id]
-    relationship_path[relation_component_index] = Entity.parse_entity_id(
-      relationship.id,
-    )
+const make_relationship_paths = (query_type: Type.T, node_type: Type.T) => {
+  const relation_arites: number[] = []
+  const relation_order: number[] = []
+  const entity_subpaths: number[][] = []
+  for (let i = 0; i < query_type.relations.length; i++) {
+    const relation = query_type.relations[i]
+    relation_arites[relation.id] =
+      relation_arites[relation.id] === undefined
+        ? 1
+        : relation_arites[relation.id] + 1
+    if (!relation_order.includes(relation.id)) {
+      relation_order.push(relation.id)
+    }
+    for (let j = 0; j < node_type.relationships.length; j++) {
+      const relationship = node_type.relationships[j]
+      const relationship_component_id = Entity.parse_hi(relationship.id)
+      if (relation.id === relationship_component_id) {
+        const path = (entity_subpaths[i] ??= [])
+        path.push(Entity.parse_entity_id(relationship.id))
+      }
+    }
   }
-  return relationship_path
+  const entity_path_permutations: number[][][] = []
+  for (let i = 0; i < entity_subpaths.length; i++) {
+    const subpath = entity_subpaths[i]
+    const subpath_permutation = permute(
+      subpath,
+      relation_arites[relation_order[i]],
+    )
+    entity_path_permutations.push(subpath_permutation)
+  }
+  const entity_path_permutations_product = cartesian(entity_path_permutations)
+  const entity_hashes: number[] = []
+  for (let i = 0; i < entity_path_permutations_product.length; i++) {
+    const flat = entity_path_permutations_product[i].flat(1)
+    entity_hashes.push(Hash.words(flat))
+  }
+  return entity_hashes
 }
 
 const remember_node = (
@@ -258,37 +275,42 @@ const remember_node = (
   entities: Entity.T[],
 ) => {
   for (let i = 0; i < query.not.length; i++) {
-    if (Type.has(node.type, query.not[i].type)) return false
-  }
-  const relationship_path = make_relationship_path(node.type)
-  if (relationship_path.length > 0) {
-    let i = 0
-    let relationship_matches = query.relationship_matches
-    while (i < relationship_path.length) {
-      relationship_matches = relationship_matches.next[
-        relationship_path[i++]
-      ] ??= {entities: [], next: []}
+    if (Type.has(node.type, query.not[i].type)) {
+      return false
     }
-    relationship_matches.entities.push([entities])
   }
-  let matches = SparseMap.get(query.matches, node.type.hash)
-  if (matches === undefined) {
-    matches = []
-    SparseMap.set(query.matches, node.type.hash, matches)
+  if (Type.has_relations(query.type)) {
+    const entity_hashes = make_relationship_paths(query.type, node.type)
+    for (let i = 0; i < entity_hashes.length; i++) {
+      const entity_hash = entity_hashes[i]
+      const entity_matches = (query.relationship_matches[entity_hash] ??= [])
+      entity_matches.push(entities)
+    }
   }
-  matches.push(entities)
+  if (query.is_monitor) {
+    let entity_matches = SparseMap.get(query.matches, node.type.hash)
+    if (entity_matches === undefined) {
+      entity_matches = []
+      SparseMap.set(query.matches, node.type.hash, entity_matches)
+    }
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i]
+      entity_matches.push(entity)
+    }
+  } else {
+    SparseMap.set(query.matches, node.type.hash, entities)
+  }
+
   return true
 }
 
 const forget_node = (query: Query, node: Graph.Node) => {
-  const relationship_path = make_relationship_path(node.type)
-  if (relationship_path.length > 0) {
-    let i = 0
-    let relationship_match = query.relationship_matches
-    while (i < relationship_path.length - 1) {
-      relationship_match = relationship_match.next[relationship_path[i++]]
+  if (Type.has_relations(query.type)) {
+    const entity_hashes = make_relationship_paths(query.type, node.type)
+    for (let i = 0; i < entity_hashes.length; i++) {
+      const entity_hash = entity_hashes[i]
+      query.relationship_matches[entity_hash] = undefined!
     }
-    relationship_match.next[relationship_path[i]] = undefined!
   }
   SparseMap.delete(query.matches, node.type.hash)
 }
@@ -366,4 +388,8 @@ export const query = <U extends Component.T[]>(
   ...filters: Filter.T[]
 ): Query<U> => {
   return make(world, type, filters)
+}
+
+if (import.meta.vitest) {
+  const {} = await import("vitest")
 }
