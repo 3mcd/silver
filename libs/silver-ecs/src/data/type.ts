@@ -2,6 +2,7 @@ import * as Hash from "../hash"
 import {ExcludeFromTuple} from "../types"
 import * as Commands from "../world/commands"
 import * as Component from "./component"
+import * as Entity from "../entity/entity"
 
 type Spec<
   U extends Array<Type | Component.T>,
@@ -111,7 +112,7 @@ const with_ = <U extends Component.T[], V extends Component.T[]>(
   const components = type_a.component_spec.concat(
     type_b.component_spec as Component.T[],
   )
-  return make(...components)
+  return from(components)
 }
 export {with_ as with}
 
@@ -122,7 +123,7 @@ export const without = <U extends Component.T[], V extends Component.T[]>(
   const components = type_a.component_spec.filter(
     component => type_b.sparse[component.id] === undefined,
   )
-  return make(...components)
+  return from(components)
 }
 
 export const with_component = <U extends Component.T[], V extends Component.T>(
@@ -130,7 +131,7 @@ export const with_component = <U extends Component.T[], V extends Component.T>(
   component: V,
 ): Type<[...U, V]> => {
   const components = type.component_spec.concat(component)
-  return make(...components)
+  return from(components)
 }
 
 export const without_component = <
@@ -143,7 +144,7 @@ export const without_component = <
   const components = type.component_spec.filter(
     type_component => type_component.id !== component.id,
   )
-  return make(...components)
+  return from(components)
 }
 
 const is_type = (obj: object): obj is Type => "components" in obj
@@ -177,6 +178,10 @@ export const has = (type_a: Type, type_b: Type): boolean => {
   return true
 }
 
+const has_component = (type: Type, component: Component.T): boolean => {
+  return type.sparse[component.id] !== undefined
+}
+
 export const has_relations = (type: Type): boolean => {
   return type.relations.length > 0
 }
@@ -201,12 +206,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
 
   constructor(component_spec: U) {
     const components = sort_spec(component_spec.slice())
-    const sparse: number[] = []
     const sparse_init: number[] = []
-    for (let i = 0; i < components.length; i++) {
-      const component = components[i]
-      sparse[component.id] = i
-    }
     let j = 0
     for (let i = 0; i < component_spec.length; i++) {
       const component = component_spec[i]
@@ -215,7 +215,6 @@ export class Type<U extends Component.T[] = Component.T[]> {
       }
     }
     j = 0
-
     this.component_ids = components.map(component => component.id)
     this.components = components
     this.hash = Hash.words(this.component_ids)
@@ -223,36 +222,49 @@ export class Type<U extends Component.T[] = Component.T[]> {
     this.relations = components.filter(Component.is_relation)
     this.relations_spec = component_spec.filter(Component.is_relation)
     this.relationships = components.filter(Component.is_relationship)
-    this.sparse = sparse
+    this.sparse = []
+    for (let i = 0; i < components.length; i++) {
+      const component = components[i]
+      if (Component.is_relation(component) && has_component(this, component)) {
+        if (component.topology === Component.Topology.Hierarchical) {
+          throw new Error(
+            `Failed to construct type: type has multiple parents for hierarchical relation`,
+          )
+        }
+      }
+      this.sparse[component.id] = i
+    }
     this.sparse_init = sparse_init
   }
 }
 
 export type T<U extends Component.T[] = Component.T[]> = Type<U>
 
-export const make = <U extends Array<Component.T | Type>>(
-  ...types: U
-): Type<Spec<U>> => {
+const from = <U extends Array<Component.T | Type>>(types: U): Type<Spec<U>> => {
   return new Type(make_spec(types))
 }
 
-export const with_relationships = (type: T, values: unknown[]): T => {
+export const make = <U extends Array<Component.T | Type>>(
+  ...types: U
+): Type<Spec<U>> => {
+  return from(types)
+}
+
+export const with_relationships = (type: T, init: unknown[]): T => {
   let relationship_type = type
   for (let i = 0; i < type.component_spec.length; i++) {
-    const component = type.component_spec[i]
-    if (!Component.is_relation(component)) {
+    const relation = type.component_spec[i]
+    if (!Component.is_relation(relation)) {
       continue
     }
-    const value = values[i] as
+    const relation_init = init[i] as
       | Commands.InitTagRelation
       | Commands.InitValueRelation
-    relationship_type = with_component(
-      relationship_type,
-      Component.make_relationship(
-        component,
-        typeof value === "number" ? value : value[0],
-      ),
+    const relationship = Component.make_relationship(
+      relation,
+      typeof relation_init === "number" ? relation_init : relation_init[0],
     )
+    relationship_type = with_component(relationship_type, relationship)
   }
   return relationship_type
 }
@@ -299,6 +311,10 @@ if (import.meta.vitest) {
       expect(superset_may_contain(ABC, AC)).toBe(true)
       expect(superset_may_contain(ABC, CD)).toBe(true)
       expect(superset_may_contain(D, ABC)).toBe(false)
+    })
+    it("throws if a type has multiple parents for a hierarchical relation", () => {
+      const A = Component.relation(Component.Topology.Hierarchical)
+      expect(() => make(A, A)).toThrow()
     })
   })
 }

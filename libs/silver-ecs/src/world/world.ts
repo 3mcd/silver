@@ -137,7 +137,7 @@ export class World {
    * Insert a new entity into the entity graph and write initial component
    * values.
    */
-  #commit_spawn(command: Commands.Spawn) {
+  #apply_spawn(command: Commands.Spawn) {
     const {entity, type, init} = command
     const node = Graph.resolve(this.graph, type)
     // Insert the entity into the graph, write initial component values and
@@ -151,7 +151,7 @@ export class World {
    * Remove an entity from the entity graph and clear all component values and
    * relationships.
    */
-  #commit_despawn(command: Commands.Despawn) {
+  #apply_despawn(command: Commands.Despawn) {
     this.#despawn(command.entity)
   }
 
@@ -174,7 +174,7 @@ export class World {
   /**
    * Add or update a component for an entity.
    */
-  #commit_add(command: Commands.Add) {
+  #apply_add(command: Commands.Add) {
     const {entity, type, init} = command
     const prev_node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
@@ -193,7 +193,7 @@ export class World {
   /**
    * Remove components from an entity.
    */
-  #commit_remove(command: Commands.Remove) {
+  #apply_remove(command: Commands.Remove) {
     const {entity, type} = command
     const prev_node = SparseMap.get(this.#entity_nodes, entity)
     Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
@@ -311,16 +311,16 @@ export class World {
   #apply_command = (command: Commands.T) => {
     switch (command.kind) {
       case "spawn":
-        this.#commit_spawn(command)
+        this.#apply_spawn(command)
         break
       case "despawn":
-        this.#commit_despawn(command)
+        this.#apply_despawn(command)
         break
       case "add":
-        this.#commit_add(command)
+        this.#apply_add(command)
         break
       case "remove":
-        this.#commit_remove(command)
+        this.#apply_remove(command)
         break
     }
   }
@@ -497,7 +497,7 @@ if (import.meta.vitest) {
       world.step()
       expect(world.get(entity, C)).to.deep.equal([relative])
     })
-    it.todo("removes a relation component from an entity", () => {
+    it("removes a relation component from an entity", () => {
       const world = make()
       const relative = world.spawn()
       const entity = world.spawn(C, relative)
@@ -505,6 +505,16 @@ if (import.meta.vitest) {
       world.remove(entity, C, [relative])
       world.step()
       expect(world.get(entity, C)).to.deep.equal([])
+    })
+    it("throws when adding a parent to an entity that already has a parent of a given hierarchical relation", () => {
+      // Error
+      const world = make()
+      const Child = Component.relation(Component.Topology.Hierarchical)
+      const parentA = world.spawn()
+      const parentB = world.spawn()
+      const child = world.spawn(Child, parentA)
+      world.add(child, Child, parentB)
+      expect(world.step).toThrow()
     })
   })
 }
