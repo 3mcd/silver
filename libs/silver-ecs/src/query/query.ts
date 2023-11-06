@@ -235,7 +235,7 @@ const compile_each_iterator = <U extends Component.T[]>(
   return closure(stores_sparse, changed_predicates, matches)
 }
 
-const make_relationship_paths = (query: T, node_type: Type.T) => {
+const make_relationship_hashes = (query: T, node_type: Type.T) => {
   const relation_entity_buckets: number[][] = []
   // Extract a list of the node's included relatives for each relation.
   for (let i = 0; i < query.type.relations_spec.length; i++) {
@@ -276,7 +276,7 @@ const remember_node = (
     }
   }
   if (Type.has_relations(query.type)) {
-    const entity_hashes = make_relationship_paths(query, node.type)
+    const entity_hashes = make_relationship_hashes(query, node.type)
     for (let i = 0; i < entity_hashes.length; i++) {
       const entity_hash = entity_hashes[i]
       const entity_matches = (query.relation_matches[entity_hash] ??= [])
@@ -302,7 +302,7 @@ const remember_node = (
 
 const forget_node = (query: Query, node: Graph.Node) => {
   if (Type.has_relations(query.type)) {
-    const entity_hashes = make_relationship_paths(query, node.type)
+    const entity_hashes = make_relationship_hashes(query, node.type)
     for (let i = 0; i < entity_hashes.length; i++) {
       const entity_hash = entity_hashes[i]
       query.relation_matches[entity_hash] = undefined!

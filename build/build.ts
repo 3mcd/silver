@@ -28,7 +28,7 @@ async function build(dir: string, debug = false) {
       DEBUG: debug.toString(),
       "import.meta.vitest": "undefined",
     },
-    sourcemap: true,
+    sourcemap: debug,
   })
 }
 

@@ -252,19 +252,22 @@ export const make = <U extends Array<Component.T | Type>>(
 
 export const with_relationships = (type: T, init: unknown[]): T => {
   let relationship_type = type
+  let j = 0
   for (let i = 0; i < type.component_spec.length; i++) {
     const relation = type.component_spec[i]
-    if (!Component.is_relation(relation)) {
-      continue
+    if (Component.is_relation(relation)) {
+      const relation_init = init[j] as
+        | Commands.InitTagRelation
+        | Commands.InitValueRelation
+      const relationship = Component.make_relationship(
+        relation,
+        typeof relation_init === "number" ? relation_init : relation_init[0],
+      )
+      relationship_type = with_component(relationship_type, relationship)
+      j++
+    } else if (Component.wraps_value(relation)) {
+      j++
     }
-    const relation_init = init[i] as
-      | Commands.InitTagRelation
-      | Commands.InitValueRelation
-    const relationship = Component.make_relationship(
-      relation,
-      typeof relation_init === "number" ? relation_init : relation_init[0],
-    )
-    relationship_type = with_component(relationship_type, relationship)
   }
   return relationship_type
 }
