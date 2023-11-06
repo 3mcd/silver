@@ -32,7 +32,7 @@ export const seed = (world: ecs.World, data = json as Data) => {
         for (let i = 0; i < data[key].length; i++) {
           const init = data[key][i]
           const name = init[0]
-          init[4][0][0] = entities[init[4][0][0]]
+          init[4][0] = entities[init[4][0]]
           entities[name] = world.spawn(Satellite, ...init)
         }
         break

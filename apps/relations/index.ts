@@ -1,48 +1,42 @@
 import * as ecs from "silver-ecs/dev"
 
-const Edge = ecs.relation()
-const Node = ecs.tag()
-const ConnectedNode = ecs.type(Node, Edge)
-
 const world = ecs.make()
-const root = world.spawn(Node)
-const nodes: ecs.Entity[] = [root]
 
-let n0 = 0
-let i = 0
-const t = performance.now()
-while (i++ < 1_000) {
-  const connect: ecs.Entity[] = []
-  const count = Math.floor(Math.random() * Math.min(nodes.length, 5)) + 1
-  for (let i = 0; i < count; i++) {
-    connect.push(nodes[nodes.length - i - 1])
-    n0++
-  }
-  const node = world.spawn(ConnectedNode, connect)
-  nodes.push(node)
-}
+// Teams
+const Team = ecs.relation()
+const team_a = world.spawn()
+const team_b = world.spawn()
+const team_c = world.spawn()
+world.spawn(ecs.type(Team, Team), team_a, team_b)
+world.spawn(ecs.type(Team, Team, Team), team_a, team_b, team_c)
 
-world.step()
-
-console.log(
-  `created ${nodes.length} nodes with ${n0} edges in`,
-  performance.now() - t,
-  "ms",
-)
-
-const system: ecs.System = world => {
-  const nodes = ecs.query(world, Node)
-  const edges = ecs.query(world, Edge)
-  let n = 0
+const teams: ecs.System = world => {
+  const spies = ecs.query(world, ecs.type(Team, Team))
   return () => {
-    const t = performance.now()
-    nodes.each(node => {
-      edges.each(node, () => {
-        n++
-      })
+    spies.each(team_a, team_b, spy => {
+      console.log(`spy ${spy} is on teams ${team_a} and ${team_b}`)
     })
-    console.log(`computed ${n} edges in`, performance.now() - t, "ms")
   }
 }
 
-ecs.run(world, system)
+// Family
+const Mother = ecs.relation()
+const Father = ecs.relation()
+const Child = ecs.type(Mother, Father)
+const mom = world.spawn()
+const dad = world.spawn()
+world.spawn(Child, mom, dad)
+
+const family: ecs.System = world => {
+  const kids = ecs.query(world, Child, ecs.In())
+  return () => {
+    kids.each(mom, dad, kid => {
+      console.log(`${kid} was born`)
+    })
+  }
+}
+
+// Run
+world.step()
+ecs.run(world, teams)
+ecs.run(world, family)

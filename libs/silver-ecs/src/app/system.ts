@@ -8,10 +8,10 @@ export const run = (
   world: World.T,
   system: (world: World.T) => () => void,
 ): void => {
-  let impl = systems.get(system)
-  if (impl === undefined) {
-    impl = system(world)
-    systems.set(system, impl)
+  let system_impl = systems.get(system)
+  if (system_impl === undefined) {
+    system_impl = system(world)
+    systems.set(system, system_impl)
   }
-  impl()
+  system_impl()
 }

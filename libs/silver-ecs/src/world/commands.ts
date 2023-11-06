@@ -2,8 +2,8 @@ import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
 
-export type InitTagRelation = Entity.T[]
-export type InitValueRelation<U = unknown> = [relative: Entity.T, value: U][]
+export type InitTagRelation = Entity.T
+export type InitValueRelation<U = unknown> = [relative: Entity.T, value: U]
 
 export type InitSingle<U extends Component.T> = U extends Component.TagRelation
   ? InitTagRelation

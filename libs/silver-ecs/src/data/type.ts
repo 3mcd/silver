@@ -146,8 +146,7 @@ export const without_component = <
   return make(...components)
 }
 
-const is_type = (obj: unknown): obj is Type =>
-  typeof obj === "object" && obj !== null && "components" in obj
+const is_type = (obj: object): obj is Type => "components" in obj
 
 const sort_spec = (components: Component.T[]) =>
   components.sort((component_a, component_b) => component_a.id - component_b.id)
@@ -195,16 +194,15 @@ export class Type<U extends Component.T[] = Component.T[]> {
   components
   hash
   relations
+  relations_spec
   relationships
   sparse
   sparse_init
-  sparse_relations
 
   constructor(component_spec: U) {
     const components = sort_spec(component_spec.slice())
     const sparse: number[] = []
     const sparse_init: number[] = []
-    const sparse_relations: number[] = []
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
       sparse[component.id] = i
@@ -217,21 +215,16 @@ export class Type<U extends Component.T[] = Component.T[]> {
       }
     }
     j = 0
-    for (let i = 0; i < component_spec.length; i++) {
-      const component = component_spec[i]
-      if (Component.is_relation(component)) {
-        sparse_relations[component.id] = j++
-      }
-    }
+
     this.component_ids = components.map(component => component.id)
     this.components = components
     this.hash = Hash.words(this.component_ids)
     this.component_spec = component_spec
     this.relations = components.filter(Component.is_relation)
+    this.relations_spec = component_spec.filter(Component.is_relation)
     this.relationships = components.filter(Component.is_relationship)
     this.sparse = sparse
     this.sparse_init = sparse_init
-    this.sparse_relations = sparse_relations
   }
 }
 
@@ -245,22 +238,21 @@ export const make = <U extends Array<Component.T | Type>>(
 
 export const with_relationships = (type: T, values: unknown[]): T => {
   let relationship_type = type
-  for (let i = 0; i < type.relations.length; i++) {
-    const relation = type.relations[i]
-    const relationship_init_index = type.sparse_init[relation.id]
-    const relationship_init = values[relationship_init_index] as
+  for (let i = 0; i < type.component_spec.length; i++) {
+    const component = type.component_spec[i]
+    if (!Component.is_relation(component)) {
+      continue
+    }
+    const value = values[i] as
       | Commands.InitTagRelation
       | Commands.InitValueRelation
-    for (let j = 0; j < relationship_init.length; j++) {
-      const value = relationship_init[j]
-      relationship_type = with_component(
-        relationship_type,
-        Component.make_relationship(
-          relation,
-          typeof value === "number" ? value : value[0],
-        ),
-      )
-    }
+    relationship_type = with_component(
+      relationship_type,
+      Component.make_relationship(
+        component,
+        typeof value === "number" ? value : value[0],
+      ),
+    )
   }
   return relationship_type
 }

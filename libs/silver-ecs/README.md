@@ -10,7 +10,8 @@ Relationship data can be retrieved similarly to normal components, using `world.
 // Iterate all entities that orbit the sun.
 ecs.query(world, Orbits).each(sun, (entity, orbit) => {})
 // Get all relationships of type `Orbits` for `sun`.
-for (const [entity, orbit] of world.get(sun, Orbits)) {}
+for (const [entity, orbit] of world.get(sun, Orbits)) {
+}
 ```
 
 ### Relation topologies
@@ -22,13 +23,12 @@ const Orbits = ecs.relation()
 const DockedTo = ecs.relation(ecs.Topology.Hierarchical)
 
 const planet = world.spawn()
-const station = world.spawn(Orbits, [planet])
-const spaceship = world.spawn(DockedTo, [station])
+const station = world.spawn(Orbits, planet)
+const spaceship = world.spawn(DockedTo, station)
 
 world.despawn(planet) // despawns planet
 world.despawn(station) // despawns both station and spaceship
 ```
-
 
 ### Relationship data
 
@@ -38,7 +38,7 @@ Entity relationships are components so they can also store component values. Rel
 type Orbit = {distance: number; period: number}
 const Orbits = ecs.valueRelation<Orbit>()
 const sun = world.spawn()
-const earth = world.spawn(Orbits, [[sun, {distance: 1, period: 1}]])
+const earth = world.spawn(Orbits, [sun, {distance: 1, period: 1}])
 ```
 
 ### Monitor queries
@@ -89,9 +89,9 @@ In the above example, `sun` is the object of the `Orbits` relationship, while `p
 const HasMother = ecs.relation()
 const HasFather = ecs.relation()
 const ChildOf = ecs.type(HasMother, HasFather)
-const mother = world.spawn()
-const father = world.spawn()
-const child = world.spawn(ChildOf, [mother], [father])
+const mom = world.spawn()
+const dad = world.spawn()
+world.spawn(ChildOf, mom, dad)
 ecs.query(world, ChildOf, ecs.In()).each(mother, father, child => {
   // `child` was born!
 })

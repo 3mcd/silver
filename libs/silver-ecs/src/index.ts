@@ -23,6 +23,8 @@ export type {
   ValueRelation as Relation,
   TagRelation,
 } from "./data/component"
+export * as Graph from "./world/graph"
+export * as Signal from "./signal"
 
 export type Data<T extends Type> = T extends Type<infer U> ? Init<U> : never
 export const Any = type()

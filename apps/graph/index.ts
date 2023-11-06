@@ -1,8 +1,6 @@
 import * as ecs from "silver-ecs/dev"
 import {Edge, Network, Node} from "vis-network"
 import {DataSet} from "vis-data"
-import * as Graph from "../../../libs/silver-ecs/src/world/graph"
-import * as Signal from "../../../libs/silver-ecs/src/signal"
 
 const getColor = (value: number) => `hsl(0,0%,${40 + value * 60}%)`
 const network = document.getElementById("network")!
@@ -25,7 +23,7 @@ const makeEdge = (a: ecs.Type, b: ecs.Type) => {
 
 let nodesInserted = 0
 
-const onNodeInserted = (node: Graph.Node) => {
+const onNodeInserted = (node: ecs.Graph.Node) => {
   const id = makeTypeId(node.type)
   const level = node.type.components.length
   const color = getColor(level / 10)
@@ -35,8 +33,8 @@ const onNodeInserted = (node: Graph.Node) => {
     level,
     color,
   })
-  node.edges_next.forEach(nextNode => makeEdge(node.type, nextNode.type))
-  node.edges_prev.forEach(prevNode => makeEdge(node.type, prevNode.type))
+  node.edges_right.forEach(nextNode => makeEdge(node.type, nextNode.type))
+  node.edges_left.forEach(prevNode => makeEdge(node.type, prevNode.type))
   nodesInserted++
 }
 
@@ -76,7 +74,7 @@ const toggleGraph = () => {
     graph.destroy()
     graphSubscriber?.()
     graph = undefined
-    graphSubscriber = Signal.subscribe(
+    graphSubscriber = ecs.Signal.subscribe(
       world.graph.root.$created,
       () => nodesInserted++,
     )
@@ -108,11 +106,11 @@ const toggleGraph = () => {
         },
       },
     )
-    graphSubscriber = Signal.subscribe(
+    graphSubscriber = ecs.Signal.subscribe(
       world.graph.root.$created,
       onNodeInserted,
     )
-    Graph.traverse(world.graph.root, onNodeInserted)
+    ecs.Graph.traverse(world.graph.root, onNodeInserted)
   }
 }
 

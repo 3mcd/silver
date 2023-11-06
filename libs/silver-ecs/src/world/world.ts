@@ -90,15 +90,7 @@ export class World {
         // pairs. Iterate each pair and write the value into the relationship's
         // component array.
         const value = init[init_index] as Commands.InitValueRelation
-        for (let j = 0; j < value.length; j++) {
-          const relationship_value = value[j]
-          this.#write_relationship(
-            entity,
-            component,
-            relationship_value[0],
-            relationship_value[1],
-          )
-        }
+        this.#write_relationship(entity, component, value[0], value[1])
         init_index++
       } else if (Component.is_value(component)) {
         const value = init[init_index]
@@ -418,13 +410,10 @@ export class World {
     Assert.ok(next_node !== undefined, DEBUG && "entity does not exist")
     const component = Type.component_at(type)
     if (Component.is_value_relation(component)) {
-      type RelationInit = Commands.InitValueRelation<
+      const value = init as Commands.InitValueRelation<
         U extends Component.ValueRelation<infer V> ? V : never
       >
-      for (let i = 0; i < (init as RelationInit).length; i++) {
-        const value = (init as RelationInit)[i]
-        this.#write_relationship(entity, component, value[0], value[1])
-      }
+      this.#write_relationship(entity, component, value[0], value[1])
     } else {
       this.#write(entity, component, init)
     }
@@ -504,14 +493,14 @@ if (import.meta.vitest) {
     it("adds a relation component to an entity", () => {
       const world = make()
       const relative = world.spawn()
-      const entity = world.spawn(C, [relative])
+      const entity = world.spawn(C, relative)
       world.step()
       expect(world.get(entity, C)).to.deep.equal([relative])
     })
     it.todo("removes a relation component from an entity", () => {
       const world = make()
       const relative = world.spawn()
-      const entity = world.spawn(C, [relative])
+      const entity = world.spawn(C, relative)
       world.step()
       world.remove(entity, C, [relative])
       world.step()

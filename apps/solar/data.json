@@ -6,77 +6,71 @@
       "gray",
       0.38,
       {"x": 0, "y": 0},
-      [["Sun", {"radius": 0.4, "period": 4.2}]]
+      ["Sun", {"radius": 0.4, "period": 4.2}]
     ],
     [
       "Venus",
       "darkorange",
       0.86,
       {"x": 0, "y": 0},
-      [["Sun", {"radius": 0.7, "period": 1.6}]]
+      ["Sun", {"radius": 0.7, "period": 1.6}]
     ],
-    [
-      "Earth",
-      "blue",
-      1,
-      {"x": 0, "y": 0},
-      [["Sun", {"radius": 1, "period": 1}]]
-    ],
+    ["Earth", "blue", 1, {"x": 0, "y": 0}, ["Sun", {"radius": 1, "period": 1}]],
     [
       "Mars",
       "red",
       0.53,
       {"x": 0, "y": 0},
-      [["Sun", {"radius": 1.5, "period": 0.5}]]
+      ["Sun", {"radius": 1.5, "period": 0.5}]
     ],
     [
       "Jupiter",
       "sandybrown",
       11.2,
       {"x": 0, "y": 0},
-      [["Sun", {"radius": 5, "period": 0.08}]]
+      ["Sun", {"radius": 5, "period": 0.08}]
     ],
     [
       "Saturn",
       "papayawhip",
       9,
       {"x": 0, "y": 0},
-      [["Sun", {"radius": 8.5, "period": 0.03}]]
+      ["Sun", {"radius": 8.5, "period": 0.03}]
     ],
     [
       "Uranus",
       "deepskyblue",
       4,
       {"x": 0, "y": 0},
-      [["Sun", {"radius": 19.8, "period": 0.01}]]
+      ["Sun", {"radius": 19.8, "period": 0.01}]
     ],
     [
       "Neptune",
       "darkblue",
       4,
       {"x": 0, "y": 0},
-      [["Sun", {"radius": 30, "period": 0.006}]]
+      ["Sun", {"radius": 30, "period": 0.006}]
     ],
     [
       "Pluto",
       "floralwhite",
       0.18,
       {"x": 0, "y": 0},
-      [["Sun", {"radius": 39, "period": 0.004}]]
+      ["Sun", {"radius": 39, "period": 0.004}]
     ],
     [
       "Moon",
       "gray",
       0.27,
       {"x": 0, "y": 0},
-      [["Earth", {"radius": 0.1, "period": 13.5}]]
+      ["Earth", {"radius": 0.1, "period": 13.5}]
     ],
     [
       "Europa",
       "#B3C4E4",
       "0.24",
       {"x": 0, "y": 0},
-      [["Jupiter", {"radius": 0.2, "period": 3.5}]]
+      ["Jupiter", {"radius": 0.2, "period": 3.5}]
     ]
   ]
 }
