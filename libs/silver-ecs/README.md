@@ -4,6 +4,18 @@ An experimental rewrite of Javelin v2 with a simplified API and improved entity 
 
 ## Experiments
 
+### Relationship data
+
+Entity relationships are components so they can also store component values. Relations that hold data are defined using `ecs.valueRelation`.
+
+```ts
+type Orbit = {distance: number; period: number}
+const Orbits = ecs.valueRelation<Orbit>()
+
+const sun = world.spawn()
+const earth = world.spawn(Orbits, [sun, {distance: 1, period: 1}])
+```
+
 Relationship data can be retrieved similarly to normal components, using `world.get` and `ecs.query`.
 
 ```ts
@@ -30,15 +42,28 @@ world.despawn(planet) // despawns planet
 world.despawn(station) // despawns both station and spaceship
 ```
 
-### Relationship data
-
-Entity relationships are components so they can also store component values. Relations that hold data are defined using `ecs.valueRelation`.
+Hierarchical relationships may only be added to an entity if it has no existing parent for that relation.
 
 ```ts
-type Orbit = {distance: number; period: number}
-const Orbits = ecs.valueRelation<Orbit>()
-const sun = world.spawn()
-const earth = world.spawn(Orbits, [sun, {distance: 1, period: 1}])
+const Orbits = ecs.relation(ecs.Topology.Hierarchical)
+
+const venus = world.spawn()
+const earth = world.spawn()
+const station = world.spawn(Orbits, venus)
+
+world.add(station, Orbits, earth) // throws because station already has a parent for hierarchical `Orbits` relation
+```
+
+### Many-to-many relationships
+
+An entity can have multiple relationships for non-hierarchical relations. This is useful for expressing many-to-many relationships.
+
+```ts
+const Team = ecs.relation()
+
+const team1 = world.spawn()
+const team2 = world.spawn()
+const spy = world.spawn(ecs.type(Team, Team), team1, team2) // spy is on both teams
 ```
 
 ### Monitor queries
@@ -52,7 +77,7 @@ Monitors are distinct from queries in Javelin v2. This ECS unifies the concepts 
 const despawnedNonInfantryUnits = ecs.query(
   world,
   Position,
-  ecs.In(Unit),
+  ecs.Out(Unit),
   ecs.Not(Infantry),
 )
 despawnedNonInfantryUnits.each((unit, position) => {
@@ -89,9 +114,11 @@ In the above example, `sun` is the object of the `Orbits` relationship, while `p
 const HasMother = ecs.relation()
 const HasFather = ecs.relation()
 const ChildOf = ecs.type(HasMother, HasFather)
+
 const mom = world.spawn()
 const dad = world.spawn()
 world.spawn(ChildOf, mom, dad)
+
 ecs.query(world, ChildOf, ecs.In()).each(mother, father, child => {
   // `child` was born!
 })
