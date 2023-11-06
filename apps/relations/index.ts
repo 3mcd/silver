@@ -4,17 +4,17 @@ const world = ecs.make()
 
 // Teams
 const Team = ecs.relation()
-const team_a = world.spawn()
-const team_b = world.spawn()
-const team_c = world.spawn()
-world.spawn(ecs.type(Team, Team), team_a, team_b)
-world.spawn(ecs.type(Team, Team, Team), team_a, team_b, team_c)
+const teamA = world.spawn()
+const teamB = world.spawn()
+const teamC = world.spawn()
+world.spawn(ecs.type(Team, Team), teamA, teamB)
+world.spawn(ecs.type(Team, Team, Team), teamA, teamB, teamC)
 
 const teams: ecs.System = world => {
   const spies = ecs.query(world, ecs.type(Team, Team))
   return () => {
-    spies.each(team_a, team_b, spy => {
-      console.log(`spy ${spy} is on teams ${team_a} and ${team_b}`)
+    spies.each(teamA, teamB, spy => {
+      console.log(`spy ${spy} is on teams ${teamA} and ${teamB}`)
     })
   }
 }

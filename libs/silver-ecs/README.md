@@ -16,7 +16,7 @@ for (const [entity, orbit] of world.get(sun, Orbits)) {
 
 ### Relation topologies
 
-Javelin v7 provides a special `ChildOf` relation that is used to create trees of entities. This rewrite supplants `ChildOf` with two modes for entity relations: `ecs.Topology.Any` and `ecs.Topology.Hierarchical`. The former has no constraints and can be used to build graphs with cycles, bidirectional relationships, etc. The latter will validate that an entity may have only one parent, and will automatically despawn an entity when its parent is deleted. By default, relations use `ecs.Topology.Any`.
+Javelin v2 provides a special `ChildOf` relation that is used to create trees of entities. This rewrite supplants `ChildOf` with two modes for entity relations: `ecs.Topology.Any` and `ecs.Topology.Hierarchical`. The former has no constraints and can be used to build graphs with cycles, bidirectional relationships, etc. The latter will validate that an entity may have only one parent, and will automatically despawn an entity when its parent is deleted. By default, relations use `ecs.Topology.Any`.
 
 ```ts
 const Orbits = ecs.relation()
