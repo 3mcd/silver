@@ -95,8 +95,8 @@ const clearCanvasSystem: ecs.System = () => {
 }
 
 const debugSystem: ecs.System = world => {
-  const spawned = ecs.query(world, ecs.Any, ecs.In(ecs.Any))
-  const despawned = ecs.query(world, ecs.Any, ecs.Out(ecs.Any))
+  const spawned = ecs.query(world, ecs.type(), ecs.In())
+  const despawned = ecs.query(world, ecs.type(), ecs.Out())
   return function emitDebugMessages() {
     spawned.each(function logSpawnedEntity(entity) {
       console.log("spawned", entity)

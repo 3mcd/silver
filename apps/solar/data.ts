@@ -7,7 +7,7 @@ type Position = {x: number; y: number}
 export const Name = ecs.value<string>()
 export const Color = ecs.value<string>()
 export const Radius = ecs.value<number>()
-export const Orbits = ecs.valueRelation<Orbit>(ecs.Topology.Hierarchical)
+export const Orbits = ecs.valueRelation<Orbit>(ecs.Topology.Exclusive)
 export const Position = ecs.value<Position>()
 
 export const Body = ecs.type(Name, Color, Radius, Position)

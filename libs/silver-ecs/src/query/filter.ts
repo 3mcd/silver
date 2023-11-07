@@ -21,5 +21,5 @@ export type T = Filter
 export const Is = (type: Type.T) => new Filter(Kind.Is, type)
 export const Not = (type: Type.T) => new Filter(Kind.Not, type)
 export const Changed = (type: Type.T) => new Filter(Kind.Changed, type)
-export const In = (type: Type.T = Type.make()) => new Filter(Kind.In, type)
-export const Out = (type: Type.T = Type.make()) => new Filter(Kind.Out, type)
+export const In = (type = Type.make()) => new Filter(Kind.In, type)
+export const Out = (type = Type.make()) => new Filter(Kind.Out, type)

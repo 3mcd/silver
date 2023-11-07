@@ -2,7 +2,6 @@ import * as Hash from "../hash"
 import {ExcludeFromTuple} from "../types"
 import * as Commands from "../world/commands"
 import * as Component from "./component"
-import * as Entity from "../entity/entity"
 
 type Spec<
   U extends Array<Type | Component.T>,
@@ -226,7 +225,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
     for (let i = 0; i < components.length; i++) {
       const component = components[i]
       if (Component.is_relation(component) && has_component(this, component)) {
-        if (component.topology === Component.Topology.Hierarchical) {
+        if (component.topology === Component.Topology.Exclusive) {
           throw new Error(
             `Failed to construct type: type has multiple parents for hierarchical relation`,
           )
@@ -316,7 +315,7 @@ if (import.meta.vitest) {
       expect(superset_may_contain(D, ABC)).toBe(false)
     })
     it("throws if a type has multiple parents for a hierarchical relation", () => {
-      const A = Component.relation(Component.Topology.Hierarchical)
+      const A = Component.relation(Component.Topology.Exclusive)
       expect(() => make(A, A)).toThrow()
     })
   })

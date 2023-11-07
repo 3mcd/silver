@@ -13,22 +13,22 @@ import * as Graph from "./graph"
 import * as Transition from "./transition"
 
 export class World {
-  #entity_nodes
   #entity_registry
   #entity_relationship_roots
+  #nodes_by_entity
+  #nodes_to_delete
   #stage
   #tick
   #transition
-  #nodes_to_delete
 
   readonly graph
   readonly stores
   readonly changes
 
   constructor(tick = 0) {
-    this.#entity_nodes = SparseMap.make<Graph.Node>()
     this.#entity_registry = EntityRegistry.make()
     this.#entity_relationship_roots = [] as Graph.Node[][]
+    this.#nodes_by_entity = SparseMap.make<Graph.Node>()
     this.#nodes_to_delete = [] as Graph.Node[]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
@@ -39,13 +39,17 @@ export class World {
     Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
   }
 
+  #store(component_id: number) {
+    return (this.stores[component_id] ??= [])
+  }
+
   /**
    * Move an entity from its current node to a new node.
    */
   #move(entity: Entity.T, prev_node: Graph.Node, next_node: Graph.Node) {
     Graph.remove_entity(prev_node, entity)
     Graph.insert_entity(next_node, entity)
-    SparseMap.set(this.#entity_nodes, entity, next_node)
+    SparseMap.set(this.#nodes_by_entity, entity, next_node)
     // Track the entity's transition from the previous node to the next node
     // for monitor queries.
     Transition.move(this.#transition, entity, prev_node, next_node)
@@ -62,7 +66,7 @@ export class World {
    * Get the value of a component for a given entity.
    */
   #read<U extends Component.T>(entity: Entity.T, component: U) {
-    return this.store(component.id)[entity]
+    return this.#store(component.id)[entity]
   }
 
   /**
@@ -74,7 +78,7 @@ export class World {
     component: U,
     init: Commands.InitSingle<U>,
   ) {
-    this.store(component.id)[entity] = init
+    this.#store(component.id)[entity] = init
     this.#bump(entity, component)
   }
 
@@ -129,7 +133,7 @@ export class World {
       Entity.parse_entity_id(relative),
       component.id,
     )
-    this.store(relationship_component_id)[entity] = value
+    this.#store(relationship_component_id)[entity] = value
     this.#bump(entity, component)
   }
 
@@ -156,7 +160,7 @@ export class World {
   }
 
   #despawn(entity: Entity.T) {
-    const node = SparseMap.get(this.#entity_nodes, entity)
+    const node = SparseMap.get(this.#nodes_by_entity, entity)
     Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     // Release all component values.
     this.#clear_many(entity, node.type)
@@ -166,7 +170,7 @@ export class World {
     // Remove the entity from the graph, forget its node, release the entity id
     // and record the move for monitor queries.
     Graph.remove_entity(node, entity)
-    SparseMap.delete(this.#entity_nodes, entity)
+    SparseMap.delete(this.#nodes_by_entity, entity)
     EntityRegistry.release(this.#entity_registry, entity)
     Transition.move(this.#transition, entity, node, this.graph.root)
   }
@@ -176,7 +180,7 @@ export class World {
    */
   #apply_add(command: Commands.Add) {
     const {entity, type, init} = command
-    const prev_node = SparseMap.get(this.#entity_nodes, entity)
+    const prev_node = SparseMap.get(this.#nodes_by_entity, entity)
     Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const next_type = Type.with(prev_node.type, type)
     const next_node = Graph.resolve(this.graph, next_type)
@@ -184,7 +188,7 @@ export class World {
     // type, move the entity to its new node.
     if (prev_node !== next_node) {
       this.#move(entity, prev_node, next_node)
-      SparseMap.set(this.#entity_nodes, entity, next_node)
+      SparseMap.set(this.#nodes_by_entity, entity, next_node)
     }
     // Store added and updated component values.
     this.#write_many(entity, type, init)
@@ -195,7 +199,7 @@ export class World {
    */
   #apply_remove(command: Commands.Remove) {
     const {entity, type} = command
-    const prev_node = SparseMap.get(this.#entity_nodes, entity)
+    const prev_node = SparseMap.get(this.#nodes_by_entity, entity)
     Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
     const next_type = Type.without(prev_node.type, type)
     const next_node = Graph.resolve(this.graph, next_type)
@@ -254,7 +258,7 @@ export class World {
         relationship_root.type,
         0,
       ) as Component.TRelationship
-      const relationship_store = this.store(relationship_component.id)
+      const relationship_store = this.#store(relationship_component.id)
       const relation_component_id = Entity.parse_hi(relationship_component.id)
       const relation_component = Assert.exists(
         Component.get_relation(relation_component_id),
@@ -267,7 +271,7 @@ export class World {
           relationship_root,
           relationship_component,
           (entity, node) => {
-            SparseMap.set(this.#entity_nodes, entity, node)
+            SparseMap.set(this.#nodes_by_entity, entity, node)
             relationship_store[entity] = undefined!
           },
         )
@@ -327,10 +331,6 @@ export class World {
 
   get tick() {
     return this.#tick
-  }
-
-  store(component_id: number) {
-    return (this.stores[component_id] ??= [])
   }
 
   spawn(): Entity.T
@@ -406,7 +406,7 @@ export class World {
     type: Type.Unitary<U>,
     init: Commands.InitSingle<U>,
   ) {
-    const next_node = SparseMap.get(this.#entity_nodes, entity)
+    const next_node = SparseMap.get(this.#nodes_by_entity, entity)
     Assert.ok(next_node !== undefined, DEBUG && "entity does not exist")
     const component = Type.component_at(type)
     if (Component.is_value_relation(component)) {
@@ -443,14 +443,26 @@ export class World {
     }
   }
 
-  get<
-    U extends Component.Value | Component.ValueRelation | Component.TagRelation,
-  >(entity: Entity.T, type: Type.Unitary<U>): Commands.InitSingle<U> {
-    const node = SparseMap.get(this.#entity_nodes, entity)
+  get<U extends Component.Value>(
+    entity: Entity.T,
+    type: Type.Unitary<U>,
+  ): Commands.InitSingle<U>
+  get<U extends Component.ValueRelation>(
+    entity: Entity.T,
+    type: Type.Unitary<U>,
+    relative: Entity.T,
+  ): Commands.InitSingle<U>
+  get<U extends Component.Value | Component.ValueRelation>(
+    entity: Entity.T,
+    type: Type.Unitary<U>,
+    relative?: Entity.T,
+  ): Commands.InitSingle<U> {
+    const node = SparseMap.get(this.#nodes_by_entity, entity)
     Assert.ok(node !== undefined, DEBUG && "entity does not exist")
     const component = Type.component_at(type)
     if (Component.is_relation(component)) {
-      return this.#get_relation(entity, component, node)
+      const relationship = Entity.make(relative!, component.id)
+      return this.#store(relationship)[entity] as Commands.InitSingle<U>
     }
     return this.#read(entity, component) as Commands.InitSingle<U>
   }
@@ -463,7 +475,7 @@ if (import.meta.vitest) {
   const {describe, it, expect} = await import("vitest")
   const A = Component.tag()
   const B = Component.value()
-  const C = Component.relation()
+  const C = Component.valueRelation<number>()
 
   describe("World", () => {
     it("throws an error when adding a component to a non-existent entity", () => {
@@ -493,23 +505,23 @@ if (import.meta.vitest) {
     it("adds a relation component to an entity", () => {
       const world = make()
       const relative = world.spawn()
-      const entity = world.spawn(C, relative)
+      const entity = world.spawn(C, [relative, 123])
       world.step()
-      expect(world.get(entity, C)).to.deep.equal([relative])
+      expect(world.get(entity, C, relative)).to.equal(123)
     })
     it("removes a relation component from an entity", () => {
       const world = make()
       const relative = world.spawn()
-      const entity = world.spawn(C, relative)
+      const entity = world.spawn(C, [relative, 123])
       world.step()
       world.remove(entity, C, [relative])
       world.step()
-      expect(world.get(entity, C)).to.deep.equal([])
+      expect(world.get(entity, C, relative)).toBeUndefined()
     })
     it("throws when adding a parent to an entity that already has a parent of a given hierarchical relation", () => {
       // Error
       const world = make()
-      const Child = Component.relation(Component.Topology.Hierarchical)
+      const Child = Component.relation(Component.Topology.Exclusive)
       const parentA = world.spawn()
       const parentB = world.spawn()
       const child = world.spawn(Child, parentA)

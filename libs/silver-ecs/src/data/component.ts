@@ -14,7 +14,7 @@ export enum Kind {
 
 export enum Topology {
   Any,
-  Hierarchical,
+  Exclusive,
 }
 
 export type Related<U extends T[], Out extends Entity.T[] = []> = U extends [
