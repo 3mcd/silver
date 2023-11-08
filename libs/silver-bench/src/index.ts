@@ -19,10 +19,10 @@ export class Perf {
   }
 }
 
-export const perfs = new Map<string, Perf>()
+export let perfs = new Map<string, Perf>()
 
-export const perf = (name: string, run: PerfInit) => {
-  const perf = new Perf(name, run)
+export let perf = (name: string, run: PerfInit) => {
+  let perf = new Perf(name, run)
   perfs.set(name, perf)
   return perf
 }

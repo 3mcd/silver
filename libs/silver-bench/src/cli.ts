@@ -13,8 +13,8 @@ import {
   PerfResultWithStatus,
 } from "./types.js"
 
-const config = makeConfigFromEnv()
-const spacer = " "
+let config = makeConfigFromEnv()
+let spacer = " "
 
 let perf_unit_ns: number
 
@@ -30,7 +30,7 @@ switch (config.perf_unit) {
     break
 }
 
-const color_perf_name = (
+let color_perf_name = (
   perf_result: PerfResultWithStatus,
   perf_name: string,
 ) => {
@@ -52,7 +52,7 @@ const color_perf_name = (
   return color(perf_name)
 }
 
-const color_perfs_ops_per_s = (
+let color_perfs_ops_per_s = (
   perf_result: PerfResultWithStatus,
   opsPerSecond: string,
 ) => {
@@ -74,7 +74,7 @@ const color_perfs_ops_per_s = (
   return color(opsPerSecond)
 }
 
-const color_perf_margin = (
+let color_perf_margin = (
   perf_result: PerfResultWithStatus,
   perf_margin: string,
 ) => {
@@ -96,7 +96,7 @@ const color_perf_margin = (
   return color(perf_margin)
 }
 
-const color_perf_deviation = (
+let color_perf_deviation = (
   perf_result: PerfResultWithStatus,
   perf_deviation: string,
 ) => {
@@ -118,19 +118,19 @@ const color_perf_deviation = (
   return color(perf_deviation)
 }
 
-const ignored_dirs = new Set(["node_modules", ".git", ".github", ".vscode"])
-const dir = path.dirname(url.fileURLToPath(import.meta.url))
-const cwd = process.cwd()
-const stack = [cwd]
-const benches: string[] = []
+let ignored_dirs = new Set(["node_modules", ".git", ".github", ".vscode"])
+let dir = path.dirname(url.fileURLToPath(import.meta.url))
+let cwd = process.cwd()
+let stack = [cwd]
+let benches: string[] = []
 
 let cursor = 1
 while (cursor > 0) {
-  const dir = stack[--cursor]
-  const files = fs.readdirSync(dir)
+  let dir = stack[--cursor]
+  let files = fs.readdirSync(dir)
   for (let i = 0; i < files.length; i++) {
-    const file = path.join(dir, files[i])
-    const stat = fs.lstatSync(file)
+    let file = path.join(dir, files[i])
+    let stat = fs.lstatSync(file)
     if (stat.isDirectory() && !ignored_dirs.has(files[i])) {
       stack[cursor++] = file
     } else if (file.endsWith(config.bench_module_extension)) {
@@ -139,22 +139,22 @@ while (cursor > 0) {
   }
 }
 
-const print_bench_result = (bench_name: string, bench_result: BenchResult) => {
-  const relative_bench_path = bench_name.replace(cwd, "")
+let print_bench_result = (bench_name: string, bench_result: BenchResult) => {
+  let relative_bench_path = bench_name.replace(cwd, "")
   console.log("")
   console.log(relative_bench_path.replace(/^(.*[\\\/])/, dim("$&")))
   let max_perf_name_length = 0
   let max_perf_margin_length = 0
   let max_perf_ops_per_s_length = 0
-  const perf_results_ops_per_s: Record<string, string> = {}
-  const perf_results_margins: Record<string, string> = {}
-  for (const perf_name in bench_result) {
-    const perf_result = bench_result[perf_name]
-    const perf_ops_per_s = (perf_results_ops_per_s[perf_name] =
+  let perf_results_ops_per_s: Record<string, string> = {}
+  let perf_results_margins: Record<string, string> = {}
+  for (let perf_name in bench_result) {
+    let perf_result = bench_result[perf_name]
+    let perf_ops_per_s = (perf_results_ops_per_s[perf_name] =
       (1 / (perf_result.mean / perf_unit_ns)).toLocaleString(undefined, {
         maximumFractionDigits: 0,
       }) + ` ops/${config.perf_unit}`)
-    const perf_margin = (perf_results_margins[perf_name] =
+    let perf_margin = (perf_results_margins[perf_name] =
       "±" + perf_result.margin.toFixed(2) + "%")
     max_perf_name_length = Math.max(max_perf_name_length, perf_name.length)
     max_perf_ops_per_s_length = Math.max(
@@ -166,14 +166,14 @@ const print_bench_result = (bench_name: string, bench_result: BenchResult) => {
       perf_margin.length,
     )
   }
-  for (const perf_name in bench_result) {
-    const perf_result = bench_result[perf_name]
-    const perf_ops_per_s = perf_results_ops_per_s[perf_name]
-    const perf_ops_per_s_indent = spacer.repeat(
+  for (let perf_name in bench_result) {
+    let perf_result = bench_result[perf_name]
+    let perf_ops_per_s = perf_results_ops_per_s[perf_name]
+    let perf_ops_per_s_indent = spacer.repeat(
       max_perf_name_length - perf_name.length + 2,
     )
-    const perf_margin = perf_results_margins[perf_name]
-    const perf_margin_indent = spacer.repeat(
+    let perf_margin = perf_results_margins[perf_name]
+    let perf_margin_indent = spacer.repeat(
       max_perf_ops_per_s_length - perf_ops_per_s.length + 2,
     )
     let line =
@@ -183,10 +183,10 @@ const print_bench_result = (bench_name: string, bench_result: BenchResult) => {
       perf_margin_indent +
       color_perf_margin(perf_result, perf_margin)
     if ("deviation" in perf_result) {
-      const perf_deviation_indent = spacer.repeat(
+      let perf_deviation_indent = spacer.repeat(
         max_perf_margin_length - perf_margin.length + 2,
       )
-      const perf_deviation = color_perf_deviation(
+      let perf_deviation = color_perf_deviation(
         perf_result,
         (perf_result.deviation * 100).toFixed(2) + "%",
       )
@@ -198,8 +198,8 @@ const print_bench_result = (bench_name: string, bench_result: BenchResult) => {
 
 console.log("running benchmarks in", cwd)
 
-const procs: ChildProcess[] = []
-const kill = () => {
+let procs: ChildProcess[] = []
+let kill = () => {
   console.log(`killing ${procs.length} benchmarks`)
   procs.forEach(proc => {
     process.kill(proc.pid!, "SIGTERM")
@@ -207,8 +207,8 @@ const kill = () => {
 }
 
 for (let i = 0; i < benches.length; i++) {
-  const bench_path = benches[i]
-  const proc = fork(path.resolve(dir, "bench.js"), {
+  let bench_path = benches[i]
+  let proc = fork(path.resolve(dir, "bench.js"), {
     execArgv: ["--loader", "tsx", "--no-warnings"],
   })
   proc.on("message", (message: BenchMessage) => {

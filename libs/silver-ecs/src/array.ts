@@ -1,10 +1,10 @@
-export const product = <T>(array: T[][]): T[][] => {
-  const n = array.length
-  const lengths = Array(n)
-  const cycles = Array(n)
+export let product = <T>(array: T[][]): T[][] => {
+  let n = array.length
+  let lengths = Array(n)
+  let cycles = Array(n)
   let total = 1
   for (let i = 0; i < n; ++i) {
-    const len = array[i].length
+    let len = array[i].length
     if (!len) {
       total = 0
       break
@@ -12,9 +12,9 @@ export const product = <T>(array: T[][]): T[][] => {
     cycles[i] = 0
     total *= lengths[i] = len
   }
-  const product = Array(total)
+  let product = Array(total)
   for (let num = 0; num < total; ++num) {
-    const item = Array(n)
+    let item = Array(n)
     for (let j = 0; j < n; ++j) {
       item[j] = array[j][cycles[j]]
     }

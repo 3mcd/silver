@@ -82,22 +82,22 @@ class Command {
   }
 }
 
-export const spawn = <U extends Component.T[]>(
+export let spawn = <U extends Component.T[]>(
   type: Type.T<U>,
   entity: Entity.T,
   init: Init<U>,
 ) => new Command("spawn", entity, type, init) as Spawn<U>
 
-export const despawn = (entity: Entity.T) =>
+export let despawn = (entity: Entity.T) =>
   new Command("despawn", entity) as Despawn
 
-export const add = <U extends Component.T[]>(
+export let add = <U extends Component.T[]>(
   type: Type.T<U>,
   entity: Entity.T,
   init: Init<U>,
 ) => new Command("add", entity, type, init) as Add<U>
 
-export const remove = <U extends Component.T[]>(
+export let remove = <U extends Component.T[]>(
   type: Type.T<U>,
   entity: Entity.T,
 ) => new Command("remove", entity, type) as Remove<U>

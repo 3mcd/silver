@@ -15,37 +15,37 @@ import {
   PerfWorkerData,
 } from "./types"
 
-const dir = path.dirname(url.fileURLToPath(import.meta.url))
-const curr_bench_result: BenchResult = {}
-const prev_bench_result: Record<string, PerfResult> = {}
-const next_bench_result: Record<string, PerfResultWithStatus> = {}
+let dir = path.dirname(url.fileURLToPath(import.meta.url))
+let curr_bench_result: BenchResult = {}
+let prev_bench_result: Record<string, PerfResult> = {}
+let next_bench_result: Record<string, PerfResultWithStatus> = {}
 
 let perf_result_count = 0
 
-const load_bench_results = async (bench_result_path: string) => {
-  const bench_results_stream = createReadStream(bench_result_path, {
+let load_bench_results = async (bench_result_path: string) => {
+  let bench_results_stream = createReadStream(bench_result_path, {
     flags: "a+",
   })
-  const bench_perf_results = createInterface({
+  let bench_perf_results = createInterface({
     input: bench_results_stream,
     crlfDelay: Infinity,
   })
-  for await (const perf_result of bench_perf_results) {
-    const [perf_name, perfAvg] = perf_result.split(",")
+  for await (let perf_result of bench_perf_results) {
+    let [perf_name, perfAvg] = perf_result.split(",")
     prev_bench_result[perf_name] = {name: perf_name, mean: Number(perfAvg)}
   }
 }
 
-const report_bench = async (config: Config, benchPath: string) => {
-  const bench_result_path = `${benchPath}.${config.bench_results_extension}`
+let report_bench = async (config: Config, benchPath: string) => {
+  let bench_result_path = `${benchPath}.${config.bench_results_extension}`
   await load_bench_results(bench_result_path)
   let bench_results_file_contents = ""
-  for (const perf_name of perfs.keys()) {
-    const prev_perf_result = prev_bench_result[perf_name]
-    const next_perf_result = next_bench_result[perf_name]
+  for (let perf_name of perfs.keys()) {
+    let prev_perf_result = prev_bench_result[perf_name]
+    let next_perf_result = next_bench_result[perf_name]
     if (prev_perf_result !== undefined && next_perf_result !== undefined) {
-      const delta = prev_perf_result.mean - next_perf_result.mean
-      const deviation = delta / prev_perf_result.mean
+      let delta = prev_perf_result.mean - next_perf_result.mean
+      let deviation = delta / prev_perf_result.mean
       let status = PerfResultStatus.Old
       if (deviation <= config.perf_failure_threshold) {
         status = PerfResultStatus.Failure
@@ -78,9 +78,9 @@ const report_bench = async (config: Config, benchPath: string) => {
   process.send!({type: "bench-result", result: curr_bench_result})
 }
 
-const start = async (config: Config, benchPath: string) => {
-  const workers: Worker[] = []
-  const on_perf_result = (perf_result: PerfResultWithStatus) => {
+let start = async (config: Config, benchPath: string) => {
+  let workers: Worker[] = []
+  let on_perf_result = (perf_result: PerfResultWithStatus) => {
     next_bench_result[perf_result.name] = perf_result
     perf_result_count++
     if (perf_result_count === perfs.size) {
@@ -89,13 +89,13 @@ const start = async (config: Config, benchPath: string) => {
   }
   Object.assign(globalThis, config.bench_globals)
   await import(benchPath)
-  for (const perf of perfs.values()) {
-    const worker_data: PerfWorkerData = {
+  for (let perf of perfs.values()) {
+    let worker_data: PerfWorkerData = {
       path: benchPath,
       name: perf.name,
       config,
     }
-    const worker = new Worker(path.join(dir, "perf_worker.js"), {
+    let worker = new Worker(path.join(dir, "perf_worker.js"), {
       workerData: worker_data,
     })
     worker.on("message", on_perf_result)

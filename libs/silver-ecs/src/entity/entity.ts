@@ -4,7 +4,7 @@ import {Opaque} from "../types"
 /**
  * The maximum number of spawned (alive) entities.
  */
-export const MAX_EID = (1 << 19) - 1
+export let MAX_EID = (1 << 19) - 1
 
 // Entities are 31-bit unsigned integers with the following layout:
 //
@@ -26,22 +26,22 @@ declare const Entity: unique symbol
 export type Entity = Opaque<number, typeof Entity>
 export type T = Entity
 
-export const LO_EXTENT = 20
-export const LO = (1 << LO_EXTENT) - 1
-export const HI_EXTENT = 31 - LO_EXTENT
-export const HI = (1 << HI_EXTENT) - 1
-export const EXTENT = Math.pow(2, 31) - 1
+export let LO_EXTENT = 20
+export let LO = (1 << LO_EXTENT) - 1
+export let HI_EXTENT = 31 - LO_EXTENT
+export let HI = (1 << HI_EXTENT) - 1
+export let EXTENT = Math.pow(2, 31) - 1
 
 /**
  * Makes a new 31-bit entity from the given 20-bit id and 11-bit `hi` integer.
  */
-export const make = (entity_id: number, hi: number): Entity =>
+export let make = (entity_id: number, hi: number): Entity =>
   (((hi & HI) << LO_EXTENT) | entity_id) as Entity
 
 /**
  * Performs a bounds check on the given entity.
  */
-export const assert_valid = (entity: number) => {
+export let assert_valid = (entity: number) => {
   Assert.ok(entity >= 0, DEBUG && "Entity must be greater than or equal to 0")
   Assert.ok(
     entity <= EXTENT,
@@ -52,7 +52,7 @@ export const assert_valid = (entity: number) => {
 /**
  * Performs a bounds check on the given entity id.
  */
-export const assert_valid_id = (entity_id: number) => {
+export let assert_valid_id = (entity_id: number) => {
   Assert.ok(
     entity_id >= 0,
     DEBUG && "Entity id must be greater than or equal to 0",
@@ -63,7 +63,7 @@ export const assert_valid_id = (entity_id: number) => {
 /**
  * Performs a bounds check on the given hi 11-bit integer.
  */
-export const assert_valid_hi = (hi: number) => {
+export let assert_valid_hi = (hi: number) => {
   Assert.ok(hi >= 1, DEBUG && "Hi value must greater than or equal to one")
   Assert.ok(
     hi <= HI,
@@ -75,7 +75,7 @@ export const assert_valid_hi = (hi: number) => {
 /**
  * Extracts the entity id from the given entity.
  */
-export const parse_entity_id = (entity: number) => {
+export let parse_lo = (entity: number) => {
   assert_valid(entity)
   return entity & LO
 }
@@ -83,23 +83,23 @@ export const parse_entity_id = (entity: number) => {
 /**
  * Extracts the hi 11 bits from the given entity.
  */
-export const parse_hi = (entity: number) => {
+export let parse_hi = (entity: number) => {
   assert_valid(entity)
   return entity >> LO_EXTENT
 }
 
 if (import.meta.vitest) {
-  const {describe, it, expect} = await import("vitest")
+  let {describe, it, expect} = await import("vitest")
 
   describe("parse_id", () => {
     it("returns the entity id", () => {
-      expect(parse_entity_id(make(123, 456))).to.equal(123)
-      expect(parse_entity_id(make(1, 0))).to.equal(1)
-      expect(parse_entity_id(make(LO, 0))).to.equal(LO)
+      expect(parse_lo(make(123, 456))).to.equal(123)
+      expect(parse_lo(make(1, 0))).to.equal(1)
+      expect(parse_lo(make(LO, 0))).to.equal(LO)
     })
     it("throws when the entity is invalid", () => {
-      expect(() => parse_entity_id(-1 as Entity)).to.throw()
-      expect(() => parse_entity_id((EXTENT + 1) as Entity)).to.throw()
+      expect(() => parse_lo(-1 as Entity)).to.throw()
+      expect(() => parse_lo((EXTENT + 1) as Entity)).to.throw()
     })
   })
 

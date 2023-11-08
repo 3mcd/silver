@@ -2,8 +2,8 @@ import * as esbuild from "esbuild"
 import * as path from "path"
 
 async function build(dir: string, debug = false) {
-  const pkg_dir = path.resolve(process.cwd(), dir)
-  const pkg = (
+  let pkg_dir = path.resolve(process.cwd(), dir)
+  let pkg = (
     await import(path.resolve(pkg_dir, "package.json"), {
       assert: {type: "json"},
     })

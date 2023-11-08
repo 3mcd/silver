@@ -1,6 +1,6 @@
 import {Config} from "./types"
 
-export const make_config = (config: Partial<Config>): Config => {
+export let make_config = (config: Partial<Config>): Config => {
   return {
     bench_globals: config.bench_globals ?? {},
     bench_module_extension: config.bench_module_extension ?? "bench.ts",
@@ -25,8 +25,8 @@ function assert_perf_unit_valid(
   }
 }
 
-export const makeConfigFromEnv = (): Config => {
-  const env_perf_unit = process.env.PERF_UNIT
+export let makeConfigFromEnv = (): Config => {
+  let env_perf_unit = process.env.PERF_UNIT
   if (env_perf_unit !== undefined) {
     assert_perf_unit_valid(env_perf_unit)
   }

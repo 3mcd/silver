@@ -10,10 +10,10 @@ Entity relationships are components so they can also store component values. Rel
 
 ```ts
 type Orbit = {distance: number; period: number}
-const Orbits = ecs.valueRelation<Orbit>()
+let Orbits = ecs.valueRelation<Orbit>()
 
-const sun = world.spawn()
-const earth = world.spawn(Orbits, [sun, {distance: 1, period: 1}])
+let sun = world.spawn()
+let earth = world.spawn(Orbits, [sun, {distance: 1, period: 1}])
 ```
 
 Relationship data can be retrieved similarly to normal components, using `world.get` and `ecs.query`.
@@ -22,7 +22,7 @@ Relationship data can be retrieved similarly to normal components, using `world.
 // Iterate all entities that orbit the sun.
 ecs.query(world, Orbits).each(sun, (entity, orbit) => {})
 // Get all relationships of type `Orbits` for `sun`.
-for (const [entity, orbit] of world.get(sun, Orbits)) {
+for (let [entity, orbit] of world.get(sun, Orbits)) {
 }
 ```
 
@@ -31,12 +31,12 @@ for (const [entity, orbit] of world.get(sun, Orbits)) {
 Javelin v2 provides a special `ChildOf` relation that is used to create trees of entities. This rewrite supplants `ChildOf` with two modes for entity relations: `ecs.Topology.Any` and `ecs.Topology.Hierarchical`. The former has no constraints and can be used to build graphs with cycles, bidirectional relationships, etc. The latter will validate that an entity may have only one parent, and will automatically despawn an entity when its parent is deleted. By default, relations use `ecs.Topology.Any`.
 
 ```ts
-const Orbits = ecs.relation()
-const DockedTo = ecs.relation(ecs.Topology.Hierarchical)
+let Orbits = ecs.relation()
+let DockedTo = ecs.relation(ecs.Topology.Hierarchical)
 
-const planet = world.spawn()
-const station = world.spawn(Orbits, planet)
-const spaceship = world.spawn(DockedTo, station)
+let planet = world.spawn()
+let station = world.spawn(Orbits, planet)
+let spaceship = world.spawn(DockedTo, station)
 
 world.despawn(planet) // despawns planet
 world.despawn(station) // despawns both station and spaceship
@@ -45,11 +45,11 @@ world.despawn(station) // despawns both station and spaceship
 Hierarchical relationships may only be added to an entity if it has no existing parent for that relation.
 
 ```ts
-const Orbits = ecs.relation(ecs.Topology.Hierarchical)
+let Orbits = ecs.relation(ecs.Topology.Hierarchical)
 
-const venus = world.spawn()
-const earth = world.spawn()
-const station = world.spawn(Orbits, venus)
+let venus = world.spawn()
+let earth = world.spawn()
+let station = world.spawn(Orbits, venus)
 
 world.add(station, Orbits, earth) // throws because station already has a parent for hierarchical `Orbits` relation
 ```
@@ -59,11 +59,11 @@ world.add(station, Orbits, earth) // throws because station already has a parent
 An entity can have multiple relationships for non-hierarchical relations. This is useful for expressing many-to-many relationships.
 
 ```ts
-const Team = ecs.relation()
+let Team = ecs.relation()
 
-const team1 = world.spawn()
-const team2 = world.spawn()
-const spy = world.spawn(ecs.type(Team, Team), team1, team2) // spy is on both teams
+let team1 = world.spawn()
+let team2 = world.spawn()
+let spy = world.spawn(ecs.type(Team, Team), team1, team2) // spy is on both teams
 ```
 
 ### Monitor queries
@@ -74,7 +74,7 @@ Monitors are distinct from queries in Javelin v2. This ECS unifies the concepts 
 - The query can be further filtered using other filter types like `ecs.Not` and `ecs.Changed`
 
 ```ts
-const despawnedNonInfantryUnits = ecs.query(
+let despawnedNonInfantryUnits = ecs.query(
   world,
   Position,
   ecs.Out(Unit),
@@ -111,12 +111,12 @@ In the above example, `sun` is the object of the `Orbits` relationship, while `p
 `each` accepts one object entity per-relation included in the query, e.g.
 
 ```ts
-const HasMother = ecs.relation()
-const HasFather = ecs.relation()
-const ChildOf = ecs.type(HasMother, HasFather)
+let HasMother = ecs.relation()
+let HasFather = ecs.relation()
+let ChildOf = ecs.type(HasMother, HasFather)
 
-const mom = world.spawn()
-const dad = world.spawn()
+let mom = world.spawn()
+let dad = world.spawn()
 world.spawn(ChildOf, mom, dad)
 
 ecs.query(world, ChildOf, ecs.In()).each(mother, father, child => {

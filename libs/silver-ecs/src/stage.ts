@@ -10,7 +10,7 @@ type BTreeMapOptions<K> = {
   order?: number
 }
 
-const compare = (a: number, b: number): number => (a < b ? -1 : a > b ? 1 : 0)
+let compare = (a: number, b: number): number => (a < b ? -1 : a > b ? 1 : 0)
 
 export class BTreeMap<V, K extends number = number> {
   compare: BTreeMapCompare<K> = compare
@@ -42,15 +42,15 @@ export class BTreeMap<V, K extends number = number> {
   }
 
   set(key: K, value: V): BTreeMap<V, K> {
-    const values = this.values[key]
+    let values = this.values[key]
     if (values !== undefined) {
       values.push(value)
     } else {
       this.values[key] = [value]
       this.root.set(key)
       if (this.root.keys.length > this.root.max) {
-        const root = new Node(this.order, this.compare)
-        const node = this.root.split()
+        let root = new Node(this.order, this.compare)
+        let node = this.root.split()
         root.keys.push(node.lo)
         root.children.push(this.root, node)
         this.root = root
@@ -69,9 +69,9 @@ export class BTreeMap<V, K extends number = number> {
       let count = 0
       let leaf: Leaf<K> | null = this.root.find_leaf(lo)
       do {
-        const keys = leaf.keys
+        let keys = leaf.keys
         for (let i = 0, length = keys.length; i < length; i++) {
-          const key = keys[i]
+          let key = keys[i]
           if (
             this.compare(key, lo) >= 0 &&
             (inclusive ? this.compare(key, hi) <= 0 : this.compare(key, hi) < 0)
@@ -114,9 +114,9 @@ export class BTreeMap<V, K extends number = number> {
     if (this.size === 0) return
     let leaf: Leaf<K> | null = this.root.find_leaf(lo)
     do {
-      const keys = leaf.keys
+      let keys = leaf.keys
       for (let i = 0, length = keys.length; i < length; i++) {
-        const key = keys[i]
+        let key = keys[i]
         if (
           this.compare(key, lo) >= 0 &&
           (inclusive ? this.compare(key, hi) <= 0 : this.compare(key, hi) < 0)
@@ -168,8 +168,8 @@ class Node<V, K extends number> extends NodeBase<K> {
   }
 
   set(key: K): void {
-    const slot = this.slot_of(key, this.keys, this.compare)
-    const child = this.children[slot]
+    let slot = this.slot_of(key, this.keys, this.compare)
+    let child = this.children[slot]
     if (child.keys.length > child.max) {
       let sibling
       if (slot > 0) {
@@ -201,21 +201,21 @@ class Node<V, K extends number> extends NodeBase<K> {
   }
 
   delete(key: K): void {
-    const keys = this.keys
-    const slot = this.slot_of(key, keys, this.compare)
-    const child = this.children[slot]
+    let keys = this.keys
+    let slot = this.slot_of(key, keys, this.compare)
+    let child = this.children[slot]
     child.delete(key)
     if (slot > 0) keys[slot - 1] = child.lo
     if (child.keys.length < child.min) this.consolidate_child(child, slot)
   }
 
   find_leaf(key: K): Leaf<K> {
-    const slot = this.slot_of(key, this.keys, this.compare)
+    let slot = this.slot_of(key, this.keys, this.compare)
     return this.children[slot].find_leaf(key)
   }
 
   split(): Node<V, K> {
-    const node = new Node(this.order, this.compare)
+    let node = new Node(this.order, this.compare)
     node.keys = this.keys.splice(this.min)
     node.keys.shift()
     node.children = this.children.splice(this.min + 1)
@@ -249,14 +249,14 @@ class Node<V, K extends number> extends NodeBase<K> {
   }
 
   split_child(child: NodeBase<K>, slot: number): void {
-    const new_child = child.split()
+    let new_child = child.split()
     this.keys.splice(slot, 0, new_child.lo)
     this.children.splice(slot + 1, 0, new_child)
   }
 
   consolidate_child(child: NodeBase<K>, slot: number): void {
-    const keys = this.keys
-    const children = this.children
+    let keys = this.keys
+    let children = this.children
     let sibling
     if (slot > 0) {
       sibling = children[slot - 1]
@@ -296,7 +296,7 @@ class Node<V, K extends number> extends NodeBase<K> {
     let middle = top >>> 1
     let bottom = 0
     while (bottom < top) {
-      const comparison = compare(element, array[middle])
+      let comparison = compare(element, array[middle])
       if (comparison === 0) {
         return middle + 1
       } else if (comparison < 0) {
@@ -330,7 +330,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     if (this.keys.length === 0) {
       this.keys.push(key)
     } else {
-      const slot = this.slot_of(key, this.keys, this.compare)
+      let slot = this.slot_of(key, this.keys, this.compare)
       this.keys.splice(slot, 0, key)
     }
   }
@@ -344,7 +344,7 @@ class Leaf<K extends number> extends NodeBase<K> {
   }
 
   split(): Leaf<K> {
-    const leaf = new Leaf<K>(this.order, this.compare)
+    let leaf = new Leaf<K>(this.order, this.compare)
     leaf.keys = this.keys.splice(this.min)
     leaf.next = this.next
     this.next = leaf
@@ -375,7 +375,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     let middle = top >>> 1
     let bottom = 0
     while (bottom < top) {
-      const comparison = compare(element, array[middle])
+      let comparison = compare(element, array[middle])
       if (comparison === 0) {
         return middle + 1
       } else if (comparison < 0) {
@@ -400,7 +400,7 @@ export function make<U>(): T<U> {
   return new Stage()
 }
 
-export const insert = <U>(buffer: T<U>, time: number, event: U) => {
+export let insert = <U>(buffer: T<U>, time: number, event: U) => {
   buffer.map.set(time, event)
   if (time < buffer.min) {
     buffer.min = time
@@ -409,18 +409,18 @@ export const insert = <U>(buffer: T<U>, time: number, event: U) => {
   }
 }
 
-export const _delete = <U>(buffer: T<U>, time: number) => {
+export let _delete = <U>(buffer: T<U>, time: number) => {
   buffer.map.delete(buffer.min, time, true)
   buffer.min = time
 }
 export {_delete as delete}
 
-export const delete_range = <U>(buffer: T<U>, time: number) => {
+export let delete_range = <U>(buffer: T<U>, time: number) => {
   buffer.map.delete(buffer.min, time, true)
   buffer.min = time
 }
 
-export const drain_to = <U>(
+export let drain_to = <U>(
   buffer: T<U>,
   time: number,
   iteratee?: (value: U, key: number) => void,
@@ -442,13 +442,13 @@ export const drain_to = <U>(
 }
 
 if (import.meta.vitest) {
-  const {describe, it, expect} = await import("vitest")
+  let {describe, it, expect} = await import("vitest")
   describe("step_buffer", () => {
     it("inserts elements in order", () => {
-      const buffer = make<string>()
-      const out: string[] = []
-      const a = "a"
-      const b = "b"
+      let buffer = make<string>()
+      let out: string[] = []
+      let a = "a"
+      let b = "b"
       insert(buffer, 0, b)
       insert(buffer, 1, a)
       drain_to(buffer, 1, value => {
@@ -457,11 +457,11 @@ if (import.meta.vitest) {
       expect(out).toEqual([b, a])
     })
     it("drains up to provided step", () => {
-      const buffer = make<string>()
-      const out: string[] = []
-      const a = "a"
-      const b = "b"
-      const c = "c"
+      let buffer = make<string>()
+      let out: string[] = []
+      let a = "a"
+      let b = "b"
+      let c = "c"
       insert(buffer, 15, b)
       insert(buffer, 27, a)
       insert(buffer, 3, c)
@@ -471,12 +471,12 @@ if (import.meta.vitest) {
       expect(out).toEqual([c, b])
     })
     it("inserts elements in order after drain", () => {
-      const buffer = make<string>()
-      const out: string[] = []
-      const a = "a"
-      const b = "b"
-      const c = "c"
-      const d = "d"
+      let buffer = make<string>()
+      let out: string[] = []
+      let a = "a"
+      let b = "b"
+      let c = "c"
+      let d = "d"
       insert(buffer, 15, b)
       insert(buffer, 27, a)
       drain_to(buffer, 30)
@@ -488,8 +488,8 @@ if (import.meta.vitest) {
       expect(out).toEqual([d, c])
     })
     it("does not yield previously drained values", () => {
-      const buffer = make<number>()
-      const out: number[] = []
+      let buffer = make<number>()
+      let out: number[] = []
       for (let i = 0; i < 100; i++) {
         insert(buffer, i, i)
       }
@@ -500,8 +500,8 @@ if (import.meta.vitest) {
       expect(out).toEqual([])
     })
     it("does nothing when draining to out-of-range step", () => {
-      const buffer = make<number>()
-      const out: number[] = []
+      let buffer = make<number>()
+      let out: number[] = []
       for (let i = 0; i < 100; i++) {
         insert(buffer, i, i)
       }

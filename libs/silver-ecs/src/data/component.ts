@@ -12,8 +12,22 @@ export enum Kind {
   ValueRelationship,
 }
 
+export let Inclusive = "inclusive"
+export let Exclusive = "exclusive"
+
 export enum Topology {
-  Any,
+  /**
+   * A many-to-many relationship. This is the default topology for relations.
+   * An entity may be related to any number of other entities through an
+   * inclusive relation.
+   */
+  Inclusive,
+  /**
+   * A one-to-many relationship. An entity may have only one relationship to
+   * another entity through an exclusive relation. This is useful for enforcing
+   * a hierarchical topology, e.g. a tree structure where each entity may have
+   * only one parent.
+   */
   Exclusive,
 }
 
@@ -97,19 +111,20 @@ export interface ValueRelationship extends Base<void> {
 }
 
 export type TBase = Tag | Value
+export type TValue = Value | ValueRelation
 export type TRelation = TagRelation | ValueRelation
 export type TRelationship = TagRelationship | ValueRelationship
 export type T = TBase | TRelation | TRelationship
 
 let next_component_id = 1
-export const make_component_id = () => {
-  const component_id = next_component_id++
+export let make_component_id = () => {
+  let component_id = next_component_id++
   Entity.assert_valid_hi(component_id)
   return component_id
 }
 
-const relations = new Map<number, TRelation>()
-export const get_relation = (component_id: number): TRelation | undefined => {
+let relations = new Map<number, TRelation>()
+export let get_relation = (component_id: number): TRelation | undefined => {
   return relations.get(component_id)
 }
 
@@ -176,8 +191,8 @@ function make(
  * auto-initialization.
  *
  * @example <caption>Define a component with a schema and add it to an entity.</caption>
- * const Position = ecs.value({x: "f32", y: "f32"})
- * const entity = world.spawn(Position, {x: 0, y: 0})
+ * let Position = ecs.value({x: "f32", y: "f32"})
+ * let entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U extends Data.Schema>(
   schema: U,
@@ -194,8 +209,8 @@ export function value<U extends Data.Schema>(
  *   x: number,
  *   y: number,
  * }
- * const Position = ecs.value<Position>({x: "f32", y: "f32"}) // Value<Position>
- * const entity = world.spawn(Position, {x: 0, y: 0})
+ * let Position = ecs.value<Position>({x: "f32", y: "f32"}) // Value<Position>
+ * let entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U>(schema: Data.SchemaOf<U>): Type.Type<[Value<U>]>
 /**
@@ -204,8 +219,8 @@ export function value<U>(schema: Data.SchemaOf<U>): Type.Type<[Value<U>]>
  * The component is not eligible for serialization and auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
- * const Position = ecs.value<Position>()
- * const entity = world.spawn(Position, {x: 0, y: 0})
+ * let Position = ecs.value<Position>()
+ * let entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U>(): Type.Type<[Value<U>]>
 /**
@@ -216,8 +231,8 @@ export function value<U>(): Type.Type<[Value<U>]>
  * auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
- * const Anything = ecs.value() // Value<unknown>
- * const entity = world.spawn(Anything, [[[]]])
+ * let Anything = ecs.value() // Value<unknown>
+ * let entity = world.spawn(Anything, [[[]]])
  */
 export function value(): Type.Type<[Value<unknown>]>
 export function value(schema?: Data.Schema) {
@@ -228,10 +243,10 @@ export function value(schema?: Data.Schema) {
  * Define a tag. Tags are components with no data.
  *
  * @example <caption>Define a tag and add it to an entity.</caption>
- * const Red_team = ecs.tag()
- * const entity = world.spawn(Red_team)
+ * let Red_team = ecs.tag()
+ * let entity = world.spawn(Red_team)
  */
-export const tag = (): Type.Type<[Tag]> =>
+export let tag = (): Type.Type<[Tag]> =>
   Type.make(make(make_component_id(), Kind.Tag))
 
 /**
@@ -243,8 +258,8 @@ export const tag = (): Type.Type<[Tag]> =>
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with a schema and add it to an entity.</caption>
- * const Orbits = ecs.relation({distance: "f32", period: "f32"})
- * const entity = world.spawn(Orbits, [sun, {distance: 10, period: 0.5}])
+ * let Orbits = ecs.relation({distance: "f32", period: "f32"})
+ * let entity = world.spawn(Orbits, [sun, {distance: 10, period: 0.5}])
  */
 export function valueRelation<U extends Data.Schema>(
   schema: U,
@@ -260,8 +275,8 @@ export function valueRelation<U extends Data.Schema>(
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with a type-constrained schema and add it to an entity.</caption>
- * const Owes = ecs.relation<number>("f32")
- * const entity = world.spawn(Owes, [bank, 1_000])
+ * let Owes = ecs.relation<number>("f32")
+ * let entity = world.spawn(Owes, [bank, 1_000])
  */
 export function valueRelation<U>(
   schema: Data.SchemaOf<U>,
@@ -276,8 +291,8 @@ export function valueRelation<U>(
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a typed but schemaless relation and add it to an entity.</caption>
- * const Owes = ecs.relation<number>()
- * const entity = world.spawn(Owes, [bank, 1_000])
+ * let Owes = ecs.relation<number>()
+ * let entity = world.spawn(Owes, [bank, 1_000])
  */
 export function valueRelation<U>(
   topology?: Topology,
@@ -293,8 +308,8 @@ export function valueRelation<U>(
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define an untyped relation and add it to an entity.</caption>
- * const OwesAnything = ecs.relation()
- * const entity = world.spawn(OwesAnything, [[[]]])
+ * let OwesAnything = ecs.relation()
+ * let entity = world.spawn(OwesAnything, [[[]]])
  */
 export function valueRelation(
   topology?: Topology,
@@ -303,11 +318,11 @@ export function valueRelation(
   schema?: Data.Schema | Topology,
   topology?: Topology,
 ) {
-  const component_id = make_component_id()
-  const component = make(
+  let component_id = make_component_id()
+  let component = make(
     component_id,
     Kind.ValueRelation,
-    (typeof schema === "number" ? schema : topology) ?? Topology.Any,
+    (typeof schema === "number" ? schema : topology) ?? Topology.Inclusive,
     typeof schema === "number" ? undefined : schema,
   )
   relations.set(component_id, component)
@@ -320,12 +335,14 @@ export function valueRelation(
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with no data and add it to an entity.</caption>
- * const ChildOf = ecs.tagRelation()
- * const entity = world.spawn(ChildOf, [relative])
+ * let ChildOf = ecs.tagRelation()
+ * let entity = world.spawn(ChildOf, [relative])
  */
-export const relation = (topology = Topology.Any): Type.Type<[TagRelation]> => {
-  const component_id = make_component_id()
-  const component = make(component_id, Kind.TagRelation, topology)
+export let relation = (
+  topology = Topology.Inclusive,
+): Type.Type<[TagRelation]> => {
+  let component_id = make_component_id()
+  let component = make(component_id, Kind.TagRelation, topology)
   relations.set(component_id, component)
   return Type.make(component)
 }
@@ -333,11 +350,11 @@ export const relation = (topology = Topology.Any): Type.Type<[TagRelation]> => {
 type RelationshipOf<U extends ValueRelation | TagRelation> =
   U extends ValueRelation ? ValueRelationship : TagRelationship
 
-export const make_relationship = <U extends ValueRelation | TagRelation>(
+export let make_relationship = <U extends ValueRelation | TagRelation>(
   component: U,
   entity: Entity.T,
 ): RelationshipOf<U> => {
-  const component_id = Entity.make(Entity.parse_entity_id(entity), component.id)
+  let component_id = Entity.make(Entity.parse_lo(entity), component.id)
   if (component.kind === Kind.TagRelation) {
     return make(component_id, Kind.TagRelationship) as RelationshipOf<U>
   } else {
@@ -345,7 +362,7 @@ export const make_relationship = <U extends ValueRelation | TagRelation>(
   }
 }
 
-export const wraps_value = (component: T): boolean => {
+export let wraps_value = (component: T): boolean => {
   switch (component.kind) {
     case Kind.Value:
     case Kind.ValueRelationship:
@@ -355,10 +372,10 @@ export const wraps_value = (component: T): boolean => {
   }
 }
 
-export const is_value = (component: T): component is Value =>
+export let is_value = (component: T): component is Value =>
   component.kind === Kind.Value
 
-export const is_initialized = (component: T): boolean => {
+export let is_initialized = (component: T): boolean => {
   switch (component.kind) {
     case Kind.Value:
     case Kind.ValueRelation:
@@ -369,30 +386,30 @@ export const is_initialized = (component: T): boolean => {
   }
 }
 
-export const is_tag_relation = (component: T): component is TagRelation =>
+export let is_tag_relation = (component: T): component is TagRelation =>
   component.kind === Kind.TagRelation
 
-export const is_value_relation = (component: T): component is ValueRelation =>
+export let is_value_relation = (component: T): component is ValueRelation =>
   component.kind === Kind.ValueRelation
 
-export const is_relation = (
+export let is_relation = (
   component: T,
 ): component is ValueRelation | TagRelation =>
   component.kind === Kind.TagRelation || component.kind === Kind.ValueRelation
 
-export const is_relationship = (component: T): component is TRelationship =>
+export let is_relationship = (component: T): component is TRelationship =>
   component.kind === Kind.ValueRelationship ||
   component.kind === Kind.TagRelationship
 
-export const is_value_relationship = (
+export let is_value_relationship = (
   component: T,
 ): component is ValueRelationship => component.kind === Kind.ValueRelationship
 
-export const is_tag = (component: T): component is Tag | TagRelation =>
+export let is_tag = (component: T): component is Tag | TagRelation =>
   component.kind === Kind.Tag || component.kind === Kind.TagRelation
 
 if (import.meta.vitest) {
-  const {describe, it, expect} = await import("vitest")
+  let {describe, it, expect} = await import("vitest")
 
   describe("is_value", () => {
     it("returns true for value components", () => {

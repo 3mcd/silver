@@ -17,8 +17,8 @@ import {perf} from "silver-bench"
 
 perf("add", () => {
   // setup
-  const a = {x: 0, y: 0}
-  const b = {x: 1, y: 2}
+  let a = {x: 0, y: 0}
+  let b = {x: 1, y: 2}
   // run
   return () => {
     a.x += b.x
@@ -86,8 +86,8 @@ You can define a perf with the desired number of iterations using `perf().iterat
 
 ```ts
 perf("add", () => {
-  const x = 1
-  const y = 1
+  let x = 1
+  let y = 1
   return () => x + y
 }).iterations(15_000)
 ```

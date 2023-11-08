@@ -11,21 +11,21 @@ export class SparseSet<U extends number> {
 }
 export type T<U extends number> = SparseSet<U>
 
-export const make = <U extends number>(): SparseSet<U> => {
+export let make = <U extends number>(): SparseSet<U> => {
   return new SparseSet<U>()
 }
 
-export const has = <U extends number>(set: SparseSet<U>, value: U): boolean =>
+export let has = <U extends number>(set: SparseSet<U>, value: U): boolean =>
   set.sparse[value] !== undefined
 
-export const add = <U extends number>(set: SparseSet<U>, value: U): void => {
+export let add = <U extends number>(set: SparseSet<U>, value: U): void => {
   set.sparse[value] ??= set.dense.push(value) - 1
 }
 
-const delete_ = <U extends number>(set: SparseSet<U>, value: U): void => {
-  const index = set.sparse[value]
+let delete_ = <U extends number>(set: SparseSet<U>, value: U): void => {
+  let index = set.sparse[value]
   if (index !== undefined) {
-    const key = set.dense[set.dense.length - 1]
+    let key = set.dense[set.dense.length - 1]
     set.dense[index] = key
     set.dense.pop()
     set.sparse[key] = index
@@ -34,22 +34,22 @@ const delete_ = <U extends number>(set: SparseSet<U>, value: U): void => {
 }
 export {delete_ as delete}
 
-export const clear = <U extends number>(set: SparseSet<U>): void => {
+export let clear = <U extends number>(set: SparseSet<U>): void => {
   let value: number | undefined
   while ((value = set.dense.pop()) !== undefined) {
     set.sparse[value] = undefined!
   }
 }
 
-export const values = <U extends number>(set: SparseSet<U>): U[] => {
+export let values = <U extends number>(set: SparseSet<U>): U[] => {
   return set.dense
 }
 
-export const size = <U extends number>(set: SparseSet<U>): number => {
+export let size = <U extends number>(set: SparseSet<U>): number => {
   return set.dense.length
 }
 
-export const each = <U extends number>(
+export let each = <U extends number>(
   set: SparseSet<U>,
   iteratee: ForEachIteratee<U>,
 ) => {
@@ -59,11 +59,11 @@ export const each = <U extends number>(
 }
 
 if (import.meta.vitest) {
-  const {describe, it, expect} = await import("vitest")
+  let {describe, it, expect} = await import("vitest")
 
   describe("make", () => {
     it("creates an empty sparse set", () => {
-      const set = make()
+      let set = make()
       expect(size(set)).equal(0)
       expect(values(set)).toEqual([])
     })
@@ -71,24 +71,24 @@ if (import.meta.vitest) {
 
   describe("has", () => {
     it("returns true if the set contains the value", () => {
-      const set = make()
+      let set = make()
       add(set, 1)
       expect(has(set, 1)).true
     })
     it("returns false if the set does not contain the value", () => {
-      const set = make()
+      let set = make()
       expect(has(set, 1)).false
     })
   })
 
   describe("add", () => {
     it("adds the value to the set", () => {
-      const set = make()
+      let set = make()
       add(set, 1)
       expect(has(set, 1)).true
     })
     it("does not add the value if it already exists in the set", () => {
-      const set = make()
+      let set = make()
       add(set, 1)
       add(set, 1)
       expect(size(set)).equal(1)
@@ -97,13 +97,13 @@ if (import.meta.vitest) {
 
   describe("delete", () => {
     it("removes the value from the set", () => {
-      const set = make()
+      let set = make()
       add(set, 1)
       delete_(set, 1)
       expect(has(set, 1)).false
     })
     it("does nothing if the value does not exist in the set", () => {
-      const set = make()
+      let set = make()
       delete_(set, 1)
       expect(size(set)).equal(0)
     })
@@ -111,7 +111,7 @@ if (import.meta.vitest) {
 
   describe("clear", () => {
     it("removes all values from the set", () => {
-      const set = make()
+      let set = make()
       add(set, 1)
       add(set, 2)
       clear(set)
@@ -121,7 +121,7 @@ if (import.meta.vitest) {
 
   describe("values", () => {
     it("returns an array of the set's values", () => {
-      const set = make()
+      let set = make()
       add(set, 1)
       add(set, 2)
       expect(values(set)).toEqual([1, 2])
@@ -130,7 +130,7 @@ if (import.meta.vitest) {
 
   describe("size", () => {
     it("returns the number of values in the set", () => {
-      const set = make()
+      let set = make()
       add(set, 1)
       add(set, 2)
       expect(size(set)).equal(2)
@@ -139,10 +139,10 @@ if (import.meta.vitest) {
 
   describe("each", () => {
     it("iterates over the set's values", () => {
-      const set = make()
+      let set = make()
       add(set, 1)
       add(set, 2)
-      const values: number[] = []
+      let values: number[] = []
       each(set, value => values.push(value))
       expect(values.sort()).toEqual([1, 2])
     })

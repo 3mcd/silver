@@ -18,8 +18,8 @@ export class Filter {
 }
 export type T = Filter
 
-export const Is = (type: Type.T) => new Filter(Kind.Is, type)
-export const Not = (type: Type.T) => new Filter(Kind.Not, type)
-export const Changed = (type: Type.T) => new Filter(Kind.Changed, type)
-export const In = (type = Type.make()) => new Filter(Kind.In, type)
-export const Out = (type = Type.make()) => new Filter(Kind.Out, type)
+export let Is = (type: Type.T) => new Filter(Kind.Is, type)
+export let Not = (type: Type.T) => new Filter(Kind.Not, type)
+export let Changed = (type: Type.T) => new Filter(Kind.Changed, type)
+export let In = (type = Type.make()) => new Filter(Kind.In, type)
+export let Out = (type = Type.make()) => new Filter(Kind.Out, type)

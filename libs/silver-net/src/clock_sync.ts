@@ -31,21 +31,21 @@ export class ClockSync {
   }
 }
 
-export const add_offset_sample = (
+export let add_offset_sample = (
   clock_sync: ClockSync,
   payload_server_time: number,
   payload_client_time: number,
   current_client_time: number,
 ) => {
-  const offset_sample =
+  let offset_sample =
     payload_server_time - (payload_client_time + current_client_time) / 2
   if (
     clock_sync.offset_samples.unshift(offset_sample) ===
     clock_sync.min_offset_samples_count_with_outliers
   ) {
-    const samples = clock_sync.offset_samples.slice().sort()
-    const min_sample_index = clock_sync.offset_samples_to_discard_per_extreme
-    const max_sample_index =
+    let samples = clock_sync.offset_samples.slice().sort()
+    let min_sample_index = clock_sync.offset_samples_to_discard_per_extreme
+    let max_sample_index =
       clock_sync.offset_samples.length -
       clock_sync.offset_samples_to_discard_per_extreme
     let offset = 0
@@ -66,12 +66,12 @@ export const add_offset_sample = (
   return false
 }
 
-export const estimate_server_time = (clock_sync: ClockSync, time: number) => {
+export let estimate_server_time = (clock_sync: ClockSync, time: number) => {
   return time + clock_sync.offset + clock_sync.lag_compensation_latency
 }
 
 if (import.meta.vitest) {
-  const {describe, it, expect} = await import("vitest")
+  let {describe, it, expect} = await import("vitest")
 
   describe("ClockSync", () => {
     it.todo("should work")

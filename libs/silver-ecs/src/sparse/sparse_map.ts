@@ -14,8 +14,8 @@ export class SparseMap<U = unknown> {
 }
 export type T<U = unknown> = SparseMap<U>
 
-export const make = <U>(init?: (U | undefined)[]): SparseMap<U> => {
-  const map = new SparseMap<U>()
+export let make = <U>(init?: (U | undefined)[]): SparseMap<U> => {
+  let map = new SparseMap<U>()
   if (init !== undefined) {
     init.forEach((value, key) => {
       if (value !== undefined) {
@@ -26,18 +26,18 @@ export const make = <U>(init?: (U | undefined)[]): SparseMap<U> => {
   return map
 }
 
-export const size = (map: SparseMap): number => {
+export let size = (map: SparseMap): number => {
   return map.dense.length
 }
 
-export const get = <U>(map: SparseMap<U>, key: number): U | undefined => {
-  const dense_index = map.sparse[key]
+export let get = <U>(map: SparseMap<U>, key: number): U | undefined => {
+  let dense_index = map.sparse[key]
   if (dense_index === undefined) return undefined
   return map.dense[dense_index]
 }
 
-export const set = <U>(map: SparseMap<U>, key: number, value: U): void => {
-  const dense_index = map.sparse[key]
+export let set = <U>(map: SparseMap<U>, key: number, value: U): void => {
+  let dense_index = map.sparse[key]
   if (dense_index === undefined) {
     map.sparse[key] = map.dense.length
     map.dense.push(value)
@@ -47,13 +47,13 @@ export const set = <U>(map: SparseMap<U>, key: number, value: U): void => {
   }
 }
 
-export const has = (map: SparseMap, key: number): boolean =>
+export let has = (map: SparseMap, key: number): boolean =>
   map.sparse[key] !== undefined
 
-const delete_ = (map: SparseMap, key: number): void => {
-  const dense_index = map.sparse[key]
+let delete_ = (map: SparseMap, key: number): void => {
+  let dense_index = map.sparse[key]
   if (dense_index === undefined) return
-  const sparse_index = map.indices[map.indices.length - 1]
+  let sparse_index = map.indices[map.indices.length - 1]
   map.dense[dense_index] = map.dense[map.dense.length - 1]
   map.dense.pop()
   map.indices[dense_index] = sparse_index
@@ -63,7 +63,7 @@ const delete_ = (map: SparseMap, key: number): void => {
 }
 export {delete_ as delete}
 
-export const each_value = <U>(
+export let each_value = <U>(
   map: SparseMap<U>,
   iteratee: ForEachValueIteratee<U>,
 ): void => {
@@ -72,7 +72,7 @@ export const each_value = <U>(
   }
 }
 
-export const each = <U>(
+export let each = <U>(
   map: SparseMap<U>,
   iteratee: ForEachEntryIteratee<U>,
 ): void => {
@@ -81,7 +81,7 @@ export const each = <U>(
   }
 }
 
-export const clear = (map: SparseMap): void => {
+export let clear = (map: SparseMap): void => {
   let key: number | undefined = 0
   while ((key = map.indices.pop()) !== undefined) {
     map.dense.pop()
@@ -89,12 +89,12 @@ export const clear = (map: SparseMap): void => {
   }
 }
 
-export const values = <U>(map: SparseMap<U>): U[] => {
+export let values = <U>(map: SparseMap<U>): U[] => {
   return map.dense
 }
 
-export const to_sparse_array = <U>(map: SparseMap<U>): U[] => {
-  const sparse = new Array(map.sparse.length)
+export let to_sparse_array = <U>(map: SparseMap<U>): U[] => {
+  let sparse = new Array(map.sparse.length)
   for (let i = 0; i < map.dense.length; i++) {
     sparse[map.indices[i]] = map.dense[i]
   }
@@ -102,16 +102,16 @@ export const to_sparse_array = <U>(map: SparseMap<U>): U[] => {
 }
 
 if (import.meta.vitest) {
-  const {describe, it, expect} = await import("vitest")
+  let {describe, it, expect} = await import("vitest")
 
   describe("SparseMap", () => {
     describe("make", () => {
       it("creates an empty SparseMap when no values are provided", () => {
-        const map = make()
+        let map = make()
         expect(size(map)).toBe(0)
       })
       it("creates a SparseMap using a sparse array, initializing an entry for each index-value pair", () => {
-        const map = make([, , , "a"])
+        let map = make([, , , "a"])
         expect(size(map)).toBe(1)
         expect(get(map, 0)).toBe(undefined)
         expect(get(map, 1)).toBe(undefined)
@@ -122,19 +122,19 @@ if (import.meta.vitest) {
 
     describe("get", () => {
       it("returns the value of a entry at the provided key", () => {
-        const map = make(["a", "b"])
+        let map = make(["a", "b"])
         expect(get(map, 0)).toBe("a")
         expect(get(map, 1)).toBe("b")
       })
       it("returns undefined for non-existing keys", () => {
-        const map = make([, "a", "b"])
+        let map = make([, "a", "b"])
         expect(get(map, 0)).toBe(undefined)
       })
     })
 
     describe("set", () => {
       it("creates new entries at non-existing keys", () => {
-        const map = make()
+        let map = make()
         set(map, 99, "a")
         set(map, 42, "b")
         expect(size(map)).toBe(2)
@@ -142,7 +142,7 @@ if (import.meta.vitest) {
         expect(get(map, 42)).toBe("b")
       })
       it("updates existing entries", () => {
-        const map = make()
+        let map = make()
         set(map, 0, "a")
         set(map, 1, "b")
         set(map, 0, "c")
@@ -155,7 +155,7 @@ if (import.meta.vitest) {
 
     describe("delete", () => {
       it("deletes the entry of the specified key", () => {
-        const map = make(["a", "b", "c"])
+        let map = make(["a", "b", "c"])
         delete_(map, 1)
         expect(size(map)).toBe(2)
         expect(get(map, 0)).toBe("a")
@@ -163,7 +163,7 @@ if (import.meta.vitest) {
         expect(get(map, 2)).toBe("c")
       })
       it("does not alter the SparseMap when called with a non-existing key", () => {
-        const map = make(["a", , "c"])
+        let map = make(["a", , "c"])
         delete_(map, 1)
         expect(size(map)).toBe(2)
         expect(get(map, 0)).toBe("a")
@@ -174,7 +174,7 @@ if (import.meta.vitest) {
 
     describe("each", () => {
       it("executes a callback function with the value and key of each entry in the SparseMap", () => {
-        const data: [number, string][] = [
+        let data: [number, string][] = [
           [0, "a"],
           [10_100, "b"],
           [9, "c"],
@@ -182,14 +182,14 @@ if (import.meta.vitest) {
           [1_000_000, "e"],
           [34, "f"],
         ]
-        const entries: [number, string][] = []
-        const map = make(
+        let entries: [number, string][] = []
+        let map = make(
           data.reduce((a, [key, value]) => {
             a[key] = value
             return a
           }, [] as string[]),
         )
-        const sort = (entries: [number, string][]) =>
+        let sort = (entries: [number, string][]) =>
           entries.sort(([key_a], [key_b]) => key_a - key_b)
         each(map, (key, value) => entries.push([key, value]))
         expect(sort(entries)).toEqual(sort(data))

@@ -1,12 +1,12 @@
-export const u8 = "u8"
-export const u16 = "u16"
-export const u32 = "u32"
-export const i8 = "i8"
-export const i16 = "i16"
-export const i32 = "i32"
-export const f32 = "f32"
-export const f64 = "f64"
-export const string = "string"
+export let u8 = "u8"
+export let u16 = "u16"
+export let u32 = "u32"
+export let i8 = "i8"
+export let i16 = "i16"
+export let i32 = "i32"
+export let f32 = "f32"
+export let f64 = "f64"
+export let string = "string"
 
 /**
  * A variable-length string.

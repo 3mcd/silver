@@ -5,22 +5,19 @@ import * as Transition from "./transition"
 import * as Type from "../data/type"
 import * as Component from "../data/component"
 
-const [A, B, C, D, E, F, G, H, I, J, K] = Array.from(
-  {length: 11},
-  Component.tag,
-)
+let [A, B, C, D, E, F, G, H, I, J, K] = Array.from({length: 11}, Component.tag)
 
-const fixture = () => {
-  const transition = Transition.make()
+let fixture = () => {
+  let transition = Transition.make()
   return {transition}
 }
 
 perf("relocate 1000 entities", () => {
-  const {transition} = fixture()
-  const count = 1_000
-  const graph = Graph.make()
-  const node_a = Graph.resolve(graph, A)
-  const node_b = Graph.resolve(graph, B)
+  let {transition} = fixture()
+  let count = 1_000
+  let graph = Graph.make()
+  let node_a = Graph.resolve(graph, A)
+  let node_b = Graph.resolve(graph, B)
   return () => {
     for (let i = 0; i < count; i++) {
       Transition.move(transition, i as Entity.T, node_a, node_b)
@@ -29,13 +26,13 @@ perf("relocate 1000 entities", () => {
 })
 
 perf("relocate 1000 times", () => {
-  const {transition} = fixture()
-  const count = 1_000
-  const graph = Graph.make()
-  const node_a = Graph.resolve(graph, A)
-  const node_b = Graph.resolve(graph, B)
-  const node_c = Graph.resolve(graph, C)
-  const entity = 0 as Entity.T
+  let {transition} = fixture()
+  let count = 1_000
+  let graph = Graph.make()
+  let node_a = Graph.resolve(graph, A)
+  let node_b = Graph.resolve(graph, B)
+  let node_c = Graph.resolve(graph, C)
+  let entity = 0 as Entity.T
   Transition.move(transition, entity, node_a, node_b)
   return () => {
     for (let i = 0; i < count; i++) {
@@ -45,10 +42,10 @@ perf("relocate 1000 times", () => {
 })
 
 perf("drain 1000 entities", () => {
-  const {transition} = fixture()
-  const count = 1_000
-  const graph = Graph.make()
-  const types = [
+  let {transition} = fixture()
+  let count = 1_000
+  let graph = Graph.make()
+  let types = [
     A,
     Type.make(A, B, C),
     Type.make(D, E),
