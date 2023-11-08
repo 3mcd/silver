@@ -83,7 +83,7 @@ export class World {
   }
 
   /**
-   * Update component values for an entity.
+   * Update an entity's component values.
    */
   #write_many(entity: Entity.T, type: Type.T, init: unknown[]) {
     let init_index = 0
@@ -105,7 +105,7 @@ export class World {
   }
 
   /**
-   * Clear component values for an entity.
+   * Clear an entity's component values for a given type.
    */
   #clear_many(entity: Entity.T, type: Type.T) {
     for (let i = 0; i < type.components.length; i++) {

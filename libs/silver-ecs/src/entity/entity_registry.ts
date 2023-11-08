@@ -15,7 +15,7 @@ export class EntityRegistry {
 export type T = EntityRegistry
 
 export const make = (
-  head = Entity.MIN_EID,
+  head = 0,
   generations: number[] = [],
   free: number[] = [],
 ): T => new EntityRegistry(head, generations, free)
@@ -93,7 +93,7 @@ if (import.meta.vitest) {
     it("allocates entities", () => {
       const registry = make()
       const entity = retain(registry)
-      expect(check(registry, entity)).toBe(Entity.MIN_EID)
+      expect(check(registry, entity)).toBe(0)
     })
 
     it("invalidates freed entities", () => {
