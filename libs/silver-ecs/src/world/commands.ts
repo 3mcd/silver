@@ -5,18 +5,19 @@ import * as Entity from "../entity/entity"
 export type InitTagRelation = Entity.T
 export type InitValueRelation<U = unknown> = [relative: Entity.T, value: U]
 
-export type InitSingle<U extends Component.T> = U extends Component.TagRelation
-  ? InitTagRelation
-  : U extends Component.ValueRelation<infer V>
-  ? InitValueRelation<V>
-  : U extends Component.Value<infer V>
-  ? V
-  : U extends Component.ValueRelationship
-  ? unknown
-  : never
+export type InitSingle<U extends Component.T = Component.T> =
+  U extends Component.TagRelation
+    ? InitTagRelation
+    : U extends Component.ValueRelation<infer V>
+    ? InitValueRelation<V>
+    : U extends Component.Value<infer V>
+    ? V
+    : U extends Component.ValueRelationship
+    ? unknown
+    : never
 
 export type Init<
-  U extends Component.T[],
+  U extends Component.T[] = Component.T[],
   Out extends unknown[] = [],
 > = U extends []
   ? Out

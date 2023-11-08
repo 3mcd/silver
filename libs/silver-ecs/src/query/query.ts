@@ -18,7 +18,7 @@ type EachIteratee<U extends Component.T[]> = (
 ) => void
 
 type EachArgs<U extends Component.T[]> = [
-  ...relatives: Component.Related<U>,
+  ...relatives: Component.Relatives<U>,
   iteratee: EachIteratee<U>,
 ]
 type Each<U extends Component.T[]> = (...params: EachArgs<U>) => void
@@ -237,7 +237,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
   }
 
   each(
-    ...params: [...relatives: Component.Related<U>, iteratee: EachIteratee<U>]
+    ...params: [...relatives: Component.Relatives<U>, iteratee: EachIteratee<U>]
   ): void
   each() {
     // Execute the query's iterator function with the given parameters.

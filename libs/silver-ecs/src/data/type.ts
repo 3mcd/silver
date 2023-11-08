@@ -174,6 +174,10 @@ export let has = (type_a: Type, type_b: Type): boolean => {
   return true
 }
 
+export let has_id = (type: Type, component_id: number): boolean => {
+  return type.sparse[component_id] !== undefined
+}
+
 let has_component = (type: Type, component: Component.T): boolean => {
   return type.sparse[component.id] !== undefined
 }

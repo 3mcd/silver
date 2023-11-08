@@ -39,6 +39,12 @@ export class World {
     Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
   }
 
+  #locate(entity: Entity.T) {
+    let node = SparseMap.get(this.#nodes_by_entity, entity)
+    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
+    return node
+  }
+
   #store(component_id: number) {
     return (this.stores[component_id] ??= [])
   }
@@ -160,8 +166,7 @@ export class World {
   }
 
   #despawn(entity: Entity.T) {
-    let node = SparseMap.get(this.#nodes_by_entity, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
+    let node = this.#locate(entity)
     // Release all component values.
     this.#clear_many(entity, node.type)
     // Release all relationship nodes associated with this entity and move the
@@ -180,8 +185,7 @@ export class World {
    */
   #apply_add(command: Commands.Add) {
     let {entity, type, init} = command
-    let prev_node = SparseMap.get(this.#nodes_by_entity, entity)
-    Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
+    let prev_node = this.#locate(entity)
     let next_type = Type.with(prev_node.type, type)
     let next_node = Graph.resolve(this.graph, next_type)
     // If the entity does not have one or more of the components in the added
@@ -199,8 +203,7 @@ export class World {
    */
   #apply_remove(command: Commands.Remove) {
     let {entity, type} = command
-    let prev_node = SparseMap.get(this.#nodes_by_entity, entity)
-    Assert.ok(prev_node !== undefined, DEBUG && "entity does not exist")
+    let prev_node = this.#locate(entity)
     let next_type = Type.without(prev_node.type, type)
     let next_node = Graph.resolve(this.graph, next_type)
     // If the entity does not contain a component of the added type, do
@@ -274,13 +277,16 @@ export class World {
           },
         )
       }
-      // Delet e the root relationship node, which will also delete all
+      // Delete the root relationship node, which will also delete all
       // relationship nodes that lead to the entity's relatives.
       this.#nodes_to_delete.push(relationship_root)
     }
     this.#entity_relationship_roots[entity] = undefined!
   }
 
+  /**
+   * Apply a single command.
+   */
   #apply_command = (command: Commands.T) => {
     switch (command.kind) {
       case "spawn":
@@ -298,36 +304,54 @@ export class World {
     }
   }
 
+  /**
+   * Get the current tick (i.e. logical timestamp or frame).
+   */
   get tick() {
     return this.#tick
   }
 
   /**
-   * Spawn an entity with no components.
+   * Create an entity with no components.
    *
-   * @example <caption>Spawn an container entity.</caption>
+   * @example
+   * <caption>Create an container entity.</caption>
+   * ```ts
    * let InContainer = ecs.relation(ecs.Topology.Exclusive)
    * let Item = ecs.type(InContainer)
    * let bag = world.spawn()
    * let item = world.spawn(Item, bag)
+   * ```
    */
   spawn(): Entity.T
+  /**
+   * Create an entity with a given type and initial component values.
+   * @example
+   * <caption>Create an entity with a position and velocity.</caption>
+   * ```ts
+   * let Position = ecs.value()
+   * let Velocity = ecs.value()
+   * let entity = world.spawn(ecs.type(Position, Velocity), {x: 0, y: 0}, {x: 1, y: 1})
+   * ```
+   * @example
+   * <caption>Create an entity with a rotation and a spectating relationship.</caption>
+   * ```ts
+   * let Spectating = ecs.relation()
+   * let Spectator = ecs.type(Rotation, Spectating)
+   * let entity = world.spawn(Spectator, [Quaternion.from(playerRotation), player])
+   * ```
+   */
   spawn<U extends Component.T[]>(
     type: Type.Type<U>,
     ...values: Commands.Init<U>
   ): Entity.T
-  spawn<U extends Component.T[]>(
-    type?: Type.Type<U>,
-    ...values: Commands.Init<U>
-  ): Entity.T {
+  spawn(type?: Type.T, ...values: Commands.Init): Entity.T {
     let entity = EntityRegistry.retain(this.#entity_registry)
     Stage.insert(
       this.#stage,
       this.#tick,
       Commands.spawn(
-        (type
-          ? Type.with_relationships(type, values)
-          : Type.make()) as Type.T<U>,
+        type ? Type.with_relationships(type, values) : Type.make(),
         entity,
         values,
       ),
@@ -335,11 +359,65 @@ export class World {
     return entity
   }
 
+  /**
+   * Despawn an entity, releasing its component values.
+   *
+   * If the despawned entity is related to other entities through an exclusive
+   * relation, those entities will be despawned as well.
+   *
+   * @example
+   * <caption>Delete an entity.</caption>
+   * ```ts
+   * let entity = world.spawn(Position, {x: 0, y: 0})
+   * world.despawn(entity)
+   * world.step()
+   * world.has(entity, Position) // false
+   * ```
+   * @example
+   * <caption>Delete an entity with relationships.</caption>
+   * ```ts
+   * let Orbits = ecs.relation()
+   * let DockedTo = ecs.relation(ecs.Topology.Exclusive)
+   * let planet = world.spawn()
+   * let station = world.spawn(Orbits, planet)
+   * let spaceship = world.spawn(DockedTo, station)
+   * world.despawn(planet) // despawns only `planet`
+   * world.despawn(station) // despawns both `station` and `spaceship`
+   * ```
+   */
   despawn(entity: Entity.T) {
     EntityRegistry.check(this.#entity_registry, entity)
     Stage.insert(this.#stage, this.#tick, Commands.despawn(entity))
   }
 
+  /**
+   * Add one or more components to an entity.
+   *
+   * @example
+   * <caption>Add a tag to an entity.</caption>
+   * ```ts
+   * let Consumable = ecs.tag()
+   * let entity = world.spawn()
+   * world.add(entity, Consumable)
+   * world.step()
+   * world.has(entity, Consumable) // true
+   * ```
+   * @example
+   * <caption>Add a value to an entity.</caption>
+   * ```ts
+   * let Position = ecs.value()
+   * let entity = world.spawn()
+   * world.add(entity, Position, {x: 0, y: 0})
+   * ```
+   * @example
+   * <caption>Add a relationship to an entity.</caption>
+   * ```ts
+   * let Orbits = ecs.relation()
+   * let star = world.spawn()
+   * let planet = world.spawn()
+   * world.add(planet, Orbits, star)
+   * ```
+   */
   add<U extends Component.T[]>(
     entity: Entity.T,
     type: Type.Type<U>,
@@ -359,11 +437,43 @@ export class World {
     )
   }
 
+  /**
+   * Remove one or more components from an entity.
+   *
+   * @example
+   * <caption>Remove a tag from an entity.</caption>
+   * ```ts
+   * let Consumable = ecs.tag()
+   * let entity = world.spawn(Consumable)
+   * world.remove(entity, Consumable)
+   * world.step()
+   * world.has(entity, Consumable) // false
+   * ```
+   * @example
+   * <caption>Remove a value from an entity.</caption>
+   * ```ts
+   * let Position = ecs.value()
+   * let entity = world.spawn(Position, {x: 0, y: 0})
+   * world.remove(entity, Position)
+   * ```
+   */
   remove<U extends Component.TBase[]>(entity: Entity.T, type: Type.T<U>): void
+  /**
+   * Remove one or more components from an entity, including relationships.
+   *
+   * @example
+   * <caption>Remove a relationship from an entity.</caption>
+   * ```ts
+   * let Orbits = ecs.relation()
+   * let star = world.spawn()
+   * let planet = world.spawn(Orbits, star)
+   * world.remove(planet, Orbits, star)
+   * ```
+   */
   remove<U extends Component.T[]>(
     entity: Entity.T,
     type: Type.T<U>,
-    relatives: Component.Related<U>,
+    ...relatives: Component.Relatives<U>
   ): void
   remove(entity: Entity.T, type: Type.T, relatives?: Entity.T[]) {
     EntityRegistry.check(this.#entity_registry, entity)
@@ -379,13 +489,48 @@ export class World {
     )
   }
 
+  /**
+   * Change the value of a component for a given entity.
+   *
+   * This method also increments the entity's version at the component, which
+   * triggers `Changed` filters in queries.
+   *
+   * @example
+   * <caption>Change the value of a component.</caption>
+   * ```ts
+   * let Position = ecs.value()
+   * let entity = world.spawn(Position, {x: 0, y: 0})
+   * world.change(entity, Position, {x: 1, y: 1})
+   * world.get(entity, Position) // {x: 1, y: 1}
+   * ```
+   * @example
+   * <caption>Trigger changed filters in queries.</caption>
+   * ```ts
+   * let systemA: ecs.System = world => {
+   *   let changed = ecs.query(world, ecs.type(Position), ecs.Changed(Position))
+   *   return () => {
+   *     changed.each((entity, position) => {
+   *      console.log("entity position changed", entity, position)
+   *     })
+   *   }
+   * }
+   * let systemB: ecs.System = world => {
+   *   let kinetic = ecs.query(world, ecs.type(Position, Velocity))
+   *   return () => {
+   *    kinetic.each((entity, position, velocity) => {
+   *     position.x += velocity.x
+   *     position.y += velocity.y
+   *     world.change(entity, Position, position)
+   *   })
+   * }
+   * ```
+   */
   change<U extends Component.TValue>(
     entity: Entity.T,
     type: Type.Unitary<U>,
     init: Commands.InitSingle<U>,
   ) {
-    let next_node = SparseMap.get(this.#nodes_by_entity, entity)
-    Assert.ok(next_node !== undefined, DEBUG && "entity does not exist")
+    this.#locate(entity)
     let component = Type.component_at(type)
     if (Component.is_value_relation(component)) {
       let value = init as Commands.InitValueRelation<
@@ -397,8 +542,142 @@ export class World {
     }
   }
 
+  /**
+   * Check if an entity has a given component. Returns `true` if the entity has
+   * the component, `false` otherwise.
+   *
+   * @example
+   * <caption>Check if an entity has a component.</caption>
+   * ```ts
+   * let Position = ecs.value()
+   * let entity = world.spawn(Position, {x: 0, y: 0})
+   * world.step()
+   * world.has(entity, Position) // true
+   * world.has(entity, Velocity) // false
+   * ```
+   */
+  has<U extends Component.TBase>(
+    entity: Entity.T,
+    type: Type.Unitary<U>,
+  ): boolean
+  /**
+   * Check if an entity is related to another entity through a given relation.
+   * Returns `true` if the entity is related to the other entity, `false`
+   * otherwise.
+   *
+   * @example
+   * <caption>Check if an entity is related to another entity.</caption>
+   * ```ts
+   * let Orbits = ecs.relation()
+   * let star = world.spawn()
+   * let planet = world.spawn(Orbits, star)
+   * world.step()
+   * world.has(planet, Orbits, star) // true
+   * ```
+   */
+  has<U extends Component.ValueRelation>(
+    entity: Entity.T,
+    type: Type.Unitary<U>,
+    relative: Entity.T,
+  ): boolean
+  has(entity: Entity.T, type: Type.Unitary, relative?: Entity.T): boolean {
+    let node = this.#locate(entity)
+    let component = Type.component_at(type)
+    if (Component.is_relation(component)) {
+      let relationship = Entity.make(Assert.exists(relative), component.id)
+      return Type.has_id(node.type, relationship)
+    }
+    return Type.has(node.type, type)
+  }
+
+  /**
+   * Get the value of a component for a given entity.
+   * @example
+   * <caption>Get the value of a component.</caption>
+   * ```ts
+   * let Position = ecs.value()
+   * let entity = world.spawn(Position, {x: 0, y: 0})
+   * world.step()
+   * world.get(entity, Position) // {x: 0, y: 0}
+   * ```
+   */
+  get<U extends Component.Value>(
+    entity: Entity.T,
+    type: Type.Unitary<U>,
+  ): Commands.InitSingle<U>
+  /**
+   * Get the value of a relationship component for a given entity.
+   * @example
+   * <caption>Get the value of a relationship component.</caption>
+   * ```ts
+   * let Orbits = ecs.valueRelation()
+   * let star = world.spawn()
+   * let planet = world.spawn(Orbits, [star, {distance: 1, period: 1}])
+   * world.step()
+   * world.get(planet, Orbits, star) // {distance: 1, period: 1}
+   * ```
+   */
+  get<U extends Component.ValueRelation>(
+    entity: Entity.T,
+    type: Type.Unitary<U>,
+    relative: Entity.T,
+  ): Commands.InitSingle<U>
+  get(
+    entity: Entity.T,
+    type: Type.Unitary,
+    relative?: Entity.T,
+  ): Commands.InitSingle {
+    this.#locate(entity)
+    let component = Type.component_at(type)
+    if (Component.is_relation(component)) {
+      let relationship = Entity.make(Assert.exists(relative), component.id)
+      return this.#store(relationship)[entity]
+    }
+    return this.#read(entity, component)
+  }
+
+  /**
+   * Check if an entity matches a given type. Returns `true` if the entity
+   * has every component in the type, `false` otherwise.
+   * @example
+   * <caption>Check if an entity matches a type.</caption>
+   * ```ts
+   * let Position = ecs.value()
+   * let Velocity = ecs.value()
+   * let entity = world.spawn(ecs.type(Position, Velocity), {x: 0, y: 0}, {x: 1, y: 1})
+   * world.step()
+   * world.matches(entity, ecs.type(Position, Velocity)) // true
+   * ```
+   * @example
+   * <caption>Check if an entity matches a type with relationships.</caption>
+   * ```ts
+   * let Spectating = ecs.relation()
+   * let Spectator = ecs.type(Rotation, Spectating)
+   * let entity = world.spawn(Spectator, [Quaternion.from(playerRotation), player])
+   * world.step()
+   * world.matches(entity, Spectator, player) // true
+   * ```
+   */
+  matches<U extends Component.T[]>(
+    entity: Entity.T,
+    type: Type.Type<U>,
+    ...relatives: Component.Relatives<U>
+  ): boolean {
+    let node = this.#locate(entity)
+    return Type.has(
+      node.type,
+      Type.has_relations(type)
+        ? Type.with_relationships(type, relatives)
+        : type,
+    )
+  }
+
+  /**
+   * Step the world forward to the specified tick. If no tick is specified, the
+   * world will step forward by one tick.
+   */
   step(tick: number = this.#tick + 1) {
-    // Immediately despawn all entities whose nodes are marked for delet ion.
+    // Immediately despawn all entities whose nodes are marked for deletion.
     for (let i = 0; i < this.#nodes_to_delete.length; i++) {
       let node = this.#nodes_to_delete[i]
       Graph.traverse(node, node => {
@@ -409,7 +688,7 @@ export class World {
     }
     // Emit all entity transitions for monitor queries.
     Transition.drain(this.#transition, this.graph, "stage")
-    // Delet e all nodes marked for delet ion.
+    // Delete all nodes marked for deletion.
     let node: Graph.Node
     while ((node = this.#nodes_to_delete.pop()!)) {
       Graph.delete_node(this.graph, node)
@@ -419,30 +698,6 @@ export class World {
       Stage.drain_to(this.#stage, tick, this.#apply_command)
       this.#tick++
     }
-  }
-
-  get<U extends Component.Value>(
-    entity: Entity.T,
-    type: Type.Unitary<U>,
-  ): Commands.InitSingle<U>
-  get<U extends Component.ValueRelation>(
-    entity: Entity.T,
-    type: Type.Unitary<U>,
-    relative: Entity.T,
-  ): Commands.InitSingle<U>
-  get<U extends Component.TValue>(
-    entity: Entity.T,
-    type: Type.Unitary<U>,
-    relative?: Entity.T,
-  ): Commands.InitSingle<U> {
-    let node = SparseMap.get(this.#nodes_by_entity, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
-    let component = Type.component_at(type)
-    if (Component.is_relation(component)) {
-      let relationship = Entity.make(relative!, component.id)
-      return this.#store(relationship)[entity] as Commands.InitSingle<U>
-    }
-    return this.#read(entity, component) as Commands.InitSingle<U>
   }
 }
 export type T = World
@@ -492,7 +747,7 @@ if (import.meta.vitest) {
       let relative = world.spawn()
       let entity = world.spawn(C, [relative, 123])
       world.step()
-      world.remove(entity, C, [relative])
+      world.remove(entity, C, relative)
       world.step()
       expect(world.get(entity, C, relative)).toBeUndefined()
     })

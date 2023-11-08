@@ -31,12 +31,12 @@ export enum Topology {
   Exclusive,
 }
 
-export type Related<U extends T[], Out extends Entity.T[] = []> = U extends [
+export type Relatives<U extends T[], Out extends Entity.T[] = []> = U extends [
   infer Head,
   ...infer Tail,
 ]
   ? Tail extends T[]
-    ? Related<
+    ? Relatives<
         Tail,
         Head extends ValueRelation<unknown> | TagRelation
           ? [...Out, Entity.T]
