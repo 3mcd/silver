@@ -221,6 +221,12 @@ export class Query<U extends Component.T[] = Component.T[]> {
     this.node = Graph.resolve(world.graph, type)
     this.relative_matches = relative_matches
     this.type = type
+    for (let i = 0; i < type.components.length; i++) {
+      let component = type.components[i]
+      if (Component.is_value(component)) {
+        world.store(component.id)
+      }
+    }
     this.#iterator = Type.has_relations(type)
       ? compile_each_iterator_with_relations(
           world,
@@ -359,11 +365,11 @@ let init_graph_listeners_for_monitor = (query: Query, filters: Filter.T[]) => {
             : query.node.$excluded,
           on_transition_event,
         )
-        // if (filter.kind === Filter.Kind.In) {
-        //   Graph.traverse(query.node, node => {
-        //     remember_node(query, node, SparseSet.values(node.entities))
-        //   })
-        // }
+        if (filter.kind === Filter.Kind.In) {
+          Graph.traverse(query.node, node => {
+            remember_node(query, node, SparseSet.values(node.entities))
+          })
+        }
         break
       }
     }

@@ -18,7 +18,7 @@ const FONT_SIZE = 12 * window.devicePixelRatio
 
 const moveBodiesSystem: ecs.System = world => {
   const bodies = ecs.query(world, Position)
-  const satellites = ecs.query(world, ecs.type(Position, Orbits))
+  const satellites = ecs.query(world, ecs.t(Position, Orbits))
   return function moveBodies() {
     bodies.each(function moveBodySatellites(body, bodyPos) {
       satellites.each(body, function moveBodySatellite(_, satellitePos, orbit) {
@@ -73,7 +73,7 @@ const drawOrbitsSystem: ecs.System = world => {
 }
 
 const processInputsSystem: ecs.System = world => {
-  const bodies = ecs.query(world, ecs.type(Position, Radius))
+  const bodies = ecs.query(world, ecs.t(Position, Radius))
   return function processInputs() {
     let click: Click | undefined
     while ((click = clicks.pop())) {
@@ -95,8 +95,8 @@ const clearCanvasSystem: ecs.System = () => {
 }
 
 const debugSystem: ecs.System = world => {
-  const spawned = ecs.query(world, ecs.type(), ecs.In())
-  const despawned = ecs.query(world, ecs.type(), ecs.Out())
+  const spawned = ecs.query(world, ecs.t(), ecs.In())
+  const despawned = ecs.query(world, ecs.t(), ecs.Out())
   return function emitDebugMessages() {
     spawned.each(function logSpawnedEntity(entity) {
       console.log("spawned", entity)

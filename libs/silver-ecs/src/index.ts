@@ -6,7 +6,7 @@ export {Changed, In, Is, Not, Out} from "./query/filter"
 export {query} from "./query/query"
 export {traverse} from "./world/graph"
 export {make} from "./world/world"
-export {type}
+export {type, type as t}
 import type {Type} from "./data/type"
 import {make as type} from "./data/type"
 import type {Init} from "./world/commands"

@@ -45,10 +45,6 @@ export class World {
     return node
   }
 
-  #store(component_id: number) {
-    return (this.stores[component_id] ??= [])
-  }
-
   /**
    * Move an entity from its current node to a new node.
    */
@@ -72,7 +68,7 @@ export class World {
    * Get the value of a component for a given entity.
    */
   #read<U extends Component.T>(entity: Entity.T, component: U) {
-    return this.#store(component.id)[entity]
+    return this.store(component.id)[entity]
   }
 
   /**
@@ -84,7 +80,7 @@ export class World {
     component: U,
     init: Commands.InitSingle<U>,
   ) {
-    this.#store(component.id)[entity] = init
+    this.store(component.id)[entity] = init
     this.#bump(entity, component)
   }
 
@@ -139,7 +135,7 @@ export class World {
       Entity.parse_lo(relative),
       component.id,
     )
-    this.#store(relationship_component_id)[entity] = value
+    this.store(relationship_component_id)[entity] = value
     this.#bump(entity, component)
   }
 
@@ -261,7 +257,7 @@ export class World {
         relationship_root.type,
         0,
       ) as Component.TRelationship
-      let relationship_store = this.#store(relationship_relation.id)
+      let relationship_store = this.store(relationship_relation.id)
       let relation_id = Entity.parse_hi(relationship_relation.id)
       let relation = Assert.exists(Component.get_relation(relation_id))
       // If the relationship is inclusive (i.e. not hierarchical), remove the
@@ -631,7 +627,7 @@ export class World {
     let component = Type.component_at(type)
     if (Component.is_relation(component)) {
       let relationship = Entity.make(Assert.exists(relative), component.id)
-      return this.#store(relationship)[entity]
+      return this.store(relationship)[entity]
     }
     return this.#read(entity, component)
   }
@@ -677,6 +673,11 @@ export class World {
    * world will step forward by one tick.
    */
   step(tick: number = this.#tick + 1) {
+    // Execute all commands in the stage up to the given tick.
+    while (this.#tick < tick) {
+      Stage.drain_to(this.#stage, tick, this.#apply_command)
+      this.#tick++
+    }
     // Immediately despawn all entities whose nodes are marked for deletion.
     for (let i = 0; i < this.#nodes_to_delete.length; i++) {
       let node = this.#nodes_to_delete[i]
@@ -688,16 +689,15 @@ export class World {
     }
     // Emit all entity transitions for monitor queries.
     Transition.drain(this.#transition, this.graph, "stage")
-    // Delete all nodes marked for deletion.
+    // Drop all nodes marked for deletion.
     let node: Graph.Node
     while ((node = this.#nodes_to_delete.pop()!)) {
       Graph.delete_node(this.graph, node)
     }
-    // Execute all commands in the stage up to the given tick.
-    while (this.#tick < tick) {
-      Stage.drain_to(this.#stage, tick, this.#apply_command)
-      this.#tick++
-    }
+  }
+
+  store(component_id: number) {
+    return (this.stores[component_id] ??= [])
   }
 }
 export type T = World
