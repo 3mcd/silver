@@ -1,4 +1,4 @@
-import * as ecs from "silver-ecs"
+import {In, Out, System, make, query, run, type} from "silver-ecs"
 import {
   Click,
   arc,
@@ -11,14 +11,14 @@ import {
 } from "./canvas"
 import {Body, Orbits, Position, Radius, seed} from "./data"
 
-const world = ecs.make()
+const world = make()
 seed(world)
 
 const FONT_SIZE = 12 * window.devicePixelRatio
 
-const moveBodiesSystem: ecs.System = world => {
-  const bodies = ecs.query(world, Position)
-  const satellites = ecs.query(world, ecs.type(Position, Orbits))
+const moveBodiesSystem: System = world => {
+  const bodies = query(world, Position)
+  const satellites = query(world, type(Position, Orbits))
   return function moveBodies() {
     bodies.each(function moveBodySatellites(body, bodyPos) {
       satellites.each(body, function moveBodySatellite(_, satellitePos, orbit) {
@@ -32,8 +32,8 @@ const moveBodiesSystem: ecs.System = world => {
   }
 }
 
-const drawBodiesSystem: ecs.System = world => {
-  const bodies = ecs.query(world, Body)
+const drawBodiesSystem: System = world => {
+  const bodies = query(world, Body)
   return function drawBodies() {
     context.save()
     context.font = `${FONT_SIZE * transform.scale}px monospace`
@@ -50,9 +50,9 @@ const drawBodiesSystem: ecs.System = world => {
   }
 }
 
-const drawOrbitsSystem: ecs.System = world => {
-  const bodies = ecs.query(world, Position)
-  const satellites = ecs.query(world, Orbits)
+const drawOrbitsSystem: System = world => {
+  const bodies = query(world, Position)
+  const satellites = query(world, Orbits)
   return function drawBodiesOrbits() {
     context.save()
     context.translate(canvas.width / 2, canvas.height / 2)
@@ -68,8 +68,8 @@ const drawOrbitsSystem: ecs.System = world => {
   }
 }
 
-const processInputsSystem: ecs.System = world => {
-  const bodies = ecs.query(world, ecs.type(Position, Radius))
+const processInputsSystem: System = world => {
+  const bodies = query(world, type(Position, Radius))
   return function processInputs() {
     let click: Click | undefined
     while ((click = clicks.pop())) {
@@ -84,15 +84,15 @@ const processInputsSystem: ecs.System = world => {
   }
 }
 
-const clearCanvasSystem: ecs.System = () => {
+const clearCanvasSystem: System = () => {
   return function clearCanvas() {
     clear()
   }
 }
 
-const debugSystem: ecs.System = world => {
-  const spawned = ecs.query(world, ecs.type(), ecs.In())
-  const despawned = ecs.query(world, ecs.type(), ecs.Out())
+const debugSystem: System = world => {
+  const spawned = query(world, type(), In())
+  const despawned = query(world, type(), Out())
   return function emitDebugMessages() {
     spawned.each(function logSpawnedEntity(entity) {
       console.log("spawned", entity)
@@ -105,12 +105,12 @@ const debugSystem: ecs.System = world => {
 
 const loop = () => {
   world.step()
-  ecs.run(world, processInputsSystem)
-  ecs.run(world, moveBodiesSystem)
-  ecs.run(world, clearCanvasSystem)
-  ecs.run(world, drawOrbitsSystem)
-  ecs.run(world, drawBodiesSystem)
-  ecs.run(world, debugSystem)
+  run(world, processInputsSystem)
+  run(world, moveBodiesSystem)
+  run(world, clearCanvasSystem)
+  run(world, drawOrbitsSystem)
+  run(world, drawBodiesSystem)
+  run(world, debugSystem)
   requestAnimationFrame(loop)
 }
 

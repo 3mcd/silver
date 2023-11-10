@@ -75,14 +75,14 @@ export const spawnSystem: System = world => {
 export const inputSystem: System = world => {
   const boxes = query(world, Velocity, Is(Box))
   const keys = new Set<string>()
-  const on_keydown = (event: KeyboardEvent) => {
+  const onKeydown = (event: KeyboardEvent) => {
     keys.add(event.key)
   }
-  const on_keyup = (event: KeyboardEvent) => {
+  const onKeyup = (event: KeyboardEvent) => {
     keys.delete(event.key)
   }
-  document.addEventListener("keydown", on_keydown)
-  document.addEventListener("keyup", on_keyup)
+  document.addEventListener("keydown", onKeydown)
+  document.addEventListener("keyup", onKeyup)
   return () => {
     boxes.each((_, velocity) => {
       let velocityX = 0
