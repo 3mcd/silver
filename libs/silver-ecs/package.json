@@ -23,7 +23,7 @@
   "main": "dist/silver-ecs.cjs.js",
   "module": "dist/silver-ecs.esm.js",
   "source": "./src/index.ts",
-  "types": "./dist/types/index.d.ts",
+  "types": "./dist/silver-ecs.cjs.d.ts",
   "devDependencies": {
     "silver-bench": "workspace:*"
   }

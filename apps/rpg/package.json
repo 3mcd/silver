@@ -18,6 +18,7 @@
     "three": "^0.158.0"
   },
   "devDependencies": {
+    "@types/three": "^0.158.2",
     "vite": "^4.3.4"
   }
 }

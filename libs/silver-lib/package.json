@@ -22,7 +22,7 @@
   "main": "dist/silver-lib.cjs.js",
   "module": "dist/silver-lib.esm.js",
   "source": "./src/index.ts",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/silver-lib.cjs.d.ts",
   "scripts": {
     "build": "tsc"
   },

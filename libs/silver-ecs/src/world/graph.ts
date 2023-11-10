@@ -196,7 +196,7 @@ export let find_by_id = (graph: Graph, hash: number): Node | undefined => {
   return graph.nodes_by_id[hash]
 }
 
-class Graph {
+export class Graph {
   nodes_by_id
   nodes_by_components_hash
   root

@@ -13,10 +13,10 @@ export type Iteratee = (
 ) => void
 
 let make_batch_key = (prev_node_id: number, next_node_id: number) =>
-  (BigInt(next_node_id) << 31n) | BigInt(prev_node_id)
+  (BigInt(next_node_id) << 32n) | BigInt(prev_node_id)
 
 let decompose_batch_key_next = (key: bigint) =>
-  Number((key & 0xffffffff00000000n) >> 31n)
+  Number((key & 0xffffffff00000000n) >> 32n)
 
 let decompose_batch_key_prev = (key: bigint) => Number(key & 0xffffffffn)
 

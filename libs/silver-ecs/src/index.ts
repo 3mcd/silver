@@ -21,6 +21,6 @@ export type {World} from "./world/world"
 import type {Type} from "./data/type"
 import type {Init} from "./world/commands"
 import type {World} from "./world/world"
-
+export * as Graph from "./world/graph"
 export type Data<T extends Type> = T extends Type<infer U> ? Init<U> : never
 export type System = (world: World) => () => void

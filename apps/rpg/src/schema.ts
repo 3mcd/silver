@@ -1,5 +1,5 @@
 import * as ecs from "silver-ecs"
 import * as lib from "silver-lib"
-import {Mesh} from "silver-r3f"
+import {Mesh} from "silver-three"
 
-export let Player = ecs.type(Mesh, lib.Position, lib.Velocity)
+export let Player = ecs.type(Mesh, lib.Velocity)

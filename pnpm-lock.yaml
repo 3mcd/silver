@@ -75,6 +75,9 @@ importers:
         specifier: ^0.158.0
         version: 0.158.0
     devDependencies:
+      '@types/three':
+        specifier: ^0.158.2
+        version: 0.158.2
       vite:
         specifier: ^4.3.4
         version: 4.5.0(@types/node@20.1.1)
@@ -129,6 +132,9 @@ importers:
 
   libs/silver-three:
     dependencies:
+      camera-controls:
+        specifier: ^2.7.3
+        version: 2.7.3(three@0.158.0)
       silver-lib:
         specifier: workspace:*
         version: link:../silver-lib
@@ -2410,6 +2416,14 @@ packages:
   /camelcase@5.3.1:
     resolution: {integrity: sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==}
     engines: {node: '>=6'}
+    dev: false
+
+  /camera-controls@2.7.3(three@0.158.0):
+    resolution: {integrity: sha512-L4mxjBd3u8qiOLozdWrH2P8ZybSsDXBF7iyNyqNEFJhPUkovmuARWR8JTc1B/qlclOIg6FvZZA/0uAZMMim0mw==}
+    peerDependencies:
+      three: '>=0.126.1'
+    dependencies:
+      three: 0.158.0
     dev: false
 
   /caniuse-lite@1.0.30001561:

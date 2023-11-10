@@ -1,7 +1,7 @@
 import * as ecs from "silver-ecs"
 import {player_input_system, spawn_player_system} from "./player"
 import {movement_system} from "./movement"
-import {scene_system} from "silver-r3f"
+import {scene_system} from "silver-three"
 
 let world = ecs.make()
 let loop = () => {
