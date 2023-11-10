@@ -92,11 +92,15 @@ export class World {
     for (let i = 0; i < type.component_spec.length; i++) {
       let component = type.component_spec[i]
       if (Component.is_value_relation(component)) {
-        // Relation components may be initialized with a list of entity-value
-        // pairs. Iterate each pair and write the value into the relationship's
+        // Relation components are initialized with a tuple of [entity, value].
+        // Iterate each pair and write the value into the relationship's
         // component array.
         let value = init[init_index] as Commands.InitValueRelation
         this.#write_relationship(entity, component, value[0], value[1])
+        init_index++
+      } else if (Component.is_tag_relation(component)) {
+        // Skip over tag relations because their entity is stored solely in
+        // the relationship id.
         init_index++
       } else if (Component.is_value(component)) {
         let value = init[init_index]
@@ -694,6 +698,31 @@ export class World {
     while ((node = this.#nodes_to_delete.pop()!)) {
       Graph.delete_node(this.graph, node)
     }
+  }
+
+  getExclusiveRelative<U extends Component.TRelation>(
+    entity: Entity.T,
+    relation: Type.Unitary<U>,
+  ) {
+    let node = this.#locate(entity)
+    let component = relation.components[0] as Component.TRelation
+    if (component.topology !== Component.Topology.Exclusive) {
+      throw new Error("Expected exclusive relation")
+    }
+    if (!Type.has(node.type, relation)) {
+      throw new Error("Expected entity to have relation")
+    }
+    for (let i = 0; i < node.type.relationships.length; i++) {
+      let relationship = node.type.relationships[i]
+      let relationship_component_id = Entity.parse_hi(relationship.id)
+      if (relationship_component_id === component.id) {
+        return EntityRegistry.hydrate(
+          this.#entity_registry,
+          Entity.parse_lo(relationship.id),
+        )
+      }
+    }
+    throw new Error("Unexpected")
   }
 
   store(component_id: number) {

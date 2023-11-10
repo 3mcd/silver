@@ -2,6 +2,7 @@ import * as Data from "./data"
 import * as Type from "./type"
 import {Brand} from "../types"
 import * as Entity from "../entity/entity"
+import {Out} from "../query/filter"
 
 export enum Kind {
   Tag,
@@ -60,7 +61,10 @@ export type ValuesOf<U extends T[], Out extends unknown[] = []> = U extends []
   : U extends [infer Head, ...infer Tail]
   ? Tail extends T[]
     ? Head extends T
-      ? ValuesOf<Tail, [...Out, ValueOf<Head>]>
+      ? ValuesOf<
+          Tail,
+          ValueOf<Head> extends never ? Out : [...Out, ValueOf<Head>]
+        >
       : never
     : never
   : never

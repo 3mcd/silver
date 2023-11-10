@@ -1,78 +1,134 @@
-import * as ecs from "silver-ecs"
-import * as lib from "silver-lib"
-import * as three from "three"
-import {Instanced, Mesh} from "./schema"
 import CameraControls from "camera-controls"
+import {In, Not, SparseMap, SparseSet, System, query, type} from "silver-ecs"
+import * as three from "three"
+import {
+  Camera,
+  InstanceOf,
+  Instanced,
+  IsInstance,
+  Light,
+  Mesh,
+  Object3D,
+} from "./schema"
 
-CameraControls.install({THREE: three})
+CameraControls.install({
+  THREE: {
+    Vector2: three.Vector2,
+    Vector3: three.Vector3,
+    Vector4: three.Vector4,
+    Quaternion: three.Quaternion,
+    Matrix4: three.Matrix4,
+    Spherical: three.Spherical,
+    Box3: three.Box3,
+    Sphere: three.Sphere,
+    Raycaster: three.Raycaster,
+  },
+})
 
-export let scene_system: ecs.System = world => {
-  let clock = new three.Clock()
-  let scene = new three.Scene()
-  let camera = new three.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000,
-  )
-  camera.position.z = 5
+let make_renderer = () => {
   let renderer = new three.WebGLRenderer()
   renderer.setPixelRatio(window.devicePixelRatio)
-  let camera_controls = new CameraControls(camera, renderer.domElement)
   renderer.setSize(window.innerWidth, window.innerHeight)
   document.body.appendChild(renderer.domElement)
-  let ambient_light = new three.AmbientLight(0x404040)
-  // White directional light at half intensity shining from the top.
-  let directional_light = new three.DirectionalLight(0xffffff, 0.5)
-  directional_light.position.set(0, 1, 5)
-  scene.add(directional_light)
-  scene.add(ambient_light)
+  return renderer
+}
 
-  let meshes = ecs.query(world, Mesh, ecs.In())
-  let meshes_moved = ecs.query(
-    world,
-    lib.Position,
-    ecs.Is(Mesh),
-    ecs.Changed(lib.Position),
-  )
-  let meshes_rotated = ecs.query(
-    world,
-    lib.Rotation,
-    ecs.Is(Mesh),
-    ecs.Changed(lib.Rotation),
-  )
-  let meshes_by_entity = new Map<ecs.Entity, three.Mesh>()
+const temp_position = new three.Vector3()
+const temp_matrix4 = new three.Matrix4()
+const temp_rotation = new three.Euler()
+
+export let threeSystem: System = world => {
+  let clock = new three.Clock()
+  let scene = new three.Scene()
+  let renderer = make_renderer()
+  let camera: three.PerspectiveCamera | three.OrthographicCamera
+  let camera_controls: CameraControls
+  let instance_index = SparseMap.make<SparseSet.T>()
+  let instanced = query(world, type(Instanced))
+  let instanced_in = query(world, type(Instanced), In())
+  let instances_in = query(world, type(IsInstance, Object3D), In())
+  let instances = query(world, type(Object3D, InstanceOf))
+  let objects = query(world, Object3D, Not(InstanceOf))
+  let cameras_in = query(world, Camera, In())
+  let lights_in = query(world, Light, In())
+  let meshes_in = query(world, Mesh, In())
+  let objects_by_entity = SparseMap.make<three.Object3D>()
+
   return () => {
-    renderer.render(scene, camera)
-    meshes.each((entity, geometry, material, position, rotation) => {
-      let mesh: three.Mesh
-      if (world.has(entity, Instanced)) {
-        mesh = new three.InstancedMesh(geometry, material, 1_000)
-        // @ts-ignore
-        mesh.instanceMatrix.setUsage(three.DynamicDrawUsage)
-      } else {
-        mesh = new three.Mesh(geometry, material)
+    instanced_in.each((entity, geometry, material, count) => {
+      // Create a new InstancedMesh for each `Instanced` entity and add it to the scene.
+      let mesh = new three.InstancedMesh(geometry, material, count)
+      SparseMap.set(objects_by_entity, entity, mesh)
+      scene.add(mesh)
+      // Create an instance list used to track the index of each instance.
+      if (!SparseMap.has(instance_index, entity)) {
+        SparseMap.set(instance_index, entity, SparseSet.make())
       }
+    })
+
+    instances_in.each(entity => {
+      const instance_of = world.getExclusiveRelative(entity, InstanceOf)
+      const instances = SparseMap.get(instance_index, instance_of)
+      if (instances) {
+        SparseSet.add(instances, entity)
+      }
+    })
+
+    cameras_in.each((_, _camera, position, rotation) => {
+      camera = _camera
+      camera.position.set(position.x, position.y, position.z)
+      camera.rotation.set(rotation.x, rotation.y, rotation.z)
+      camera_controls = new CameraControls(camera, renderer.domElement)
+    })
+
+    lights_in.each((entity, light, position, rotation) => {
+      light.position.set(position.x, position.y, position.z)
+      light.rotation.set(rotation.x, rotation.y, rotation.z)
+      SparseMap.set(objects_by_entity, entity, light)
+      scene.add(light)
+    })
+
+    meshes_in.each((entity, geometry, material, position, rotation) => {
+      let mesh = new three.Mesh(geometry, material)
       mesh.position.set(position.x, position.y, position.z)
       mesh.rotation.set(rotation.x, rotation.y, rotation.z)
-      meshes_by_entity.set(entity, mesh)
+      SparseMap.set(objects_by_entity, entity, mesh)
       scene.add(mesh)
     })
-    meshes_moved.each((entity, position) => {
-      let mesh = meshes_by_entity.get(entity)
+
+    instanced.each(instance_of => {
+      const instance_set = SparseMap.get(instance_index, instance_of)
+      if (instance_set === undefined) {
+        return
+      }
+      let mesh = SparseMap.get(
+        objects_by_entity,
+        instance_of,
+      ) as three.InstancedMesh
+      instances.each(instance_of, (instance, position, rotation) => {
+        temp_position.set(position.x, position.y, position.z)
+        temp_rotation.set(rotation.x, rotation.y, rotation.z)
+        temp_matrix4.makeRotationFromEuler(temp_rotation)
+        temp_matrix4.setPosition(position.x, position.y, position.z)
+        mesh.setMatrixAt(
+          SparseSet.index_of(instance_set, instance),
+          temp_matrix4,
+        )
+      })
+      mesh.instanceMatrix.needsUpdate = true
+    })
+
+    objects.each((entity, position, rotation) => {
+      let mesh = SparseMap.get(objects_by_entity, entity)
       if (mesh) {
         mesh.position.set(position.x, position.y, position.z)
-      }
-    })
-    meshes_rotated.each((entity, rotation) => {
-      let mesh = meshes_by_entity.get(entity)
-      if (mesh) {
         mesh.rotation.set(rotation.x, rotation.y, rotation.z)
       }
     })
-    let delta = clock.getDelta()
-    let camera_controls_updated = camera_controls.update(delta)
-    if (camera_controls_updated) {
+
+    if (camera) {
+      let delta = clock.getDelta()
+      camera_controls?.update(delta)
       renderer.render(scene, camera)
     }
   }

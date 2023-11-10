@@ -24,3 +24,5 @@ import type {World} from "./world/world"
 export * as Graph from "./world/graph"
 export type Data<T extends Type> = T extends Type<infer U> ? Init<U> : never
 export type System = (world: World) => () => void
+export * as SparseSet from "./sparse/sparse_set"
+export * as SparseMap from "./sparse/sparse_map"

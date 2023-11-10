@@ -60,7 +60,17 @@ importers:
         specifier: ^4.3.4
         version: 4.5.0(@types/node@20.1.1)
 
-  apps/rpg:
+  apps/solar:
+    dependencies:
+      silver-ecs:
+        specifier: workspace:*
+        version: link:../../libs/silver-ecs
+    devDependencies:
+      vite:
+        specifier: ^4.3.4
+        version: 4.3.4(@types/node@20.1.1)
+
+  apps/three:
     dependencies:
       silver-ecs:
         specifier: workspace:*
@@ -81,16 +91,6 @@ importers:
       vite:
         specifier: ^4.3.4
         version: 4.5.0(@types/node@20.1.1)
-
-  apps/solar:
-    dependencies:
-      silver-ecs:
-        specifier: workspace:*
-        version: link:../../libs/silver-ecs
-    devDependencies:
-      vite:
-        specifier: ^4.3.4
-        version: 4.3.4(@types/node@20.1.1)
 
   libs/silver-bench:
     dependencies:

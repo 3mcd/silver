@@ -9,7 +9,7 @@ export class SparseSet<U extends number> {
     this.sparse = []
   }
 }
-export type T<U extends number> = SparseSet<U>
+export type T<U extends number = number> = SparseSet<U>
 
 export let make = <U extends number>(): SparseSet<U> => {
   return new SparseSet<U>()
@@ -20,6 +20,13 @@ export let has = <U extends number>(set: SparseSet<U>, value: U): boolean =>
 
 export let add = <U extends number>(set: SparseSet<U>, value: U): void => {
   set.sparse[value] ??= set.dense.push(value) - 1
+}
+
+export let index_of = <U extends number>(
+  set: SparseSet<U>,
+  value: U,
+): number => {
+  return set.sparse[value] ?? -1
 }
 
 let delete_ = <U extends number>(set: SparseSet<U>, value: U): void => {
