@@ -1,6 +1,5 @@
 {
   "name": "silver-ecs",
-  "type": "module",
   "version": "0.0.6",
   "description": "",
   "keywords": [
@@ -21,14 +20,10 @@
     "dist",
     "debug"
   ],
-  "main": "./dist/silver-ecs.js",
+  "main": "dist/silver-ecs.cjs.js",
+  "module": "dist/silver-ecs.esm.js",
   "source": "./src/index.ts",
   "types": "./dist/types/index.d.ts",
-  "exports": {
-    ".": "./dist/silver-ecs.js",
-    "./debug": "./dist/silver-ecs.debug.js",
-    "./dev": "./src/index.ts"
-  },
   "devDependencies": {
     "silver-bench": "workspace:*"
   }

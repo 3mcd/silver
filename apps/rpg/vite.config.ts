@@ -4,7 +4,4 @@ export default defineConfig({
   build: {
     target: "esnext",
   },
-  define: {
-    DEBUG: true,
-  },
 })

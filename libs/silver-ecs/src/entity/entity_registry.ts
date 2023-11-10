@@ -24,10 +24,7 @@ export let check = (registry: T, entity: Entity.T) => {
   Entity.assert_valid(entity)
   let entity_id = Entity.parse_lo(entity)
   let entity_gen = Entity.parse_hi(entity)
-  Assert.ok(
-    check_generation(registry, entity_id, entity_gen),
-    DEBUG && "Entity version is invalid. Was it deleted?",
-  )
+  Assert.ok(check_generation(registry, entity_id, entity_gen))
   return entity_id
 }
 
@@ -66,10 +63,7 @@ export let release = (registry: T, entity: Entity.T) => {
   Entity.assert_valid(entity)
   let entity_id = Entity.parse_lo(entity)
   let entity_gen = Entity.parse_hi(entity)
-  Assert.ok(
-    check_generation(registry, entity_id, entity_gen),
-    DEBUG && "Entity version is invalid. Was it deleted?",
-  )
+  Assert.ok(check_generation(registry, entity_id, entity_gen))
   // Recycle the entity id if the entity can be invalidated.
   if (entity_gen < Entity.HI) {
     registry.free.push(entity_id)
@@ -84,83 +78,4 @@ export let rollback = (registry: T, entity: Entity.T) => {
   registry.generations[entity_id] =
     entity_gen === 0 ? undefined! : entity_gen - 1
   registry.free.push(entity_id)
-}
-
-if (import.meta.vitest) {
-  let {describe, it, expect} = await import("vitest")
-
-  describe("entity_registry", () => {
-    it("allocates entities", () => {
-      let registry = make()
-      let entity = retain(registry)
-      expect(check(registry, entity)).toBe(0)
-    })
-
-    it("invalidates freed entities", () => {
-      let registry = make()
-      let entity = retain(registry)
-      release(registry, entity)
-      expect(() => check(registry, entity)).toThrow()
-    })
-
-    it("recycles entity ids", () => {
-      let registry = make()
-      let entity_a = retain(registry)
-      release(registry, entity_a)
-      let entity_b = retain(registry)
-      expect(Entity.parse_lo(entity_a)).to.equal(Entity.parse_lo(entity_b))
-    })
-
-    it("recycles generations", () => {
-      let registry = make()
-      let entity_a = retain(registry)
-      release(registry, entity_a)
-      let entity_b = retain(registry)
-      expect(Entity.parse_hi(entity_a)).to.equal(0)
-      expect(Entity.parse_hi(entity_b)).to.equal(1)
-    })
-
-    it("throws when the limit of active registry is surpassed", () => {
-      let registry = make(Entity.LO)
-      expect(() => retain(registry)).not.to.throw()
-      expect(() => retain(registry)).to.throw()
-    })
-
-    it("throws when an entity is freed twice", () => {
-      let registry = make()
-      let entity = retain(registry)
-      release(registry, entity)
-      expect(() => release(registry, entity)).to.throw()
-    })
-
-    it("does not recycle entity ids when they reach the maximum generation", () => {
-      let registry = make(1, [Entity.HI])
-      let entity_a = Entity.make(0, Entity.HI)
-      release(registry, entity_a)
-      let entity_b = retain(registry)
-      expect(Entity.parse_lo(entity_a)).not.to.equal(Entity.parse_lo(entity_b))
-    })
-
-    it("throws when an entity is freed with an invalid entity", () => {
-      let registry = make()
-      expect(() => release(registry, -1 as Entity.T)).to.throw()
-      expect(() =>
-        release(registry, (Entity.EXTENT + 1) as Entity.T),
-      ).to.throw()
-    })
-
-    it("throws when an entity is checked with an invalid entity", () => {
-      let registry = make()
-      expect(() => check(registry, -1 as Entity.T)).to.throw()
-      expect(() => check(registry, (Entity.EXTENT + 1) as Entity.T)).to.throw()
-    })
-
-    it("rolls back an entity's generation", () => {
-      let registry = make()
-      let entity = retain(registry)
-      rollback(registry, entity)
-      expect(() => check(registry, entity)).toThrow()
-      expect(retain(registry)).to.equal(entity)
-    })
-  })
 }

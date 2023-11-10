@@ -1,13 +1,21 @@
-import * as ecs from "silver-ecs/dev"
-import {Player, Velocity} from "./schema"
+import * as ecs from "silver-ecs"
+import * as lib from "silver-lib"
+import * as three from "three"
+import {Player} from "./schema"
 
 export let spawn_player_system: ecs.System = world => {
-  world.spawn(Player, {x: 0, y: 0}, {x: 0, y: 0})
+  world.spawn(
+    Player,
+    new three.BoxGeometry(),
+    new three.MeshLambertMaterial(),
+    {x: 0, y: 0, z: 0},
+    {x: 0, y: 0, z: 0},
+  )
   return () => {}
 }
 
 export let player_input_system: ecs.System = world => {
-  let players = ecs.query(world, Velocity, ecs.Is(Player))
+  let players = ecs.query(world, lib.Velocity, ecs.Is(Player))
   let keys = new Set<string>()
   let on_keydown = (event: KeyboardEvent) => {
     keys.add(event.key)

@@ -1,4 +1,4 @@
-import * as ecs from "silver-ecs/dev"
+import * as ecs from "silver-ecs"
 import json from "./data.json"
 
 type Orbit = {radius: number; period: number}

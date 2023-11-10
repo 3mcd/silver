@@ -1,26 +1,27 @@
 {
   "name": "silver",
-  "type": "module",
   "private": true,
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
+    "bench": "PERF_UNIT=ms pnpm --filter=silver-ecs bench",
+    "build": "preconstruct build",
     "dev": "pnpm --filter=solar start",
-    "test": "pnpm -r --parallel test",
-    "bench": "PERF_UNIT=ms BENCH_GLOBALS=\"{\\\"DEBUG\\\": true}\" pnpm --filter=silver-ecs bench",
-    "build": "pnpm build:lib && pnpm build:tsc",
-    "build:lib": "tsx build/build.ts",
-    "build:tsc": "pnpm --filter \"./libs/*\" -r exec tsc -b",
+    "postinstall": "preconstruct dev",
     "reset": "pnpm reset:bench & pnpm reset:dist & pnpm i",
     "reset:bench": "find ./libs -type f -name '*.bench-results' -delete",
     "reset:dist": "find ./libs -type d -name 'dist' -prune -exec rm -rf {} \\;",
-    "release": "pnpm build && pnpm publish -r"
+    "release": "pnpm build && pnpm publish -r",
+    "test": "pnpm -r --parallel test"
   },
   "keywords": [],
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@babel/preset-env": "^7.23.3",
+    "@babel/preset-typescript": "^7.23.3",
+    "@preconstruct/cli": "^2.8.1",
     "@types/node": "^20.1.1",
     "esbuild": "^0.18.17",
     "typescript": "^5.0.4",
@@ -28,5 +29,10 @@
   },
   "devDependencies": {
     "tsx": "^3.12.7"
+  },
+  "preconstruct": {
+    "packages": [
+      "libs/*"
+    ]
   }
 }

@@ -14,6 +14,6 @@ export function ok(
 }
 
 export let exists = <T>(value: T | undefined, message?: string): T => {
-  if (DEBUG) ok(value != undefined, message)
+  ok(value != undefined, message)
   return value!
 }

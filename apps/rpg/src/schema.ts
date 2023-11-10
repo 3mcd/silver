@@ -1,9 +1,5 @@
-import * as ecs from "silver-ecs/dev"
+import * as ecs from "silver-ecs"
+import * as lib from "silver-lib"
+import {Mesh} from "silver-r3f"
 
-export type Position = {x: number; y: number}
-export let Position = ecs.value<Position>({x: "f32", y: "f32"})
-
-export type Velocity = {x: number; y: number}
-export let Velocity = ecs.value<Velocity>({x: "f32", y: "f32"})
-
-export let Player = ecs.t(Position, Velocity)
+export let Player = ecs.type(Mesh, lib.Position, lib.Velocity)

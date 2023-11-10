@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import {Color, dim, gray, green, red, yellow} from "colorette"
 import {ChildProcess, fork} from "node:child_process"
 import * as fs from "node:fs"

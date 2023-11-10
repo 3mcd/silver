@@ -1,4 +1,4 @@
-import * as ecs from "silver-ecs/dev"
+import * as ecs from "silver-ecs"
 import {
   Click,
   arc,
@@ -18,7 +18,7 @@ const FONT_SIZE = 12 * window.devicePixelRatio
 
 const moveBodiesSystem: ecs.System = world => {
   const bodies = ecs.query(world, Position)
-  const satellites = ecs.query(world, ecs.t(Position, Orbits))
+  const satellites = ecs.query(world, ecs.type(Position, Orbits))
   return function moveBodies() {
     bodies.each(function moveBodySatellites(body, bodyPos) {
       satellites.each(body, function moveBodySatellite(_, satellitePos, orbit) {
@@ -42,10 +42,6 @@ const drawBodiesSystem: ecs.System = world => {
       context.save()
       context.translate(position.x, position.y)
       circle(color, 1 * radius)
-      if (DEBUG) {
-        context.fillStyle = "#666"
-        context.fillText(_.toString(), -radius - 20, -radius - 20)
-      }
       context.fillStyle = "#ccc"
       context.fillText(name, radius + 2, radius + 2)
       context.restore()
@@ -73,7 +69,7 @@ const drawOrbitsSystem: ecs.System = world => {
 }
 
 const processInputsSystem: ecs.System = world => {
-  const bodies = ecs.query(world, ecs.t(Position, Radius))
+  const bodies = ecs.query(world, ecs.type(Position, Radius))
   return function processInputs() {
     let click: Click | undefined
     while ((click = clicks.pop())) {
@@ -95,8 +91,8 @@ const clearCanvasSystem: ecs.System = () => {
 }
 
 const debugSystem: ecs.System = world => {
-  const spawned = ecs.query(world, ecs.t(), ecs.In())
-  const despawned = ecs.query(world, ecs.t(), ecs.Out())
+  const spawned = ecs.query(world, ecs.type(), ecs.In())
+  const despawned = ecs.query(world, ecs.type(), ecs.Out())
   return function emitDebugMessages() {
     spawned.each(function logSpawnedEntity(entity) {
       console.log("spawned", entity)

@@ -1,4 +1,4 @@
-import * as ecs from "silver-ecs/dev"
+import * as ecs from "silver-ecs"
 import {Edge, Network, Node} from "vis-network"
 import {DataSet} from "vis-data"
 

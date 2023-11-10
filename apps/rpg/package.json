@@ -12,7 +12,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "silver-ecs": "workspace:*"
+    "silver-ecs": "workspace:*",
+    "silver-lib": "workspace:*",
+    "silver-three": "workspace:*",
+    "three": "^0.158.0"
   },
   "devDependencies": {
     "vite": "^4.3.4"

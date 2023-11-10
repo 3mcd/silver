@@ -1,4 +1,0 @@
-{
-  "main": "../dist/silver-ecs.debug.js",
-  "types": "../dist/types/index.d.ts"
-}

@@ -1,4 +1,4 @@
-import * as ecs from "silver-ecs/dev"
+import * as ecs from "silver-ecs"
 
 const world = ecs.make()
 
@@ -7,11 +7,11 @@ const Team = ecs.relation()
 const teamA = world.spawn()
 const teamB = world.spawn()
 const teamC = world.spawn()
-world.spawn(ecs.t(Team, Team), teamA, teamB)
-world.spawn(ecs.t(Team, Team, Team), teamA, teamB, teamC)
+world.spawn(ecs.type(Team, Team), teamA, teamB)
+world.spawn(ecs.type(Team, Team, Team), teamA, teamB, teamC)
 
 const teams: ecs.System = world => {
-  const spies = ecs.query(world, ecs.t(Team, Team))
+  const spies = ecs.query(world, ecs.type(Team, Team))
   return () => {
     spies.each(teamA, teamB, spy => {
       console.log(`spy ${spy} is on teams ${teamA} and ${teamB}`)
@@ -22,7 +22,7 @@ const teams: ecs.System = world => {
 // Family
 const Mother = ecs.relation()
 const Father = ecs.relation()
-const Child = ecs.t(Mother, Father)
+const Child = ecs.type(Mother, Father)
 const mom = world.spawn()
 const dad = world.spawn()
 world.spawn(Child, mom, dad)

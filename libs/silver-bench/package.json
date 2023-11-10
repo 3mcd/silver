@@ -1,6 +1,5 @@
 {
   "name": "silver-bench",
-  "type": "module",
   "version": "0.0.3",
   "description": "A fast and configurable benchmarking tool for JS/TS",
   "keywords": [
@@ -11,17 +10,19 @@
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "cli"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/3mcd/silver"
   },
-  "main": "./dist/index.js",
+  "main": "dist/silver-bench.cjs.js",
+  "module": "dist/silver-bench.esm.js",
   "source": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "bin": {
-    "silver-bench": "./dist/cli.js"
+    "silver-bench": "./cli/dist/silver-bench-cli.esm.js"
   },
   "scripts": {
     "build": "tsc"
@@ -31,5 +32,11 @@
     "colorette": "^2.0.20",
     "ts-node": "^10.9.1",
     "tsx": "^3.12.7"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      "index.ts",
+      "cli.ts"
+    ]
   }
 }

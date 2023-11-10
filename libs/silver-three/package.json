@@ -1,0 +1,37 @@
+{
+  "name": "silver-three",
+  "version": "0.0.1",
+  "description": "react-three-fiber bindings for silver-ecs",
+  "keywords": [
+    "3d",
+    "ecs",
+    "three",
+    "threejs"
+  ],
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3mcd/silver"
+  },
+  "main": "dist/silver-three.cjs.js",
+  "module": "dist/silver-three.esm.js",
+  "source": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/three": "^0.158.2",
+    "silver-ecs": "workspace:*",
+    "three": "^0.158.0"
+  },
+  "peerDependencies": {
+    "silver-ecs": "workspace:*",
+    "silver-lib": "workspace:*",
+    "three": "0.158.x"
+  }
+}

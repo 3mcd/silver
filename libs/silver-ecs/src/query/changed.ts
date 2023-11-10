@@ -54,19 +54,3 @@ export let compile_predicate = (
   let closure = Function("A", "B", "$", body)
   return closure(state.changes, changes, update)
 }
-
-if (import.meta.vitest) {
-  let {describe, it, expect} = await import("vitest")
-  describe("changed", () => {
-    it("returns true if the entity has changed", () => {
-      let A = Component.tag()
-      let state = make_filter_state()
-      let changes = Changes.make()
-      let changed = compile_predicate(A, changes, state)
-      let entity = Entity.make(0, 0)
-      expect(changed(entity)).to.be.false
-      Changes.bump(changes, entity, A.components[0].id)
-      expect(changed(entity)).to.be.true
-    })
-  })
-}

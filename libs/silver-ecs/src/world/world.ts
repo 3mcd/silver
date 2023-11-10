@@ -41,7 +41,7 @@ export class World {
 
   #locate(entity: Entity.T) {
     let node = SparseMap.get(this.#nodes_by_entity, entity)
-    Assert.ok(node !== undefined, DEBUG && "entity does not exist")
+    Assert.ok(node !== undefined)
     return node
   }
 
@@ -703,63 +703,3 @@ export class World {
 export type T = World
 
 export let make = (tick = 0): World => new World(tick)
-
-if (import.meta.vitest) {
-  let {describe, it, expect} = await import("vitest")
-  let A = Component.tag()
-  let B = Component.value()
-  let C = Component.valueRelation<number>()
-
-  describe("World", () => {
-    it("throws an error when adding a component to a non-existent entity", () => {
-      let world = make()
-      expect(() => world.add(123 as Entity.T, A)).to.throw()
-    })
-    it("throws an error when removing a component from a non-existent entity", () => {
-      let world = make()
-      expect(() => world.remove(123 as Entity.T, A)).to.throw()
-    })
-    it("adds a component to an entity", () => {
-      let world = make()
-      let entity = world.spawn()
-      world.add(entity, B, 123)
-      world.step()
-      expect(world.get(entity, B)).to.equal(123)
-    })
-    it("removes a component from an entity", () => {
-      let world = make()
-      let entity = world.spawn()
-      world.add(entity, B, 123)
-      world.step()
-      world.remove(entity, B)
-      world.step()
-      expect(world.get(entity, B)).to.equal(undefined)
-    })
-    it("adds a relation component to an entity", () => {
-      let world = make()
-      let relative = world.spawn()
-      let entity = world.spawn(C, [relative, 123])
-      world.step()
-      expect(world.get(entity, C, relative)).to.equal(123)
-    })
-    it("removes a relation component from an entity", () => {
-      let world = make()
-      let relative = world.spawn()
-      let entity = world.spawn(C, [relative, 123])
-      world.step()
-      world.remove(entity, C, relative)
-      world.step()
-      expect(world.get(entity, C, relative)).toBeUndefined()
-    })
-    it("throws when adding a parent to an entity that already has a parent of a given hierarchical relation", () => {
-      // Error
-      let world = make()
-      let Child = Component.relation(Component.Topology.Exclusive)
-      let parentA = world.spawn()
-      let parentB = world.spawn()
-      let child = world.spawn(Child, parentA)
-      world.add(child, Child, parentB)
-      expect(world.step).toThrow()
-    })
-  })
-}

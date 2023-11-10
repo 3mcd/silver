@@ -1,6 +1,5 @@
 {
   "name": "silver-net",
-  "type": "module",
   "version": "0.0.1",
   "description": "",
   "keywords": [
@@ -21,7 +20,8 @@
     "dist",
     "debug"
   ],
-  "main": "./dist/silver-ecs.js",
+  "main": "dist/silver-net.cjs.js",
+  "module": "dist/silver-net.esm.js",
   "source": "./src/index.ts",
   "types": "./dist/types/index.d.ts",
   "exports": {
