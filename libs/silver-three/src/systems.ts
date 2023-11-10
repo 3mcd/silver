@@ -17,6 +17,7 @@ export let scene_system: ecs.System = world => {
   )
   camera.position.z = 5
   let renderer = new three.WebGLRenderer()
+  renderer.setPixelRatio(window.devicePixelRatio)
   let camera_controls = new CameraControls(camera, renderer.domElement)
   renderer.setSize(window.innerWidth, window.innerHeight)
   document.body.appendChild(renderer.domElement)
@@ -47,6 +48,8 @@ export let scene_system: ecs.System = world => {
       let mesh: three.Mesh
       if (world.has(entity, Instanced)) {
         mesh = new three.InstancedMesh(geometry, material, 1_000)
+        // @ts-ignore
+        mesh.instanceMatrix.setUsage(three.DynamicDrawUsage)
       } else {
         mesh = new three.Mesh(geometry, material)
       }

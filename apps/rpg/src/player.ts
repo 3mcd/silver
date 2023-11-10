@@ -4,13 +4,15 @@ import * as three from "three"
 import {Player} from "./schema"
 
 export let spawn_player_system: ecs.System = world => {
+  let geometry = new three.BoxGeometry(1, 1, 1)
+  let material = new three.MeshNormalMaterial()
   for (let i = 0; i < 10; i++) {
     for (let j = 0; j < 10; j++) {
       for (let k = 0; k < 10; k++) {
         world.spawn(
           Player,
-          new three.BoxGeometry(1, 1, 1),
-          new three.MeshLambertMaterial({color: 0x00ff00}),
+          geometry,
+          material,
           {
             x: i * 2,
             y: j * 2,
