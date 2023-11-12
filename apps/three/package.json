@@ -12,13 +12,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@dimforge/rapier3d": "^0.11.2",
     "silver-ecs": "workspace:*",
     "silver-lib": "workspace:*",
+    "silver-rapier": "workspace:*",
     "silver-three": "workspace:*",
     "three": "^0.158.0"
   },
   "devDependencies": {
     "@types/three": "^0.158.2",
-    "vite": "^4.3.4"
+    "vite": "^4.3.4",
+    "vite-plugin-top-level-await": "^1.3.1",
+    "vite-plugin-wasm": "^3.2.2"
   }
 }

@@ -3,12 +3,14 @@ import {In, Not, SparseMap, SparseSet, System, query, type} from "silver-ecs"
 import * as three from "three"
 import {
   Camera,
+  CastsShadow,
   InstanceOf,
-  Instanced,
+  InstancedMesh,
   IsInstance,
   Light,
   Mesh,
   Object3D,
+  ReceivesShadow,
 } from "./schema"
 
 CameraControls.install({
@@ -26,7 +28,9 @@ CameraControls.install({
 })
 
 let make_renderer = () => {
-  let renderer = new three.WebGLRenderer()
+  let renderer = new three.WebGLRenderer({
+    antialias: true,
+  })
   renderer.setPixelRatio(window.devicePixelRatio)
   renderer.setSize(window.innerWidth, window.innerHeight)
   document.body.appendChild(renderer.domElement)
@@ -44,27 +48,39 @@ export let threeSystem: System = world => {
   let camera: three.PerspectiveCamera | three.OrthographicCamera
   let camera_controls: CameraControls
   let instance_index = SparseMap.make<SparseSet.T>()
-  let instanced = query(world, type(Instanced))
-  let instanced_in = query(world, type(Instanced), In())
+  let instanced = query(world, type(InstancedMesh))
+  let instanced_in = query(world, type(InstancedMesh), In())
   let instances_in = query(world, type(IsInstance, Object3D), In())
   let instances = query(world, type(Object3D, InstanceOf))
   let objects = query(world, Object3D, Not(InstanceOf))
   let cameras_in = query(world, Camera, In())
   let lights_in = query(world, Light, In())
-  let meshes_in = query(world, Mesh, In())
+  let meshes_in = query(world, Mesh, In(), Not(InstancedMesh))
   let objects_by_entity = SparseMap.make<three.Object3D>()
 
+  renderer.toneMapping = three.ACESFilmicToneMapping
+  renderer.toneMappingExposure = 0.5
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = three.PCFSoftShadowMap
+
   return () => {
-    instanced_in.each((entity, geometry, material, count) => {
-      // Create a new InstancedMesh for each `Instanced` entity and add it to the scene.
-      let mesh = new three.InstancedMesh(geometry, material, count)
-      SparseMap.set(objects_by_entity, entity, mesh)
-      scene.add(mesh)
-      // Create an instance list used to track the index of each instance.
-      if (!SparseMap.has(instance_index, entity)) {
-        SparseMap.set(instance_index, entity, SparseSet.make())
-      }
-    })
+    instanced_in.each(
+      (entity, geometry, material, position, rotation, scale, count) => {
+        // Create a new InstancedMesh for each `Instanced` entity and add it to the scene.
+        let mesh = new three.InstancedMesh(geometry, material, count)
+        mesh.castShadow = world.has(entity, CastsShadow)
+        mesh.receiveShadow = world.has(entity, ReceivesShadow)
+        mesh.position.set(position.x, position.y, position.z)
+        mesh.rotation.set(rotation.x, rotation.y, rotation.z)
+        mesh.scale.setScalar(scale)
+        SparseMap.set(objects_by_entity, entity, mesh)
+        scene.add(mesh)
+        // Create an instance list used to track the index of each instance.
+        if (!SparseMap.has(instance_index, entity)) {
+          SparseMap.set(instance_index, entity, SparseSet.make())
+        }
+      },
+    )
 
     instances_in.each(entity => {
       const instance_of = world.getExclusiveRelative(entity, InstanceOf)
@@ -88,10 +104,13 @@ export let threeSystem: System = world => {
       scene.add(light)
     })
 
-    meshes_in.each((entity, geometry, material, position, rotation) => {
+    meshes_in.each((entity, geometry, material, position, rotation, scale) => {
       let mesh = new three.Mesh(geometry, material)
+      mesh.castShadow = world.has(entity, CastsShadow)
+      mesh.receiveShadow = world.has(entity, ReceivesShadow)
       mesh.position.set(position.x, position.y, position.z)
       mesh.rotation.set(rotation.x, rotation.y, rotation.z)
+      mesh.scale.setScalar(scale)
       SparseMap.set(objects_by_entity, entity, mesh)
       scene.add(mesh)
     })

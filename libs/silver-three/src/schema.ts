@@ -3,7 +3,8 @@ import * as three from "three"
 import * as lib from "silver-lib"
 
 export let IsThree = ecs.tag()
-export let Object3D = ecs.type(IsThree, lib.Position, lib.Rotation)
+export let Scale = ecs.value<number>()
+export let Object3D = ecs.type(IsThree, lib.Position, lib.Rotation, Scale)
 
 export let ThreeGeometry = ecs.value<three.BufferGeometry>()
 export let ThreeMaterial = ecs.value<three.Material>()
@@ -15,7 +16,10 @@ export let Light = ecs.type(ThreeLight, Object3D)
 export let Camera = ecs.type(ThreePerspectiveCamera, Object3D)
 
 export let InstanceCount = ecs.value<number>()
-export let Instanced = ecs.type(ThreeGeometry, ThreeMaterial, InstanceCount)
+export let InstancedMesh = ecs.type(Mesh, InstanceCount)
 export let IsInstance = ecs.tag()
 export let InstanceOf = ecs.relation(ecs.Topology.Exclusive)
 export let Instance = ecs.type(Object3D, IsInstance, InstanceOf)
+
+export let CastsShadow = ecs.tag()
+export let ReceivesShadow = ecs.tag()

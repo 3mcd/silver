@@ -1,12 +1,13 @@
 {
-  "name": "silver-three",
+  "name": "silver-rapier",
   "version": "0.0.1",
-  "description": "three.js bindings for silver-ecs",
+  "description": "rapier bindings for silver-ecs",
   "keywords": [
+    "2d",
     "3d",
     "ecs",
-    "three",
-    "threejs"
+    "physics",
+    "rapier"
   ],
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
@@ -17,24 +18,21 @@
     "type": "git",
     "url": "https://github.com/3mcd/silver"
   },
-  "main": "dist/silver-three.cjs.js",
-  "module": "dist/silver-three.esm.js",
+  "main": "dist/silver-rapier.cjs.js",
+  "module": "dist/silver-rapier.esm.js",
   "source": "./src/index.ts",
-  "types": "./dist/silver-three.cjs.d.ts",
+  "types": "./dist/silver-rapier.cjs.d.ts",
   "scripts": {
     "build": "tsc"
   },
   "devDependencies": {
-    "@types/three": "^0.158.2",
+    "@dimforge/rapier3d": "^0.11.2",
     "silver-ecs": "workspace:*",
-    "three": "^0.158.0"
+    "silver-lib": "workspace:*"
   },
   "peerDependencies": {
+    "@dimforge/rapier3d": "0.11.x",
     "silver-ecs": "workspace:*",
-    "silver-lib": "workspace:*",
-    "three": "0.158.x"
-  },
-  "dependencies": {
-    "camera-controls": "^2.7.3"
+    "silver-lib": "workspace:*"
   }
 }

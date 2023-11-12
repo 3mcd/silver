@@ -1,6 +1,22 @@
 import {type} from "silver-ecs"
-import {Velocity} from "silver-lib"
-import {Instance, Mesh} from "silver-three"
+import {AngularVelocity, LinearVelocity} from "silver-lib"
+import {Collider} from "silver-rapier"
+import {CastsShadow, Instance, Mesh, ReceivesShadow} from "silver-three"
 
-export const Box = type(Instance, Velocity)
-export const Sphere = type(Mesh, Velocity)
+export const Sphere = type(
+  Mesh,
+  Collider,
+  LinearVelocity,
+  AngularVelocity,
+  CastsShadow,
+  ReceivesShadow,
+)
+export const SphereInstance = type(
+  Instance,
+  CastsShadow,
+  ReceivesShadow,
+  Collider,
+  LinearVelocity,
+  AngularVelocity,
+)
+export const Terrain = type(Mesh, Collider, ReceivesShadow)

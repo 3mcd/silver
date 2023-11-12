@@ -116,7 +116,7 @@ export class World {
   #clear_many(entity: Entity.T, type: Type.T) {
     for (let i = 0; i < type.components.length; i++) {
       let component = type.components[i]
-      if (Component.wraps_value(component)) {
+      if (Component.stores_value(component)) {
         this.#write(entity, component, undefined)
       }
     }

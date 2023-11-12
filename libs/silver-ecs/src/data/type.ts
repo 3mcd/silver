@@ -202,19 +202,9 @@ export class Type<U extends Component.T[] = Component.T[]> {
   relations_spec
   relationships
   sparse
-  sparse_init
 
   constructor(component_spec: U) {
     let components = sort_spec(component_spec.slice())
-    let sparse_init: number[] = []
-    let j = 0
-    for (let i = 0; i < component_spec.length; i++) {
-      let component = component_spec[i]
-      if (Component.is_initialized(component)) {
-        sparse_init[component.id] = j++
-      }
-    }
-    j = 0
     this.component_ids = components.map(component => component.id)
     this.components = components
     this.hash = Hash.words(this.component_ids)
@@ -234,7 +224,6 @@ export class Type<U extends Component.T[] = Component.T[]> {
       }
       this.sparse[component.id] = i
     }
-    this.sparse_init = sparse_init
   }
 }
 
@@ -265,7 +254,7 @@ export let with_relationships = (type: T, init: unknown[]): T => {
       )
       relationship_type = with_component(relationship_type, relationship)
       j++
-    } else if (Component.wraps_value(relation)) {
+    } else if (Component.stores_value(relation)) {
       j++
     }
   }
