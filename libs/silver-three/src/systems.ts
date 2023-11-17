@@ -1,17 +1,26 @@
 import CameraControls from "camera-controls"
-import {In, Not, SparseMap, SparseSet, System, query, type} from "silver-ecs"
+import {
+  In,
+  Not,
+  SparseMap,
+  SparseSet,
+  System,
+  query,
+  run,
+  type,
+} from "silver-ecs"
 import * as three from "three"
 import {
   Camera,
   CastsShadow,
   InstanceOf,
-  InstancedMesh,
+  Instanced,
   IsInstance,
   Light,
   Mesh,
-  Object3D,
   ReceivesShadow,
 } from "./schema"
+import {Position, Rotation, Scale, Transform} from "silver-lib"
 
 CameraControls.install({
   THREE: {
@@ -39,84 +48,122 @@ let make_renderer = () => {
 
 const temp_position = new three.Vector3()
 const temp_matrix4 = new three.Matrix4()
-const temp_rotation = new three.Euler()
+const temp_rotation = new three.Quaternion()
+
+let renderer = make_renderer()
+renderer.toneMapping = three.ACESFilmicToneMapping
+renderer.toneMappingExposure = 0.5
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = three.PCFSoftShadowMap
+
+let scene = new three.Scene()
+
+let object_instances = SparseMap.make<SparseSet.T>()
+let objects_by_entity = SparseMap.make<three.Object3D>()
 
 export let threeSystem: System = world => {
-  let clock = new three.Clock()
-  let scene = new three.Scene()
-  let renderer = make_renderer()
-  let camera: three.PerspectiveCamera | three.OrthographicCamera
-  let camera_controls: CameraControls
-  let instance_index = SparseMap.make<SparseSet.T>()
-  let instanced = query(world, type(InstancedMesh))
-  let instanced_in = query(world, type(InstancedMesh), In())
-  let instances_in = query(world, type(IsInstance, Object3D), In())
-  let instances = query(world, type(Object3D, InstanceOf))
-  let objects = query(world, Object3D, Not(InstanceOf))
-  let cameras_in = query(world, Camera, In())
-  let lights_in = query(world, Light, In())
-  let meshes_in = query(world, Mesh, In(), Not(InstancedMesh))
-  let objects_by_entity = SparseMap.make<three.Object3D>()
+  return () => {
+    run(world, mesh_system)
+    run(world, scale_system)
+    run(world, lights_system)
+    run(world, instance_system)
+    run(world, camera_system)
+  }
+}
 
-  renderer.toneMapping = three.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 0.5
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = three.PCFSoftShadowMap
+export let mesh_system: System = world => {
+  let meshes_in = query(world, Mesh, In(), Not(Instanced))
+  let transforms = query(world, type(Position, Rotation), Not(InstanceOf))
 
   return () => {
-    instanced_in.each(
-      (entity, geometry, material, position, rotation, scale, count) => {
-        // Create a new InstancedMesh for each `Instanced` entity and add it to the scene.
-        let mesh = new three.InstancedMesh(geometry, material, count)
-        mesh.castShadow = world.has(entity, CastsShadow)
-        mesh.receiveShadow = world.has(entity, ReceivesShadow)
-        mesh.position.set(position.x, position.y, position.z)
-        mesh.rotation.set(rotation.x, rotation.y, rotation.z)
-        mesh.scale.setScalar(scale)
-        SparseMap.set(objects_by_entity, entity, mesh)
-        scene.add(mesh)
-        // Create an instance list used to track the index of each instance.
-        if (!SparseMap.has(instance_index, entity)) {
-          SparseMap.set(instance_index, entity, SparseSet.make())
-        }
-      },
-    )
-
-    instances_in.each(entity => {
-      const instance_of = world.getExclusiveRelative(entity, InstanceOf)
-      const instances = SparseMap.get(instance_index, instance_of)
-      if (instances) {
-        SparseSet.add(instances, entity)
-      }
-    })
-
-    cameras_in.each((_, _camera, position, rotation) => {
-      camera = _camera
-      camera.position.set(position.x, position.y, position.z)
-      camera.rotation.set(rotation.x, rotation.y, rotation.z)
-      camera_controls = new CameraControls(camera, renderer.domElement)
-    })
-
-    lights_in.each((entity, light, position, rotation) => {
-      light.position.set(position.x, position.y, position.z)
-      light.rotation.set(rotation.x, rotation.y, rotation.z)
-      SparseMap.set(objects_by_entity, entity, light)
-      scene.add(light)
-    })
-
-    meshes_in.each((entity, geometry, material, position, rotation, scale) => {
+    meshes_in.each((entity, geometry, material) => {
       let mesh = new three.Mesh(geometry, material)
       mesh.castShadow = world.has(entity, CastsShadow)
       mesh.receiveShadow = world.has(entity, ReceivesShadow)
-      mesh.position.set(position.x, position.y, position.z)
-      mesh.rotation.set(rotation.x, rotation.y, rotation.z)
-      mesh.scale.setScalar(scale)
       SparseMap.set(objects_by_entity, entity, mesh)
       scene.add(mesh)
     })
 
+    transforms.each((entity, position, rotation) => {
+      let mesh = SparseMap.get(objects_by_entity, entity)
+      if (mesh) {
+        mesh.position.set(position.x, position.y, position.z)
+        mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+      }
+    })
+  }
+}
+
+export let scale_system: System = world => {
+  let scaled_in = query(world, type(Scale), In())
+  return () => {
+    scaled_in.each((entity, scale) => {
+      let mesh = SparseMap.get(objects_by_entity, entity)
+      if (mesh) {
+        mesh.scale.set(scale.x, scale.y, scale.z)
+      }
+    })
+  }
+}
+
+export let lights_system: System = world => {
+  let lights_in = query(world, Light, In())
+  return () => {
+    lights_in.each((entity, light) => {
+      SparseMap.set(objects_by_entity, entity, light)
+      scene.add(light)
+    })
+  }
+}
+
+export let instance_system: System = world => {
+  let instanced = query(world, type(Instanced))
+  let instanced_in = query(world, type(Instanced), In())
+  let instances_in = query(world, type(IsInstance, Transform), In())
+  let instances_w_transforms = query(
+    world,
+    type(InstanceOf, Position, Rotation),
+  )
+  const proxy = new three.Object3D()
+  return () => {
+    instanced_in.each((entity, geometry, material, count) => {
+      // Create a new InstancedMesh for each `Instanced` entity and add it to the scene.
+      let mesh = new three.InstancedMesh(geometry, material, count)
+      mesh.castShadow = world.has(entity, CastsShadow)
+      mesh.receiveShadow = world.has(entity, ReceivesShadow)
+      SparseMap.set(objects_by_entity, entity, mesh)
+      scene.add(mesh)
+      // Create an instance list used to track the index of each instance.
+      if (!SparseMap.has(object_instances, entity)) {
+        SparseMap.set(object_instances, entity, SparseSet.make())
+      }
+    })
+
+    instances_in.each((entity, position, rotation) => {
+      const proxy = new three.Object3D()
+      let instance_of = world.getExclusiveRelative(entity, InstanceOf)
+      let instances = SparseMap.get(object_instances, instance_of)
+      proxy.position.set(position.x, position.y, position.z)
+      proxy.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+      if (world.has(entity, Scale)) {
+        let scale = world.get(entity, Scale)
+        proxy.scale.set(scale.x, scale.y, scale.z)
+      }
+      proxy.updateMatrix()
+      let mesh = SparseMap.get(objects_by_entity, instance_of) as
+        | three.InstancedMesh
+        | undefined
+      if (instances) {
+        let index = SparseSet.add(instances, entity)
+        if (mesh) {
+          mesh.setMatrixAt(index, proxy.matrix)
+          mesh.instanceMatrix.needsUpdate = true
+        }
+      }
+    })
+
     instanced.each(instance_of => {
-      const instance_set = SparseMap.get(instance_index, instance_of)
+      const instance_set = SparseMap.get(object_instances, instance_of)
       if (instance_set === undefined) {
         return
       }
@@ -124,27 +171,54 @@ export let threeSystem: System = world => {
         objects_by_entity,
         instance_of,
       ) as three.InstancedMesh
-      instances.each(instance_of, (instance, position, rotation) => {
-        temp_position.set(position.x, position.y, position.z)
-        temp_rotation.set(rotation.x, rotation.y, rotation.z)
-        temp_matrix4.makeRotationFromEuler(temp_rotation)
-        temp_matrix4.setPosition(position.x, position.y, position.z)
-        mesh.setMatrixAt(
-          SparseSet.index_of(instance_set, instance),
-          temp_matrix4,
-        )
-      })
+      instances_w_transforms.each(
+        instance_of,
+        (instance, position, rotation) => {
+          proxy.position.set(position.x, position.y, position.z)
+          proxy.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+          if (world.has(instance, Scale)) {
+            let scale = world.get(instance, Scale)
+            proxy.scale.set(scale.x, scale.y, scale.z)
+          }
+          proxy.updateMatrix()
+          mesh.setMatrixAt(
+            SparseSet.index_of(instance_set, instance),
+            proxy.matrix,
+          )
+          mesh.instanceMatrix.needsUpdate = true
+          // temp_position.set(position.x, position.y, position.z)
+          // temp_rotation.set(rotation.x, rotation.y, rotation.z, rotation.w)
+          // temp_matrix4.makeRotationFromQuaternion(temp_rotation)
+          // temp_matrix4.setPosition(position.x, position.y, position.z)
+          // mesh.setMatrixAt(
+          //   SparseSet.index_of(instance_set, instance),
+          //   temp_matrix4,
+          // )
+        },
+      )
       mesh.instanceMatrix.needsUpdate = true
     })
+  }
+}
 
-    objects.each((entity, position, rotation) => {
-      let mesh = SparseMap.get(objects_by_entity, entity)
-      if (mesh) {
-        mesh.position.set(position.x, position.y, position.z)
-        mesh.rotation.set(rotation.x, rotation.y, rotation.z)
+export let camera_system: System = world => {
+  let clock = new three.Clock()
+  let camera: three.PerspectiveCamera | three.OrthographicCamera
+  let camera_controls: CameraControls
+  let cameras_in = query(world, Camera, In())
+  return () => {
+    cameras_in.each((entity, c) => {
+      camera = c
+      if (world.has(entity, Position)) {
+        let position = world.get(entity, Position)
+        camera.position.set(position.x, position.y, position.z)
       }
+      if (world.has(entity, Rotation)) {
+        let rotation = world.get(entity, Rotation)
+        camera.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+      }
+      camera_controls = new CameraControls(camera, renderer.domElement)
     })
-
     if (camera) {
       let delta = clock.getDelta()
       camera_controls?.update(delta)

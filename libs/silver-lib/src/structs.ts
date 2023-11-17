@@ -25,3 +25,4 @@ export class Position extends Vector3 {}
 export class Velocity extends Vector3 {}
 export class AngularVelocity extends Vector3 {}
 export class Rotation extends Quaternion {}
+export class Scale extends Vector3 {}

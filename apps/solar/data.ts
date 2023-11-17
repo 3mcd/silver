@@ -16,7 +16,7 @@ export const Satellite = ecs.type(Body, Orbits)
 const types = {Body, Satellite} as const
 
 type Data = {[K in keyof typeof types]: ecs.Data<(typeof types)[K]>[]}
-const keys = Object.keys(types) as Array<keyof typeof types>
+const keys = Object.keys(types) as (keyof typeof types)[]
 
 export const seed = (world: ecs.World, data = json as Data) => {
   const entities: Record<string, ecs.Entity> = {}

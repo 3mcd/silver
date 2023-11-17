@@ -370,7 +370,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     this.next = source.next
   }
 
-  slot_of(element: K, array: Array<K>, compare: BTreeMapCompare<K>): number {
+  slot_of(element: K, array: K[], compare: BTreeMapCompare<K>): number {
     let top = array.length
     let middle = top >>> 1
     let bottom = 0

@@ -3,13 +3,13 @@ import {ExcludeFromTuple} from "../types"
 import * as Commands from "../world/commands"
 import * as Component from "./component"
 
-type Spec<
-  U extends Array<Type | Component.T>,
+export type Spec<
+  U extends (Type | Component.T)[],
   Out extends Component.T[] = [],
 > = U extends []
   ? Out
   : U extends [infer Head, ...infer Tail]
-  ? Tail extends Array<Type | Component.T>
+  ? Tail extends (Type | Component.T)[]
     ? Spec<
         Tail,
         Head extends Type<infer V>
@@ -108,6 +108,12 @@ let with_ = <U extends Component.T[], V extends Component.T[]>(
   type_a: Type<U>,
   type_b: Type<V>,
 ): Type<[...U, ...V]> => {
+  for (let i = 0; i < type_b.components.length; i++) {
+    let component = type_b.components[i]
+    if (!Component.is_relation(component) && has_component(type_a, component)) {
+      throw new Error(`Failed to construct type: type has duplicate components`)
+    }
+  }
   let components = type_a.component_spec.concat(
     type_b.component_spec as Component.T[],
   )
@@ -148,7 +154,7 @@ let is_type = (obj: object): obj is Type => "components" in obj
 let sort_spec = (components: Component.T[]) =>
   components.sort((component_a, component_b) => component_a.id - component_b.id)
 
-let make_spec = <U extends Array<Type | Component.T>>(types: U): Spec<U> => {
+let make_spec = <U extends (Type | Component.T)[]>(types: U): Spec<U> => {
   let components = [] as Component.T[]
   for (let i = 0; i < types.length; i++) {
     let type = types[i]
@@ -225,15 +231,19 @@ export class Type<U extends Component.T[] = Component.T[]> {
       this.sparse[component.id] = i
     }
   }
+
+  toString() {
+    return `Type(${this.component_ids.join(",")})`
+  }
 }
 
 export type T<U extends Component.T[] = Component.T[]> = Type<U>
 
-let from = <U extends Array<Component.T | Type>>(types: U): Type<Spec<U>> => {
+let from = <U extends (Component.T | Type)[]>(types: U): Type<Spec<U>> => {
   return new Type(make_spec(types))
 }
 
-export let make = <U extends Array<Component.T | Type>>(
+export let make = <U extends (Component.T | Type)[]>(
   ...types: U
 ): Type<Spec<U>> => {
   return from(types)

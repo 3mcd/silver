@@ -90,26 +90,22 @@ let link_nodes = (
 
 let link_nodes_deep = (graph: Graph, node: Node): void => {
   traverse(graph.root, function link_nodes_deep_traverse(visited_node) {
-    if (Type.is_superset(visited_node.type, node.type)) {
+    let visited_node_has_supersets = false
+    for (let next_node of visited_node.edges_right.values()) {
+      if (Type.is_superset(node.type, next_node.type)) {
+        visited_node_has_supersets = true
+      }
+    }
+    if (
+      visited_node_has_supersets === false &&
+      Type.is_superset(node.type, visited_node.type)
+    ) {
+      link_nodes(node, visited_node)
+    } else if (Type.is_superset(visited_node.type, node.type)) {
       link_nodes(visited_node, node)
       return false
     }
-    if (Type.is_superset(node.type, visited_node.type)) {
-      // Otherwise, look ahead for nodes that are also supersets of the
-      // inserted node and create an intermediate edge.
-      for (let next_node of visited_node.edges_right.values()) {
-        // node=[a,b,d] visited_node=[a,b]->[a,b,d,e] result=[a,b]->[a,b,d]->[a,b,d,e]
-        if (Type.is_superset(next_node.type, node.type)) {
-          unlink_nodes(next_node, visited_node)
-          link_nodes(next_node, node)
-        } else if (Type.superset_may_contain(next_node.type, node.type)) {
-          return true
-        }
-      }
-      link_nodes(node, visited_node)
-      return false
-    }
-    return Type.superset_may_contain(visited_node.type, node.type)
+    return true
   })
 }
 

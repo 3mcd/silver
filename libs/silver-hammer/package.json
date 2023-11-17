@@ -1,0 +1,38 @@
+{
+  "name": "silver-hammer",
+  "version": "0.0.1",
+  "description": "silver-ecs devtool",
+  "keywords": [
+    "ecs",
+    "entity-component system",
+    "game",
+    "gamedev",
+    "devtool"
+  ],
+  "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3mcd/silver"
+  },
+  "main": "dist/silver-hammer.cjs.js",
+  "module": "dist/silver-hammer.esm.js",
+  "source": "./src/index.ts",
+  "types": "./dist/silver-hammer.cjs.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "vis-data": "^7.1.7",
+    "vis-network": "^9.1.6"
+  },
+  "devDependencies": {
+    "silver-ecs": "workspace:*"
+  },
+  "peerDependencies": {
+    "silver-ecs": "workspace:*"
+  }
+}

@@ -2,6 +2,7 @@ import * as Assert from "../assert"
 import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
+import {EntityBuilder} from "../entity/entity_builder"
 import * as EntityRegistry from "../entity/entity_registry"
 import * as Signal from "../signal"
 import * as SparseMap from "../sparse/sparse_map"
@@ -727,6 +728,10 @@ export class World {
 
   store(component_id: number) {
     return (this.stores[component_id] ??= [])
+  }
+
+  with<U extends Component.T[]>(type: Type.T<U>, ...init: Commands.Init<U>) {
+    return new EntityBuilder(this, type, ...init)
   }
 }
 export type T = World

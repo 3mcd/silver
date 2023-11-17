@@ -1,5 +1,5 @@
 {
-  "name": "relations",
+  "name": "three",
   "private": true,
   "version": "1.0.0",
   "description": "",
@@ -17,6 +17,7 @@
     "silver-lib": "workspace:*",
     "silver-rapier": "workspace:*",
     "silver-three": "workspace:*",
+    "silver-hammer": "workspace:*",
     "three": "^0.158.0"
   },
   "devDependencies": {
