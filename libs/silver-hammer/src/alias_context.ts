@@ -13,14 +13,14 @@ export class Aliases {
     return this
   }
 
-  get(type: Type) {
+  get = (type: Type) => {
     return `(${
       this.aliases[type.hash] ??
       type.component_ids.map(id => this.aliases[Hash.word(0, id)]).join(",")
     })`
   }
 
-  getComponent(component: Component) {
+  getComponent = (component: Component) => {
     if (is_relationship(component)) {
       let relation_id = parse_hi(component.id)
       let entity_id = parse_hi(component.id)

@@ -1,8 +1,7 @@
 import {Graph, SparseSet} from "silver-ecs"
 import {Table} from "../../components/table"
 import {Type} from "../../components/type"
-import {useGraph} from "../../hooks/use_graph"
-import {useCallback} from "react"
+import {useGraph, useNode} from "../../hooks/use_graph"
 
 type Props = {
   onNodeSelected: (node: Graph.Node) => void
@@ -10,6 +9,7 @@ type Props = {
 
 let EntityNodeRow = (props: {node: Graph.Node; onClick(): void}) => {
   let size = SparseSet.size(props.node.entities)
+  useNode(props.node)
   if (size === 0) {
     return null
   }

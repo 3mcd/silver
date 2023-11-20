@@ -1,4 +1,4 @@
-import * as Data from "./data"
+import * as Data from "./schema"
 import * as Type from "./type"
 import {Brand} from "../types"
 import * as Entity from "../entity/entity"
@@ -407,6 +407,9 @@ export let is_relationship = (component: T): component is TRelationship =>
 export let is_value_relationship = (
   component: T,
 ): component is ValueRelationship => component.kind === Kind.ValueRelationship
+
+export let is_tag_relationship = (component: T): component is TagRelationship =>
+  component.kind === Kind.TagRelationship
 
 export let is_tag = (component: T): component is Tag | TagRelation =>
   component.kind === Kind.Tag || component.kind === Kind.TagRelation

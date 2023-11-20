@@ -1,8 +1,10 @@
 import {useCallback, useState} from "react"
 import * as ecs from "silver-ecs"
+import {DebugSelected} from "silver-lib"
+import {useWorld} from "../../hooks/use_world"
 import {Entity} from "./entity"
-import {EntityNodes} from "./entity_nodes"
 import {EntityNode} from "./entity_node"
+import {EntityNodes} from "./entity_nodes"
 
 type Props = {}
 
@@ -21,6 +23,7 @@ type State =
     }
 
 export let Entities = (props: Props) => {
+  let world = useWorld()
   let [state, setState] = useState<State>({
     status: "nodes",
   })
@@ -36,8 +39,16 @@ export let Entities = (props: Props) => {
     setState({status: "node", node})
   }, [])
   let on_entity_selected = useCallback(
-    (entity: ecs.Entity, node: ecs.Graph.Node) => {
-      setState({status: "entity", entity, node})
+    (entity: ecs.Entity, node: ecs.Graph.Node, select: boolean) => {
+      if (select) {
+        if (world.has(entity, DebugSelected)) {
+          world.remove(entity, DebugSelected)
+        } else {
+          world.add(entity, DebugSelected)
+        }
+      } else {
+        setState({status: "entity", entity, node})
+      }
     },
     [],
   )

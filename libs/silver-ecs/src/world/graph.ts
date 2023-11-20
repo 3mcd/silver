@@ -12,6 +12,7 @@ let next_node_id = 0
 let make_node_id = () => next_node_id++
 
 export class Node {
+  $changed
   $created
   $excluded
   $included
@@ -23,6 +24,7 @@ export class Node {
   type
 
   constructor(type: Type.T = Type.make()) {
+    this.$changed = Signal.make()
     this.$created = Signal.make<Node>()
     this.$excluded = Signal.make<Transition.Event>()
     this.$included = Signal.make<Transition.Event>()
@@ -46,10 +48,12 @@ let unlink_nodes = (
 
 export let insert_entity = (node: Node, entity: Entity.T): void => {
   SparseSet.add(node.entities, entity)
+  Signal.emit(node.$changed, null)
 }
 
 export let remove_entity = (node: Node, entity: Entity.T): void => {
   SparseSet.delete(node.entities, entity)
+  Signal.emit(node.$changed, null)
 }
 
 export let traverse = (node: Node, iteratee: NodeIteratee): void => {

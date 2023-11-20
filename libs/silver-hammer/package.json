@@ -32,6 +32,7 @@
     "@ark-ui/react": "^1.0.1",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
+    "lucide-react": "^0.292.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "vis-data": "^7.1.7",
@@ -45,7 +46,8 @@
     "silver-ecs": "workspace:*"
   },
   "peerDependencies": {
-    "silver-ecs": "workspace:*"
+    "silver-ecs": "workspace:*",
+    "silver-lib": "workspace:*"
   },
   "preconstruct": {
     "entrypoints": [

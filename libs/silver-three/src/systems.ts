@@ -3,9 +3,11 @@ import {
   Entity,
   In,
   Not,
+  Out,
   SparseMap,
   SparseSet,
   System,
+  World,
   query,
   run,
   type,
@@ -201,6 +203,14 @@ export let instance_system: System = world => {
   }
 }
 
+let toggle_selected = (world: World, entity: Entity) => {
+  if (world.has(entity, DebugSelected)) {
+    world.remove(entity, DebugSelected)
+  } else {
+    world.add(entity, DebugSelected)
+  }
+}
+
 export let camera_system: System = world => {
   let clock = new three.Clock()
   let camera: three.PerspectiveCamera | three.OrthographicCamera
@@ -226,10 +236,10 @@ export let camera_system: System = world => {
               instances,
               instance_intersects[0].instanceId!,
             )
-            world.add(instance, DebugSelected)
+            toggle_selected(world, instance)
           }
         } else {
-          world.add(entity, DebugSelected)
+          toggle_selected(world, entity)
         }
       }
     }
@@ -257,19 +267,27 @@ export let camera_system: System = world => {
 }
 
 export let debug_system: System = world => {
-  let selected = query(world, DebugSelected, In(), Not(IsInstance))
-  let selected_instances = query(world, type(DebugSelected, IsInstance), In())
+  let selected_in = query(world, DebugSelected, In(), Not(IsInstance))
+  let selected_instances_in = query(
+    world,
+    type(DebugSelected, IsInstance),
+    In(),
+  )
+  let selected_instances_out = query(
+    world,
+    type(DebugSelected, IsInstance),
+    Out(),
+  )
   return () => {
-    selected.each(entity => {
+    selected_in.each(entity => {
       let mesh = SparseMap.get(objects_by_entity, entity) as
         | three.Mesh
         | undefined
       if (mesh) {
-        console.log(mesh)
-        mesh.material.color.setHex(0xff5555)
+        mesh.material?.color?.setHex(0xff5555)
       }
     })
-    selected_instances.each(entity => {
+    selected_instances_in.each(entity => {
       let instance_of = world.getExclusiveRelative(entity, InstanceOf)
       let instances = SparseMap.get(object_instances, instance_of)
       if (instances) {
@@ -279,6 +297,23 @@ export let debug_system: System = world => {
           | undefined
         if (mesh) {
           mesh.setColorAt(index, new three.Color(0xff, 0x55, 0x55))
+          mesh.instanceColor!.needsUpdate = true
+        }
+      }
+    })
+    selected_instances_out.each(entity => {
+      let instance_of = world.getExclusiveRelative(entity, InstanceOf)
+      let instances = SparseMap.get(object_instances, instance_of)
+      if (instances) {
+        let index = SparseSet.index_of(instances, entity)
+        let mesh = SparseMap.get(objects_by_entity, instance_of) as
+          | three.InstancedMesh
+          | undefined
+        if (mesh) {
+          mesh.setColorAt(
+            index,
+            (mesh.material as three.MeshStandardMaterial).color,
+          )
           mesh.instanceColor!.needsUpdate = true
         }
       }
