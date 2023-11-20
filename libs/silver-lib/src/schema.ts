@@ -1,4 +1,4 @@
-import {Type, type, value} from "silver-ecs"
+import {Type, tag, type, value} from "silver-ecs"
 import * as structs from "./structs"
 
 export type Vector3 = {
@@ -59,3 +59,5 @@ export let Scale = with_initializer(
 
 export let Transform = type(Position, Rotation)
 export let Kinetic = type(LinearVelocity, AngularVelocity)
+
+export let DebugSelected = tag()

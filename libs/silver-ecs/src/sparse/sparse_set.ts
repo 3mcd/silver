@@ -22,6 +22,10 @@ export let add = <U extends number>(set: SparseSet<U>, value: U): number => {
   return (set.sparse[value] ??= set.dense.push(value) - 1)
 }
 
+export let at = <U extends number>(set: SparseSet<U>, index: number): U => {
+  return set.dense[index]
+}
+
 export let index_of = <U extends number>(
   set: SparseSet<U>,
   value: U,

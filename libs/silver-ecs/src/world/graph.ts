@@ -2,6 +2,7 @@ import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
 import * as Signal from "../signal"
+import * as SparseMap from "../sparse/sparse_map"
 import * as SparseSet from "../sparse/sparse_set"
 import * as Transition from "./transition"
 
@@ -123,7 +124,7 @@ let insert_node = (graph: Graph, type: Type.T): Node => {
     if (next_node === undefined) {
       next_node = new Node(next_type)
       graph.nodes_by_components_hash.set(next_type.hash, next_node)
-      graph.nodes_by_id[next_node.id] = next_node
+      SparseMap.set(graph.nodes_by_id, next_node.id, next_node)
       link_nodes(next_node, node, Type.xor(next_node.type, node.type))
       link_nodes_deep(graph, next_node)
       emit_node_traverse(next_node)
@@ -141,7 +142,7 @@ let drop_node = (graph: Graph, node: Node): void => {
     unlink_nodes(node, prev_node, xor)
   })
   graph.nodes_by_components_hash.delete(node.type.hash)
-  graph.nodes_by_id[node.id] = undefined!
+  SparseMap.set(graph.nodes_by_id, node.id, undefined!)
   Signal.dispose(node.$removed)
   Signal.dispose(node.$created)
 }
@@ -188,8 +189,8 @@ export let resolve = (graph: Graph, type: Type.T): Node => {
   return node
 }
 
-export let find_by_id = (graph: Graph, hash: number): Node | undefined => {
-  return graph.nodes_by_id[hash]
+export let find_by_id = (graph: Graph, node_id: number): Node | undefined => {
+  return SparseMap.get(graph.nodes_by_id, node_id)
 }
 
 export class Graph {
@@ -199,10 +200,10 @@ export class Graph {
 
   constructor() {
     this.root = new Node()
-    this.nodes_by_id = [] as Node[]
+    this.nodes_by_id = SparseMap.make<Node>()
     this.nodes_by_components_hash = new Map<number, Node>()
     this.nodes_by_components_hash.set(this.root.type.hash, this.root)
-    this.nodes_by_id[this.root.id] = this.root
+    SparseMap.set(this.nodes_by_id, this.root.id, this.root)
   }
 }
 export type T = Graph

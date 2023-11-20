@@ -10,7 +10,7 @@ import {In, Not, SparseMap, System, query} from "silver-ecs"
 import {Scale} from "silver-lib"
 import {Body, RigidBody} from "./schema"
 
-let {RigidBodyDesc, World} = await import("@dimforge/rapier3d")
+import {RigidBodyDesc, World} from "@dimforge/rapier3d"
 
 export let rapier3dSystem: System = world => {
   let rapier_world = new World({x: 0.0, y: -9.81, z: 0.0})
@@ -26,7 +26,7 @@ export let rapier3dSystem: System = world => {
           shape.halfExtents.x * scale.x,
           shape.halfExtents.y * scale.y,
           shape.halfExtents.z * scale.z,
-        )
+        ).setRestitution(collider_desc.restitution)
       }
       case ShapeType.Ball: {
         let shape = collider_desc.shape as Ball

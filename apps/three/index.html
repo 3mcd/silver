@@ -12,6 +12,13 @@
         height: 100vh;
         display: block;
       }
+      #root {
+        max-width: 100vw;
+        height: 100vh;
+        display: fixed;
+        top: 0;
+        left: 0;
+      }
     </style>
   </head>
   <body>
@@ -19,14 +26,11 @@
       id="root"
       style="
         position: fixed;
-        width: 100vw;
-        height: 60vh;
         bottom: 0;
         border-top: 1px solid #fff;
         background-color: #fff;
-        display: none;
       "
     ></div>
-    <script src="src/index.ts" type="module"></script>
+    <script src="src/index.tsx" type="module"></script>
   </body>
 </html>

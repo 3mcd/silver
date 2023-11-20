@@ -21,9 +21,6 @@
   "module": "dist/silver-three.esm.js",
   "source": "./src/index.ts",
   "types": "./dist/silver-three.cjs.d.ts",
-  "scripts": {
-    "build": "tsc"
-  },
   "devDependencies": {
     "@types/three": "^0.158.2",
     "silver-ecs": "workspace:*",

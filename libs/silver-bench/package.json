@@ -24,9 +24,6 @@
   "bin": {
     "silver-bench": "./cli/dist/silver-bench-cli.esm.js"
   },
-  "scripts": {
-    "build": "tsc"
-  },
   "dependencies": {
     "@esbuild-kit/esm-loader": "^2.6.5",
     "colorette": "^2.0.20",

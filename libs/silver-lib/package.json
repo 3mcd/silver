@@ -23,9 +23,6 @@
   "module": "dist/silver-lib.esm.js",
   "source": "./src/index.ts",
   "types": "./dist/silver-lib.cjs.d.ts",
-  "scripts": {
-    "build": "tsc"
-  },
   "devDependencies": {
     "silver-ecs": "workspace:*"
   },

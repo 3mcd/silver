@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "bench": "PERF_UNIT=ms pnpm --filter=silver-ecs bench",
-    "build": "preconstruct build",
+    "build": "preconstruct build && pnpm -r build",
     "dev": "pnpm --filter=solar start",
     "postinstall": "preconstruct dev",
     "reset": "pnpm reset:bench & pnpm reset:dist & pnpm i",
@@ -20,9 +20,11 @@
   "license": "MIT",
   "dependencies": {
     "@babel/preset-env": "^7.23.3",
+    "@babel/preset-react": "^7.23.3",
     "@babel/preset-typescript": "^7.23.3",
     "@preconstruct/cli": "^2.8.1",
     "@types/node": "^20.1.1",
+    "babel-plugin-transform-import-ignore": "^1.1.0",
     "esbuild": "^0.18.17",
     "typescript": "^5.0.4",
     "vitest": "^0.30.1"

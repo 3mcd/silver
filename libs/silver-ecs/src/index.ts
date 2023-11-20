@@ -7,6 +7,7 @@ export type {
   Value,
   T as Component,
 } from "./data/component"
+export {is_relation, is_relationship, is_tag} from "./data/component"
 export * from "./data/data"
 export {make as type} from "./data/type"
 export type {Type} from "./data/type"
@@ -27,6 +28,8 @@ import type {World} from "./world/world"
 export type Data<T extends Type> = T extends Type<infer U> ? Init<U> : never
 export type System = (world: World) => () => void
 export * as Graph from "./world/graph"
+export * as Hash from "./hash"
+export {parse_lo, parse_hi} from "./entity/entity"
 
 type InitType<U extends Type> = U extends Type<infer T> ? Init<T> : never
 export type {InitType as Init}

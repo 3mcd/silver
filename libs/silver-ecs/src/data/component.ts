@@ -2,7 +2,6 @@ import * as Data from "./data"
 import * as Type from "./type"
 import {Brand} from "../types"
 import * as Entity from "../entity/entity"
-import {Out} from "../query/filter"
 
 export enum Kind {
   Tag,

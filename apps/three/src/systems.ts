@@ -6,15 +6,15 @@ import {
   LinearVelocity,
   Position,
   Rotation,
-  Transform,
   Scale,
+  Transform,
 } from "silver-lib"
 import {Collider} from "silver-rapier"
 import {
   Camera,
   CastsShadow,
   Instance,
-  Instanced,
+  InstanceCount,
   Light,
   Mesh,
   ReceivesShadow,
@@ -26,16 +26,18 @@ import {
   MathUtils,
   MeshStandardMaterial,
   PerspectiveCamera,
+  SphereGeometry,
   Vector3,
 } from "three"
 import {Sky} from "three/examples/jsm/objects/Sky"
 
-const boxGeometry = new BoxGeometry(1, 1, 1)
+const boxGeometry = new BoxGeometry()
 const boxMaterial = new MeshStandardMaterial({
-  color: 0x049ef4,
+  color: 0xff0000,
   metalness: 1,
   roughness: 0.5,
 })
+const boxColliderDesc = ColliderDesc.cuboid(0.5, 0.5, 0.5).setRestitution(0.6)
 
 const sunlight = new DirectionalLight(0xfdfbd3, 5)
 sunlight.castShadow = true
@@ -48,44 +50,35 @@ sunlight.shadow.camera.right = 100
 sunlight.shadow.mapSize.width = 2048 * 2
 sunlight.shadow.mapSize.height = 2048 * 2
 
-const cubeColliderDesc = ColliderDesc.cuboid(0.5, 0.5, 0.5)
-
 export const spawnSystem: System = world => {
   const n = 40
-  const boxCount = n / 2 + Math.pow(n, 2) / 2
+  const boxCount = Math.pow(n, 2)
 
   // terrain
   world
-    .with(
-      Mesh,
-      new BoxGeometry(100, 0.1, 100),
-      new MeshStandardMaterial({color: 0xffffff}),
-    )
+    .with(Mesh, new BoxGeometry(200, 1, 200), new MeshStandardMaterial())
     .with(Transform, Position.make(0, -10, 0), Rotation.make())
-    .with(Collider, ColliderDesc.cuboid(50, 0.05, 50))
+    .with(Collider, ColliderDesc.cuboid(100, 0.5, 100))
     .with(ReceivesShadow)
-    .with(Scale, Scale.make(0.5, 0.5, 0.5))
     .spawn()
 
   // box instanced mesh
   const instanced = world
-    .with(Instanced, boxGeometry, boxMaterial, boxCount)
+    .with(Mesh, boxGeometry, boxMaterial)
+    .with(InstanceCount, boxCount)
     .with(CastsShadow)
     .with(ReceivesShadow)
     .spawn()
 
   // box instances
   for (let i = 0; i < n; i++) {
-    for (let j = i; j < n; j++) {
+    for (let j = 0; j < n; j++) {
       world
         .with(Instance, instanced)
         .with(Transform, Position.make(j * 2 - n, i * 2, 0), Rotation.make())
-        .with(Collider, cubeColliderDesc)
+        .with(Collider, boxColliderDesc)
         .with(Kinetic, LinearVelocity.make(), AngularVelocity.make())
-        .with(
-          Scale,
-          Scale.make(0.5 + j / n, 0.5 + i / n, 0.5 + (i + j) / 2 / n),
-        )
+        .with(Scale, Scale.make(0.3 + j / n))
         .spawn()
     }
   }
@@ -98,6 +91,7 @@ export const spawnSystem: System = world => {
     MathUtils.degToRad(90 - 2),
     MathUtils.degToRad(180),
   )
+  sun.multiplyScalar(100)
   sky.material.uniforms.sunPosition.value.copy(sun)
   world
     .with(Mesh, sky.geometry, sky.material)
@@ -105,10 +99,7 @@ export const spawnSystem: System = world => {
     .spawn()
 
   // sunlight
-  world
-    .with(Light, sunlight)
-    .with(Transform, sun.multiplyScalar(100), Rotation.make())
-    .spawn()
+  world.with(Light, sunlight).with(Transform, sun, Rotation.make()).spawn()
 
   // ambient light
   world.with(Light, new AmbientLight(0xfdfbd3, 0.2)).spawn()
@@ -121,10 +112,10 @@ export const spawnSystem: System = world => {
         75,
         window.innerWidth / window.innerHeight,
         0.1,
-        2000000,
+        2_000_000,
       ),
     )
-    .with(Transform, Position.make(0, 0, -100), Rotation.make())
+    .with(Transform, Position.make(0, 0, -50), Rotation.make())
     .spawn()
 
   return () => {}
