@@ -79,11 +79,15 @@ export let rapier3dSystem: System = world => {
         let handle = SparseMap.get(handles_by_entity, entity)
         if (handle) {
           let rigid_body = rapier_world.getRigidBody(handle)
-          Object.assign(position, rigid_body.translation())
-          Object.assign(rotation, rigid_body.rotation())
-          // TODO: These might not be necessary.
-          // Object.assign(velocity, rigid_body.linvel())
-          // Object.assign(angular_velocity, rigid_body.angvel())
+          let rigid_body_translation = rigid_body.translation()
+          let rigid_body_rotation = rigid_body.rotation()
+          position.x = rigid_body_translation.x
+          position.y = rigid_body_translation.y
+          position.z = rigid_body_translation.z
+          rotation.x = rigid_body_rotation.x
+          rotation.y = rigid_body_rotation.y
+          rotation.z = rigid_body_rotation.z
+          rotation.w = rigid_body_rotation.w
         }
       },
     )

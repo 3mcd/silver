@@ -1,6 +1,6 @@
 import {useContext, useLayoutEffect, useMemo, useState} from "react"
 import {Graph, Signal, SparseMap, type} from "silver-ecs"
-import {worldContext} from "../world_context"
+import {worldContext} from "../context/world_context"
 import {useWorld} from "./use_world"
 import {DebugSelected} from "silver-lib"
 

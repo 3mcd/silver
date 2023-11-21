@@ -1,14 +1,6 @@
 import {ChevronLeftIcon, ChevronRightIcon} from "lucide-react"
-import {useCallback, useState} from "react"
-import {
-  Entity,
-  Graph,
-  SparseSet,
-  is_relation,
-  is_relationship,
-  is_tag,
-  is_tag_relationship,
-} from "silver-ecs"
+import {useCallback, useLayoutEffect, useMemo, useState} from "react"
+import * as ecs from "silver-ecs"
 import {DebugSelected} from "silver-lib"
 import {Stack, styled} from "../../../styled-system/jsx"
 import {Button} from "../../components/button"
@@ -16,54 +8,23 @@ import {IconButton} from "../../components/icon_button"
 import {Pagination} from "../../components/pagination"
 import {Table} from "../../components/table"
 import {Text} from "../../components/text"
-import {Value} from "../../components/value"
 import {useAliases} from "../../hooks/use_aliases"
-import {useNode} from "../../hooks/use_graph"
 import {useWorld} from "../../hooks/use_world"
+import {EntityRow} from "../entities/entity_node"
 
 type Props = {
-  node: Graph.Node
-  onEntitySelected: (entity: Entity, node: Graph.Node, select: boolean) => void
+  query: ecs.Query
   onBack(): void
+  onEntitySelected(
+    entity: ecs.Entity,
+    node: ecs.Graph.Node,
+    ctrlKey: boolean,
+  ): void
 }
 
-export let EntityRow = (props: {
-  entity: Entity
-  node: Graph.Node
-  onClick(event: React.MouseEvent): void
-  selected: boolean
-}) => {
-  return (
-    <Table.Row
-      onClick={props.onClick}
-      backgroundColor={props.selected ? "accent.default" : undefined}
-      _hover={{
-        color: "accent.fg",
-        backgroundColor: "accent.default",
-        cursor: "pointer",
-      }}
-    >
-      <Table.Cell>{props.entity}</Table.Cell>
-      {props.node.type.components
-        .filter(
-          component => !is_tag(component) && !is_tag_relationship(component),
-        )
-        .map(component =>
-          is_relation(component) ? null : (
-            <Table.Cell key={component.id}>
-              <Value entity={props.entity} component={component} />
-            </Table.Cell>
-          ),
-        )}
-    </Table.Row>
-  )
-}
-
-export let EntityNode = (props: Props) => {
+export let Query = (props: Props) => {
   let world = useWorld()
   let aliases = useAliases()
-  let entities = SparseSet.values(props.node.entities)
-  let entities_count = SparseSet.size(props.node.entities)
   let [page, setPage] = useState({page: 1, pageSize: 15})
   let on_page_change = useCallback(
     (details: {page: number; pageSize: number}) => {
@@ -71,9 +32,24 @@ export let EntityNode = (props: Props) => {
     },
     [],
   )
+  let [results, setResults] = useState<[ecs.Entity, values: unknown[]][]>([])
+  let system = useMemo<ecs.System>(() => {
+    return () => {
+      return () => {
+        let results: [ecs.Entity, values: unknown[]][] = []
+        props.query.each((entity, ...rest) => {
+          results.push([entity, rest])
+        })
+        setResults(results)
+      }
+    }
+  }, [props.query, world])
   let offset = (page.page - 1) * page.pageSize
-  let tags = props.node.type.components.filter(is_tag)
-  useNode(props.node)
+  let tags = props.query.type.components.filter(ecs.is_tag)
+  useLayoutEffect(() => {
+    ecs.run(world, system)
+  }, [props.query, system])
+  let entities_count = results.length ?? 0
   return (
     <Stack height="100%">
       <styled.div>
@@ -93,12 +69,12 @@ export let EntityNode = (props: Props) => {
               </styled.dd>
             </>
           )}
-          {props.node.type.relationships.length > 0 && (
+          {props.query.type.relationships.length > 0 && (
             <>
               <styled.dt fontWeight="medium">Relationships</styled.dt>
               <styled.dd marginLeft="3">
                 <Text>
-                  {props.node.type.relationships
+                  {props.query.type.relationships
                     .map(aliases.getComponent)
                     .join(", ")}
                 </Text>
@@ -112,13 +88,14 @@ export let EntityNode = (props: Props) => {
           <Table.Header position="sticky" top="0" background="bg.default">
             <Table.Row>
               <Table.Head>ID</Table.Head>
-              {props.node.type.components
+              {props.query.type.components
                 .filter(
                   component =>
-                    !is_tag(component) && !is_tag_relationship(component),
+                    !ecs.is_tag(component) &&
+                    !ecs.is_tag_relationship(component),
                 )
                 .map(component =>
-                  is_relation(component) ? null : (
+                  ecs.is_relation(component) ? null : (
                     <Table.Head key={component.id}>
                       {aliases.getComponent(component)}
                     </Table.Head>
@@ -127,8 +104,8 @@ export let EntityNode = (props: Props) => {
             </Table.Row>
           </Table.Header>
           <Table.Body overflow="auto">
-            {entities
-              .sort((a, b) => {
+            {results
+              .sort(([a], [b]) => {
                 let a_selected = world.has(a, DebugSelected)
                 let b_selected = world.has(b, DebugSelected)
                 if (a_selected && !b_selected) {
@@ -140,13 +117,13 @@ export let EntityNode = (props: Props) => {
                 return 0
               })
               .slice(offset, offset + page.pageSize)
-              .map(entity => (
+              .map(([entity]) => (
                 <EntityRow
                   key={entity}
                   entity={entity}
-                  node={props.node}
+                  node={props.query.node}
                   onClick={e => {
-                    props.onEntitySelected(entity, props.node, e.ctrlKey)
+                    props.onEntitySelected(entity, props.query.node, e.ctrlKey)
                   }}
                   selected={world.has(entity, DebugSelected)}
                 />

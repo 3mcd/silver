@@ -2,9 +2,9 @@ import React from "react"
 import {createRoot} from "react-dom/client"
 import {Type, World} from "silver-ecs"
 import App from "./app"
-import {Aliases, makeAliases} from "./alias_context"
+import {Aliases, makeDebugAliases} from "./context/alias_context"
 
-export {makeAliases}
+export {makeDebugAliases}
 
 export let mount = (world: World, element: HTMLElement, aliases: Aliases) => {
   createRoot(element).render(React.createElement(App, {world}))

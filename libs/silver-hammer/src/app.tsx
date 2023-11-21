@@ -1,17 +1,21 @@
 import {useEffect, useState} from "react"
-import {World} from "silver-ecs"
+import {Query, World} from "silver-ecs"
 import {Stack} from "../styled-system/jsx"
-import {Aliases} from "./alias_context"
-import {AliasProvider} from "./alias_provider"
-import {Heading} from "./components/heading"
+import {Aliases} from "./context/alias_context"
+import {AliasProvider} from "./context/alias_provider"
 import {Tabs} from "./components/tabs"
 import "./index.css"
 import {Entities} from "./tools/entities"
-import {WorldProvider} from "./world_provider"
+import {WorldProvider} from "./context/world_provider"
+import {Queries} from "./tools/queries"
+import {QueryProvider} from "./context/query_provider"
 
 export type AppProps = {
   world: World
   aliases?: Aliases
+  queries?: {
+    [key: string]: Query
+  }
 }
 
 let Inspector = () => {
@@ -22,22 +26,16 @@ let Inspector = () => {
           <Tabs.Trigger key="entities" value="entities">
             Entities
           </Tabs.Trigger>
-          <Tabs.Trigger key="systems" value="systems">
-            Systems
-          </Tabs.Trigger>
-          <Tabs.Trigger key="components" value="components">
-            Components
+          <Tabs.Trigger key="queries" value="queries">
+            Queries
           </Tabs.Trigger>
           <Tabs.Indicator />
         </Tabs.List>
         <Tabs.Content value="entities" overflow="hidden">
           <Entities />
         </Tabs.Content>
-        <Tabs.Content value="systems">
-          <div>Systems</div>
-        </Tabs.Content>
-        <Tabs.Content value="components">
-          <div>Systems</div>
+        <Tabs.Content value="queries">
+          <Queries />
         </Tabs.Content>
       </Tabs.Root>
     </Stack>
@@ -58,7 +56,9 @@ export default function App(props: AppProps) {
   return (
     <WorldProvider world={props.world}>
       <AliasProvider aliases={props.aliases}>
-        {open ? <Inspector /> : null}
+        <QueryProvider queries={props.queries}>
+          {open ? <Inspector /> : null}
+        </QueryProvider>
       </AliasProvider>
     </WorldProvider>
   )

@@ -1,12 +1,14 @@
-import {make, run} from "silver-ecs"
-import {makeAliases} from "silver-hammer"
+import {make, query, run} from "silver-ecs"
+import {makeDebugAliases} from "silver-hammer"
 import {
   AngularVelocity,
   DebugSelected,
+  Kinetic,
   LinearVelocity,
   Position,
   Rotation,
   Scale,
+  Transform,
 } from "silver-lib"
 import {Collider, rapier3dSystem} from "silver-rapier"
 import {
@@ -20,6 +22,7 @@ import {
   InstanceOf,
   InstanceCount,
   IsInstance,
+  Mesh,
 } from "silver-three"
 import {spawnSystem} from "./systems"
 
@@ -38,7 +41,7 @@ import React from "react"
 import ReactDOM from "react-dom/client"
 import Hammer from "silver-hammer/app"
 
-const aliases = makeAliases()
+const aliases = makeDebugAliases()
   .set(ThreePerspectiveCamera, "Camera")
   .set(ThreeLight, "Light")
   .set(ThreeGeometry, "Geometry")
@@ -58,6 +61,15 @@ const aliases = makeAliases()
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <Hammer world={world} aliases={aliases} />
+    <Hammer
+      world={world}
+      aliases={aliases}
+      queries={{
+        meshes: query(world, Mesh),
+        kinetics: query(world, Kinetic),
+        transforms: query(world, Transform),
+        selected: query(world, DebugSelected),
+      }}
+    />
   </React.StrictMode>,
 )

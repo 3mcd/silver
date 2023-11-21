@@ -33,7 +33,7 @@ import {Sky} from "three/examples/jsm/objects/Sky"
 
 const boxGeometry = new BoxGeometry()
 const boxMaterial = new MeshStandardMaterial({
-  color: 0xff0000,
+  color: 0xffffff,
   metalness: 1,
   roughness: 0.5,
 })
@@ -116,6 +116,16 @@ export const spawnSystem: System = world => {
       ),
     )
     .with(Transform, Position.make(0, 0, -50), Rotation.make())
+    .spawn()
+
+  // thing
+  world
+    .with(
+      Mesh,
+      new SphereGeometry(1, 32, 32),
+      new MeshStandardMaterial({color: 0x00ff00}),
+    )
+    .with(Transform, Position.make(), Rotation.make())
     .spawn()
 
   return () => {}

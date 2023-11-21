@@ -25,6 +25,7 @@ import {
   ReceivesShadow,
 } from "./schema"
 import {DebugSelected, Position, Rotation, Scale, Transform} from "silver-lib"
+import {debug_material} from "./debug_material"
 
 CameraControls.install({
   THREE: {
@@ -60,7 +61,6 @@ let scene = new three.Scene()
 
 let object_instances = SparseMap.make<SparseSet.T<Entity>>()
 let objects_by_entity = SparseMap.make<three.Object3D>()
-
 let entities_by_object = new WeakMap<three.Object3D, Entity>()
 
 export let threeSystem: System = world => {
@@ -163,12 +163,7 @@ export let instance_system: System = world => {
         let index = SparseSet.add(instances, entity)
         if (mesh) {
           mesh.setMatrixAt(index, proxy.matrix)
-          mesh.setColorAt(
-            index,
-            (mesh.material as three.MeshStandardMaterial).color,
-          )
-          mesh.instanceMatrix.needsUpdate = true
-          mesh.instanceColor!.needsUpdate = true
+          mesh.setColorAt(index, new three.Color(0xffffff))
         }
       }
     })
@@ -218,7 +213,11 @@ export let camera_system: System = world => {
   let cameras_in = query(world, Camera, In())
 
   let raycaster = new three.Raycaster()
+  raycaster.layers.set(0)
   renderer.domElement.addEventListener("click", event => {
+    if (!event.ctrlKey) {
+      return
+    }
     let mouse = new three.Vector2()
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
@@ -226,7 +225,7 @@ export let camera_system: System = world => {
     let intersects = raycaster.intersectObjects(scene.children)
     if (intersects.length > 0) {
       let entity = entities_by_object.get(intersects[0].object)
-      if (entity) {
+      if (entity !== undefined) {
         if (world.has(entity, InstanceCount)) {
           let instanced_mesh = SparseMap.get(objects_by_entity, entity)!
           let instances = SparseMap.get(object_instances, entity)!
@@ -246,8 +245,8 @@ export let camera_system: System = world => {
   })
 
   return () => {
-    cameras_in.each((entity, c) => {
-      camera = c
+    cameras_in.each((entity, _camera) => {
+      camera = _camera
       if (world.has(entity, Position)) {
         let position = world.get(entity, Position)
         camera.position.set(position.x, position.y, position.z)
@@ -256,6 +255,8 @@ export let camera_system: System = world => {
         let rotation = world.get(entity, Rotation)
         camera.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
       }
+      camera.layers.enable(0)
+      camera.layers.enable(1)
       camera_controls = new CameraControls(camera, renderer.domElement)
     })
     if (camera) {
@@ -268,6 +269,7 @@ export let camera_system: System = world => {
 
 export let debug_system: System = world => {
   let selected_in = query(world, DebugSelected, In(), Not(IsInstance))
+  let selected_out = query(world, DebugSelected, Out(), Not(IsInstance))
   let selected_instances_in = query(
     world,
     type(DebugSelected, IsInstance),
@@ -278,14 +280,25 @@ export let debug_system: System = world => {
     type(DebugSelected, IsInstance),
     Out(),
   )
+  let debug_color = new three.Color(0x00ff00)
   return () => {
     selected_in.each(entity => {
-      let mesh = SparseMap.get(objects_by_entity, entity) as
-        | three.Mesh
-        | undefined
-      if (mesh) {
-        mesh.material?.color?.setHex(0xff5555)
+      let mesh = SparseMap.get(objects_by_entity, entity)
+      if (!mesh) {
+        return
       }
+      let wireframe_geometry = (mesh as three.Mesh).geometry
+      let wireframe_material = debug_material
+      let wireframe = new three.Mesh(wireframe_geometry, wireframe_material)
+      wireframe.layers.set(1)
+      mesh.add(wireframe)
+    })
+    selected_out.each(entity => {
+      let mesh = SparseMap.get(objects_by_entity, entity)
+      if (!mesh) {
+        return
+      }
+      mesh.remove(mesh.children[0])
     })
     selected_instances_in.each(entity => {
       let instance_of = world.getExclusiveRelative(entity, InstanceOf)
@@ -295,8 +308,8 @@ export let debug_system: System = world => {
         let mesh = SparseMap.get(objects_by_entity, instance_of) as
           | three.InstancedMesh
           | undefined
-        if (mesh) {
-          mesh.setColorAt(index, new three.Color(0xff, 0x55, 0x55))
+        if (mesh?.isInstancedMesh) {
+          mesh.setColorAt(index, debug_color)
           mesh.instanceColor!.needsUpdate = true
         }
       }
@@ -309,7 +322,7 @@ export let debug_system: System = world => {
         let mesh = SparseMap.get(objects_by_entity, instance_of) as
           | three.InstancedMesh
           | undefined
-        if (mesh) {
+        if (mesh?.isInstancedMesh) {
           mesh.setColorAt(
             index,
             (mesh.material as three.MeshStandardMaterial).color,
