@@ -48,12 +48,16 @@ let unlink_nodes = (
 
 export let insert_entity = (node: Node, entity: Entity.T): void => {
   SparseSet.add(node.entities, entity)
-  Signal.emit(node.$changed, null)
+  traverse_left(node, function insert_entity_traverse_left(visit) {
+    Signal.emit(visit.$changed, null)
+  })
 }
 
 export let remove_entity = (node: Node, entity: Entity.T): void => {
   SparseSet.delete(node.entities, entity)
-  Signal.emit(node.$changed, null)
+  traverse_left(node, function insert_entity_traverse_left(visit) {
+    Signal.emit(visit.$changed, null)
+  })
 }
 
 export let traverse = (node: Node, iteratee: NodeIteratee): void => {

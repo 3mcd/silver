@@ -81,7 +81,7 @@ let emit_excluded_entities = (
   Graph.traverse_left(
     prev_node,
     function emit_excluded_entities(node: Graph.Node) {
-      if (node !== next_node) {
+      if (node !== next_node && !Type.is_superset(next_node.type, node.type)) {
         Signal.emit(node.$excluded, event)
       }
     },

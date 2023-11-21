@@ -108,12 +108,6 @@ let with_ = <U extends Component.T[], V extends Component.T[]>(
   type_a: Type<U>,
   type_b: Type<V>,
 ): Type<[...U, ...V]> => {
-  for (let i = 0; i < type_b.components.length; i++) {
-    let component = type_b.components[i]
-    if (!Component.is_relation(component) && has_component(type_a, component)) {
-      throw new Error(`Failed to construct type: type has duplicate components`)
-    }
-  }
   let components = type_a.component_spec.concat(
     type_b.component_spec as Component.T[],
   )
@@ -155,15 +149,28 @@ let sort_spec = (components: Component.T[]) =>
   components.sort((component_a, component_b) => component_a.id - component_b.id)
 
 let make_spec = <U extends (Type | Component.T)[]>(types: U): Spec<U> => {
+  let hits = new Set<Component.T>()
   let components = [] as Component.T[]
   for (let i = 0; i < types.length; i++) {
     let type = types[i]
     if (is_type(type)) {
       for (let j = 0; j < type.component_spec.length; j++) {
         let component = type.component_spec[j]
+        if (!Component.is_relation(component)) {
+          if (hits.has(component)) {
+            continue
+          }
+          hits.add(component)
+        }
         components.push(component)
       }
     } else {
+      if (!Component.is_relation(type)) {
+        if (hits.has(type)) {
+          continue
+        }
+        hits.add(type)
+      }
       components.push(type)
     }
   }

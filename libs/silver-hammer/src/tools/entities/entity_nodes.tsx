@@ -10,9 +10,6 @@ type Props = {
 let EntityNodeRow = (props: {node: Graph.Node; onClick(): void}) => {
   let size = SparseSet.size(props.node.entities)
   useNode(props.node)
-  if (size === 0) {
-    return null
-  }
   return (
     <Table.Row
       onClick={props.onClick}
@@ -25,9 +22,7 @@ let EntityNodeRow = (props: {node: Graph.Node; onClick(): void}) => {
       <Table.Cell>
         <Type type={props.node.type} />
       </Table.Cell>
-      <Table.Cell textAlign="right">
-        {SparseSet.size(props.node.entities)}
-      </Table.Cell>
+      <Table.Cell textAlign="right">{size}</Table.Cell>
     </Table.Row>
   )
 }
@@ -43,13 +38,16 @@ export let EntityNodes = (props: Props) => {
         </Table.Row>
       </Table.Header>
       <Table.Body>
-        {nodes.map(node => (
-          <EntityNodeRow
-            key={node.id}
-            node={node}
-            onClick={() => props.onNodeSelected(node)}
-          />
-        ))}
+        {nodes.map(node => {
+          let size = SparseSet.size(node.entities)
+          return size === 0 ? null : (
+            <EntityNodeRow
+              key={node.id}
+              node={node}
+              onClick={() => props.onNodeSelected(node)}
+            />
+          )
+        })}
       </Table.Body>
       <Table.Footer>
         <Table.Row>

@@ -1,9 +1,9 @@
 import * as ecs from "silver-ecs"
-import {Button} from "../../components/button"
+import {Button} from "../components/button"
 
 type Props = {
+  type: ecs.Type
   entity: ecs.Entity
-  node: ecs.Graph.Node
   onBack(): void
 }
 

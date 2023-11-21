@@ -12,6 +12,7 @@ export {
   is_relationship,
   is_tag,
   is_tag_relationship,
+  stores_value,
 } from "./data/component"
 export * from "./data/schema"
 export {make as type} from "./data/type"

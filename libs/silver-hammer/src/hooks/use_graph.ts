@@ -1,8 +1,6 @@
-import {useContext, useLayoutEffect, useMemo, useState} from "react"
-import {Graph, Signal, SparseMap, type} from "silver-ecs"
+import {useContext, useLayoutEffect, useState} from "react"
+import {Graph, Signal, SparseMap} from "silver-ecs"
 import {worldContext} from "../context/world_context"
-import {useWorld} from "./use_world"
-import {DebugSelected} from "silver-lib"
 
 let compare_nodes = (a: Graph.Node, b: Graph.Node) => {
   return a.type.component_ids.length - b.type.component_ids.length
@@ -13,7 +11,6 @@ export let useGraph = () => {
   let [nodes, setNodes] = useState(() =>
     SparseMap.values(world.graph.nodes_by_id).slice().sort(compare_nodes),
   )
-
   useLayoutEffect(() => {
     let unsubscribe_created = Signal.subscribe(
       world.graph.root.$created,
@@ -41,15 +38,10 @@ export let useGraph = () => {
 }
 
 export let useNode = (node: Graph.Node) => {
-  let [, setVersion] = useState(0)
-  useLayoutEffect(() => {
-    let unsubscribe_changed = Signal.subscribe(node.$changed, () => {
-      setVersion(v => v + 1)
-    })
-    return () => {
-      unsubscribe_changed()
-    }
-  }, [node])
-
-  return node
+  let [version, setVersion] = useState(0)
+  useLayoutEffect(
+    () => Signal.subscribe(node.$changed, () => setVersion(v => v + 1)),
+    [node],
+  )
+  return version
 }

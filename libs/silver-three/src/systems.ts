@@ -24,8 +24,15 @@ import {
   Mesh,
   ReceivesShadow,
 } from "./schema"
-import {DebugSelected, Position, Rotation, Scale, Transform} from "silver-lib"
-import {debug_material} from "./debug_material"
+import {
+  DebugHighlighted,
+  DebugSelected,
+  Position,
+  Rotation,
+  Scale,
+  Transform,
+} from "silver-lib"
+import {highlighted_material, selected_material} from "./materials"
 
 CameraControls.install({
   THREE: {
@@ -268,6 +275,8 @@ export let camera_system: System = world => {
 }
 
 export let debug_system: System = world => {
+  let highlighted_in = query(world, DebugHighlighted, In(), Not(IsInstance))
+  let highlighted_out = query(world, DebugHighlighted, Out(), Not(IsInstance))
   let selected_in = query(world, DebugSelected, In(), Not(IsInstance))
   let selected_out = query(world, DebugSelected, Out(), Not(IsInstance))
   let selected_instances_in = query(
@@ -282,23 +291,50 @@ export let debug_system: System = world => {
   )
   let debug_color = new three.Color(0x00ff00)
   return () => {
+    highlighted_in.each(entity => {
+      let mesh = SparseMap.get(objects_by_entity, entity)
+      if (!mesh) {
+        return
+      }
+      let highlighted_geometry = (mesh as three.Mesh).geometry
+      let highlighted = new three.Mesh(
+        highlighted_geometry,
+        highlighted_material,
+      )
+      highlighted.name = "silver_debug_highlighted"
+      highlighted.layers.set(1)
+      mesh.add(highlighted)
+    })
+    highlighted_out.each(entity => {
+      let mesh = SparseMap.get(objects_by_entity, entity)
+      if (!mesh) {
+        return
+      }
+      mesh.remove(
+        mesh.children.find(child => child.name === "silver_debug_highlighted")!,
+      )
+    })
     selected_in.each(entity => {
       let mesh = SparseMap.get(objects_by_entity, entity)
       if (!mesh) {
         return
       }
-      let wireframe_geometry = (mesh as three.Mesh).geometry
-      let wireframe_material = debug_material
-      let wireframe = new three.Mesh(wireframe_geometry, wireframe_material)
-      wireframe.layers.set(1)
-      mesh.add(wireframe)
+      let selected_geometry = (mesh as three.Mesh).geometry
+      let selected = new three.Mesh(selected_geometry, selected_material)
+      selected.name = "silver_debug_selected"
+      selected.layers.set(1)
+      mesh.add(selected)
+      console.log("selected", entity)
     })
     selected_out.each(entity => {
       let mesh = SparseMap.get(objects_by_entity, entity)
       if (!mesh) {
         return
       }
-      mesh.remove(mesh.children[0])
+      mesh.remove(
+        mesh.children.find(child => child.name === "silver_debug_selected")!,
+      )
+      console.log("deselected", entity)
     })
     selected_instances_in.each(entity => {
       let instance_of = world.getExclusiveRelative(entity, InstanceOf)

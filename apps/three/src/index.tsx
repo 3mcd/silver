@@ -1,4 +1,4 @@
-import {make, query, run} from "silver-ecs"
+import {Not, make, query, run} from "silver-ecs"
 import {makeDebugAliases} from "silver-hammer"
 import {
   AngularVelocity,
@@ -23,6 +23,7 @@ import {
   InstanceCount,
   IsInstance,
   Mesh,
+  Instanced,
 } from "silver-three"
 import {spawnSystem} from "./systems"
 
@@ -65,7 +66,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       world={world}
       aliases={aliases}
       queries={{
-        meshes: query(world, Mesh),
+        meshes: query(world, Mesh, Not(Instanced)),
         kinetics: query(world, Kinetic),
         transforms: query(world, Transform),
         selected: query(world, DebugSelected),

@@ -1,14 +1,14 @@
 import {useEffect, useState} from "react"
 import {Query, World} from "silver-ecs"
 import {Stack} from "../styled-system/jsx"
+import {Tabs} from "./components/tabs"
 import {Aliases} from "./context/alias_context"
 import {AliasProvider} from "./context/alias_provider"
-import {Tabs} from "./components/tabs"
+import {QueryProvider} from "./context/query_provider"
+import {WorldProvider} from "./context/world_provider"
 import "./index.css"
 import {Entities} from "./tools/entities"
-import {WorldProvider} from "./context/world_provider"
 import {Queries} from "./tools/queries"
-import {QueryProvider} from "./context/query_provider"
 
 export type AppProps = {
   world: World
@@ -31,10 +31,10 @@ let Inspector = () => {
           </Tabs.Trigger>
           <Tabs.Indicator />
         </Tabs.List>
-        <Tabs.Content value="entities" overflow="hidden">
+        <Tabs.Content value="entities" height="100%" overflow="hidden">
           <Entities />
         </Tabs.Content>
-        <Tabs.Content value="queries">
+        <Tabs.Content value="queries" height="100%" overflow="hidden">
           <Queries />
         </Tabs.Content>
       </Tabs.Root>

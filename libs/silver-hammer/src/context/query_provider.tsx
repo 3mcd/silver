@@ -1,5 +1,5 @@
 import {useMemo} from "react"
-import {Queries, queryContext} from "./query_context"
+import {QueryDefs, queryContext} from "./query_context"
 import {Query} from "silver-ecs"
 
 type Props = React.PropsWithChildren<{
@@ -14,7 +14,7 @@ export let QueryProvider = (props: Props) => {
       Object.entries(props.queries ?? {}).reduce((a, [name, query]) => {
         a.push({name, query})
         return a
-      }, [] as Queries),
+      }, [] as QueryDefs),
     [props.queries],
   )
   return (

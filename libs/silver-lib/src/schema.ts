@@ -60,4 +60,5 @@ export let Scale = with_initializer(
 export let Transform = type(Position, Rotation)
 export let Kinetic = type(LinearVelocity, AngularVelocity)
 
-export let DebugSelected = tag()
+export let DebugSelected = tag() // 6
+export let DebugHighlighted = tag() // 7

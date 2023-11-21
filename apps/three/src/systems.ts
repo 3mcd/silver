@@ -122,10 +122,28 @@ export const spawnSystem: System = world => {
   world
     .with(
       Mesh,
-      new SphereGeometry(1, 32, 32),
-      new MeshStandardMaterial({color: 0x00ff00}),
+      new SphereGeometry(0.5, 32, 32),
+      new MeshStandardMaterial({color: 0xffffff}),
+    )
+    .with(Transform, Position.make(-2), Rotation.make())
+    .spawn()
+  // thing
+  world
+    .with(
+      Mesh,
+      new SphereGeometry(0.5, 32, 32),
+      new MeshStandardMaterial({color: 0xffffff}),
     )
     .with(Transform, Position.make(), Rotation.make())
+    .spawn()
+  // thing
+  world
+    .with(
+      Mesh,
+      new SphereGeometry(0.5, 32, 32),
+      new MeshStandardMaterial({color: 0xffffff}),
+    )
+    .with(Transform, Position.make(2), Rotation.make())
     .spawn()
 
   return () => {}
