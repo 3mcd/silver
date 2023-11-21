@@ -23,140 +23,140 @@ export type Spec<
 
 export type Unitary<U extends Component.T = Component.T> = Type<[U]>
 
-export let is_superset = (type_a: Type, type_b: Type): boolean => {
+export let isSuperset = (typeA: Type, typeB: Type): boolean => {
   // This type is a void type.
-  if (type_a.component_ids.length === 0) return false
+  if (typeA.componentIds.length === 0) return false
   // Compared type is a void type.
-  if (type_b.component_ids.length === 0) return true
+  if (typeB.componentIds.length === 0) return true
   // Compared type is equivalent to this type.
-  if (type_a.hash === type_b.hash) return false
-  let cursor_a = 0
-  let cursor_b = 0
+  if (typeA.hash === typeB.hash) return false
+  let cursorA = 0
+  let cursorB = 0
   while (
-    cursor_a < type_a.component_ids.length &&
-    cursor_b < type_b.component_ids.length
+    cursorA < typeA.componentIds.length &&
+    cursorB < typeB.componentIds.length
   ) {
-    let component_id_a = type_a.component_ids[cursor_a]
-    let component_id_b = type_b.component_ids[cursor_b]
-    if (component_id_a < component_id_b) {
-      cursor_a++
-    } else if (component_id_a > component_id_b) {
+    let componentIdA = typeA.componentIds[cursorA]
+    let componentIdB = typeB.componentIds[cursorB]
+    if (componentIdA < componentIdB) {
+      cursorA++
+    } else if (componentIdA > componentIdB) {
       return false
     } else {
-      cursor_a++
-      cursor_b++
+      cursorA++
+      cursorB++
     }
   }
-  return cursor_b === type_b.component_ids.length
+  return cursorB === typeB.componentIds.length
 }
 
-export let superset_may_contain = (type_a: Type, type_b: Type): boolean => {
-  let cursor_a = 0
-  let cursor_b = 0
+export let supersetMayContain = (typeA: Type, typeB: Type): boolean => {
+  let cursorA = 0
+  let cursorB = 0
   while (
-    cursor_a < type_a.component_ids.length &&
-    cursor_b < type_b.component_ids.length
+    cursorA < typeA.componentIds.length &&
+    cursorB < typeB.componentIds.length
   ) {
-    let component_id_a = type_a.component_ids[cursor_a]
-    let component_id_b = type_b.component_ids[cursor_b]
-    if (component_id_a < component_id_b) {
-      cursor_b++
-    } else if (component_id_a > component_id_b) {
+    let componentIdA = typeA.componentIds[cursorA]
+    let componentIdB = typeB.componentIds[cursorB]
+    if (componentIdA < componentIdB) {
+      cursorB++
+    } else if (componentIdA > componentIdB) {
       return false
     } else {
-      cursor_a++
-      cursor_b++
+      cursorA++
+      cursorB++
     }
   }
   return true
 }
 
-export let xor = (type_a: Type, type_b: Type): number => {
-  if (type_a.hash === type_b.hash) return 0
+export let xor = (typeA: Type, typeB: Type): number => {
+  if (typeA.hash === typeB.hash) return 0
   let xor = 0
-  let cursor_a = 0
-  let cursor_b = 0
+  let cursorA = 0
+  let cursorB = 0
   while (
-    cursor_a < type_a.component_ids.length &&
-    cursor_b < type_b.component_ids.length
+    cursorA < typeA.componentIds.length &&
+    cursorB < typeB.componentIds.length
   ) {
-    let component_id_a = type_a.component_ids[cursor_a]
-    let component_id_b = type_b.component_ids[cursor_b]
-    if (component_id_a === component_id_b) {
-      cursor_a++
-      cursor_b++
-    } else if (component_id_a < component_id_b) {
-      xor = Hash.word(xor, component_id_a)
-      cursor_a++
-    } else if (component_id_a > component_id_b) {
-      xor = Hash.word(xor, component_id_b)
-      cursor_b++
+    let componentIdA = typeA.componentIds[cursorA]
+    let componentIdB = typeB.componentIds[cursorB]
+    if (componentIdA === componentIdB) {
+      cursorA++
+      cursorB++
+    } else if (componentIdA < componentIdB) {
+      xor = Hash.word(xor, componentIdA)
+      cursorA++
+    } else if (componentIdA > componentIdB) {
+      xor = Hash.word(xor, componentIdB)
+      cursorB++
     }
   }
-  while (cursor_a < type_a.component_ids.length) {
-    xor = Hash.word(xor, type_a.component_ids[cursor_a])
-    cursor_a++
+  while (cursorA < typeA.componentIds.length) {
+    xor = Hash.word(xor, typeA.componentIds[cursorA])
+    cursorA++
   }
-  while (cursor_b < type_b.component_ids.length) {
-    xor = Hash.word(xor, type_b.component_ids[cursor_b])
-    cursor_b++
+  while (cursorB < typeB.componentIds.length) {
+    xor = Hash.word(xor, typeB.componentIds[cursorB])
+    cursorB++
   }
   return xor
 }
 
 let with_ = <U extends Component.T[], V extends Component.T[]>(
-  type_a: Type<U>,
-  type_b: Type<V>,
+  typeA: Type<U>,
+  typeB: Type<V>,
 ): Type<[...U, ...V]> => {
-  let components = type_a.component_spec.concat(
-    type_b.component_spec as Component.T[],
+  let components = typeA.componentSpec.concat(
+    typeB.componentSpec as Component.T[],
   )
   return from(components)
 }
 export {with_ as with}
 
 export let without = <U extends Component.T[], V extends Component.T[]>(
-  type_a: Type<U>,
-  type_b: Type<V>,
+  typeA: Type<U>,
+  typeB: Type<V>,
 ): Type<[...U, ...V]> => {
-  let components = type_a.component_spec.filter(
-    component => type_b.sparse[component.id] === undefined,
+  let components = typeA.componentSpec.filter(
+    component => typeB.sparse[component.id] === undefined,
   )
   return from(components)
 }
 
-export let with_component = <U extends Component.T[], V extends Component.T>(
+export let withComponent = <U extends Component.T[], V extends Component.T>(
   type: Type<U>,
   component: V,
 ): Type<[...U, V]> => {
-  let components = type.component_spec.concat(component)
+  let components = type.componentSpec.concat(component)
   return from(components)
 }
 
-export let without_component = <U extends Component.T[], V extends Component.T>(
+export let withoutComponent = <U extends Component.T[], V extends Component.T>(
   type: Type<U>,
   component: V,
 ): Type<ExcludeFromTuple<U, V>> => {
-  let components = type.component_spec.filter(
-    type_component => type_component.id !== component.id,
+  let components = type.componentSpec.filter(
+    typeComponent => typeComponent.id !== component.id,
   )
   return from(components)
 }
 
-let is_type = (obj: object): obj is Type => "components" in obj
+let isType = (obj: object): obj is Type => "components" in obj
 
-let sort_spec = (components: Component.T[]) =>
-  components.sort((component_a, component_b) => component_a.id - component_b.id)
+let sortSpec = (components: Component.T[]) =>
+  components.sort((componentA, componentB) => componentA.id - componentB.id)
 
-let make_spec = <U extends (Type | Component.T)[]>(types: U): Spec<U> => {
+let makeSpec = <U extends (Type | Component.T)[]>(types: U): Spec<U> => {
   let hits = new Set<Component.T>()
   let components = [] as Component.T[]
   for (let i = 0; i < types.length; i++) {
     let type = types[i]
-    if (is_type(type)) {
-      for (let j = 0; j < type.component_spec.length; j++) {
-        let component = type.component_spec[j]
-        if (!Component.is_relation(component)) {
+    if (isType(type)) {
+      for (let j = 0; j < type.componentSpec.length; j++) {
+        let component = type.componentSpec[j]
+        if (!Component.isRelation(component)) {
           if (hits.has(component)) {
             continue
           }
@@ -165,7 +165,7 @@ let make_spec = <U extends (Type | Component.T)[]>(types: U): Spec<U> => {
         components.push(component)
       }
     } else {
-      if (!Component.is_relation(type)) {
+      if (!Component.isRelation(type)) {
         if (hits.has(type)) {
           continue
         }
@@ -177,58 +177,58 @@ let make_spec = <U extends (Type | Component.T)[]>(types: U): Spec<U> => {
   return components as Spec<U>
 }
 
-export let has = (type_a: Type, type_b: Type): boolean => {
-  for (let i = 0; i < type_b.component_ids.length; i++) {
-    let component_id = type_b.component_ids[i]
-    if (type_a.sparse[component_id] === undefined) {
+export let has = (typeA: Type, typeB: Type): boolean => {
+  for (let i = 0; i < typeB.componentIds.length; i++) {
+    let componentId = typeB.componentIds[i]
+    if (typeA.sparse[componentId] === undefined) {
       return false
     }
   }
   return true
 }
 
-export let has_id = (type: Type, component_id: number): boolean => {
-  return type.sparse[component_id] !== undefined
+export let hasId = (type: Type, componentId: number): boolean => {
+  return type.sparse[componentId] !== undefined
 }
 
-let has_component = (type: Type, component: Component.T): boolean => {
+let hasComponent = (type: Type, component: Component.T): boolean => {
   return type.sparse[component.id] !== undefined
 }
 
-export let has_relations = (type: Type): boolean => {
+export let hasRelations = (type: Type): boolean => {
   return type.relations.length > 0
 }
 
-export let component_at = <U extends Component.T[], I extends number = 0>(
+export let componentAt = <U extends Component.T[], I extends number = 0>(
   type: Type<U>,
   index: I = 0 as I,
 ): U[I] => {
-  return type.component_spec[index] as U[I]
+  return type.componentSpec[index] as U[I]
 }
 
 export class Type<U extends Component.T[] = Component.T[]> {
-  component_ids
-  component_spec
+  componentIds
+  componentSpec
   components
   hash
   relations
-  relations_spec
+  relationsSpec
   relationships
   sparse
 
-  constructor(component_spec: U) {
-    let components = sort_spec(component_spec.slice())
-    this.component_ids = components.map(component => component.id)
+  constructor(componentSpec: U) {
+    let components = sortSpec(componentSpec.slice())
+    this.componentIds = components.map(component => component.id)
     this.components = components
-    this.hash = Hash.words(this.component_ids)
-    this.component_spec = component_spec
-    this.relations = components.filter(Component.is_relation)
-    this.relations_spec = component_spec.filter(Component.is_relation)
-    this.relationships = components.filter(Component.is_relationship)
+    this.hash = Hash.words(this.componentIds)
+    this.componentSpec = componentSpec
+    this.relations = components.filter(Component.isRelation)
+    this.relationsSpec = componentSpec.filter(Component.isRelation)
+    this.relationships = components.filter(Component.isRelationship)
     this.sparse = []
     for (let i = 0; i < components.length; i++) {
       let component = components[i]
-      if (Component.is_relation(component) && has_component(this, component)) {
+      if (Component.isRelation(component) && hasComponent(this, component)) {
         if (component.topology === Component.Topology.Exclusive) {
           throw new Error(
             `Failed to construct type: type has multiple parents for hierarchical relation`,
@@ -240,14 +240,14 @@ export class Type<U extends Component.T[] = Component.T[]> {
   }
 
   toString() {
-    return `Type(${this.component_ids.join(",")})`
+    return `Type(${this.componentIds.join(",")})`
   }
 }
 
 export type T<U extends Component.T[] = Component.T[]> = Type<U>
 
 let from = <U extends (Component.T | Type)[]>(types: U): Type<Spec<U>> => {
-  return new Type(make_spec(types))
+  return new Type(makeSpec(types))
 }
 
 export let make = <U extends (Component.T | Type)[]>(
@@ -256,24 +256,24 @@ export let make = <U extends (Component.T | Type)[]>(
   return from(types)
 }
 
-export let with_relationships = (type: T, init: unknown[]): T => {
-  let relationship_type = type
+export let withRelationships = (type: T, init: unknown[]): T => {
+  let relationshipType = type
   let j = 0
-  for (let i = 0; i < type.component_spec.length; i++) {
-    let relation = type.component_spec[i]
-    if (Component.is_relation(relation)) {
-      let relation_init = init[j] as
+  for (let i = 0; i < type.componentSpec.length; i++) {
+    let relation = type.componentSpec[i]
+    if (Component.isRelation(relation)) {
+      let relationInit = init[j] as
         | Commands.InitTagRelation
         | Commands.InitValueRelation
-      let relationship = Component.make_relationship(
+      let relationship = Component.makeRelationship(
         relation,
-        typeof relation_init === "number" ? relation_init : relation_init[0],
+        typeof relationInit === "number" ? relationInit : relationInit[0],
       )
-      relationship_type = with_component(relationship_type, relationship)
+      relationshipType = withComponent(relationshipType, relationship)
       j++
-    } else if (Component.stores_value(relation)) {
+    } else if (Component.storesValue(relation)) {
       j++
     }
   }
-  return relationship_type
+  return relationshipType
 }

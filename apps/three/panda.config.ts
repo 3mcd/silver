@@ -13,7 +13,7 @@ export default defineConfig({
   ],
   include: [
     "./src/**/*.{js,jsx,ts,tsx}",
-    "./node_modules/silver-hammer/src/**/*.{js,jsx,ts,tsx}",
+    "./node_modules/silver-inspector/src/**/*.{js,jsx,ts,tsx}",
   ],
   jsxFramework: "react",
   outdir: "styled-system",

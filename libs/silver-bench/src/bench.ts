@@ -16,78 +16,78 @@ import {
 } from "./types"
 
 let dir = path.dirname(url.fileURLToPath(import.meta.url))
-let curr_bench_result: BenchResult = {}
-let prev_bench_result: Record<string, PerfResult> = {}
-let next_bench_result: Record<string, PerfResultWithStatus> = {}
+let currBenchResult: BenchResult = {}
+let prevBenchResult: Record<string, PerfResult> = {}
+let nextBenchResult: Record<string, PerfResultWithStatus> = {}
 
-let perf_result_count = 0
+let perfResultCount = 0
 
-let load_bench_results = async (bench_result_path: string) => {
-  let bench_results_stream = createReadStream(bench_result_path, {
+let loadBenchResults = async (benchResultPath: string) => {
+  let benchResultsStream = createReadStream(benchResultPath, {
     flags: "a+",
   })
-  let bench_perf_results = createInterface({
-    input: bench_results_stream,
+  let benchPerfResults = createInterface({
+    input: benchResultsStream,
     crlfDelay: Infinity,
   })
-  for await (let perf_result of bench_perf_results) {
-    let [perf_name, perfAvg] = perf_result.split(",")
-    prev_bench_result[perf_name] = {name: perf_name, mean: Number(perfAvg)}
+  for await (let perfResult of benchPerfResults) {
+    let [perfName, perfAvg] = perfResult.split(",")
+    prevBenchResult[perfName] = {name: perfName, mean: Number(perfAvg)}
   }
 }
 
-let report_bench = async (config: Config, benchPath: string) => {
-  let bench_result_path = `${benchPath}.${config.bench_results_extension}`
-  await load_bench_results(bench_result_path)
-  let bench_results_file_contents = ""
+let reportBench = async (config: Config, benchPath: string) => {
+  let benchResultPath = `${benchPath}.${config.benchResultsExtension}`
+  await loadBenchResults(benchResultPath)
+  let benchResultsFileContents = ""
   for (let perf_name of perfs.keys()) {
-    let prev_perf_result = prev_bench_result[perf_name]
-    let next_perf_result = next_bench_result[perf_name]
+    let prev_perf_result = prevBenchResult[perf_name]
+    let next_perf_result = nextBenchResult[perf_name]
     if (prev_perf_result !== undefined && next_perf_result !== undefined) {
       let delta = prev_perf_result.mean - next_perf_result.mean
       let deviation = delta / prev_perf_result.mean
       let status = PerfResultStatus.Old
-      if (deviation <= config.perf_failure_threshold) {
+      if (deviation <= config.perfFailureThreshold) {
         status = PerfResultStatus.Failure
-        bench_results_file_contents += `${perf_name},${
-          (config.write_failures ? next_perf_result : prev_perf_result).mean
+        benchResultsFileContents += `${perf_name},${
+          (config.writeFailures ? next_perf_result : prev_perf_result).mean
         }\n`
-      } else if (deviation <= config.perf_warning_threshold) {
+      } else if (deviation <= config.perfWarningThreshold) {
         status = PerfResultStatus.Warning
-        bench_results_file_contents += `${perf_name},${
+        benchResultsFileContents += `${perf_name},${
           (prev_perf_result.mean + next_perf_result.mean) / 2
         }\n`
-      } else if (deviation >= config.perf_success_threshold) {
+      } else if (deviation >= config.perfSuccessThreshold) {
         status = PerfResultStatus.Success
-        bench_results_file_contents += `${perf_name},${next_perf_result.mean}\n`
+        benchResultsFileContents += `${perf_name},${next_perf_result.mean}\n`
       } else {
-        bench_results_file_contents += `${perf_name},${
+        benchResultsFileContents += `${perf_name},${
           (prev_perf_result.mean + next_perf_result.mean) / 2
         }\n`
       }
-      curr_bench_result[perf_name] = {...next_perf_result, deviation, status}
+      currBenchResult[perf_name] = {...next_perf_result, deviation, status}
     } else {
-      curr_bench_result[perf_name] = {
+      currBenchResult[perf_name] = {
         ...next_perf_result,
         status: PerfResultStatus.New,
       }
-      bench_results_file_contents += `${perf_name},${next_perf_result.mean}\n`
+      benchResultsFileContents += `${perf_name},${next_perf_result.mean}\n`
     }
   }
-  await writeFile(bench_result_path, bench_results_file_contents)
-  process.send!({type: "bench-result", result: curr_bench_result})
+  await writeFile(benchResultPath, benchResultsFileContents)
+  process.send!({type: "bench-result", result: currBenchResult})
 }
 
 let start = async (config: Config, benchPath: string) => {
   let workers: Worker[] = []
   let on_perf_result = (perf_result: PerfResultWithStatus) => {
-    next_bench_result[perf_result.name] = perf_result
-    perf_result_count++
-    if (perf_result_count === perfs.size) {
-      report_bench(config, benchPath)
+    nextBenchResult[perf_result.name] = perf_result
+    perfResultCount++
+    if (perfResultCount === perfs.size) {
+      reportBench(config, benchPath)
     }
   }
-  Object.assign(globalThis, config.bench_globals)
+  Object.assign(globalThis, config.benchGlobals)
   await import(benchPath)
   for (let perf of perfs.values()) {
     let worker_data: PerfWorkerData = {
@@ -95,7 +95,7 @@ let start = async (config: Config, benchPath: string) => {
       name: perf.name,
       config,
     }
-    let worker = new Worker(path.join(dir, "perf_worker.js"), {
+    let worker = new Worker(path.join(dir, "perfWorker.js"), {
       workerData: worker_data,
     })
     worker.on("message", on_perf_result)

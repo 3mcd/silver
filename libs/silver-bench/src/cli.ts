@@ -14,26 +14,26 @@ import {
 let config = makeConfigFromEnv()
 let spacer = " "
 
-let perf_unit_ns: number
+let perfUnitNs: number
 
-switch (config.perf_unit) {
+switch (config.perfUnit) {
   case "s":
-    perf_unit_ns = 1e9
+    perfUnitNs = 1e9
     break
   case "ms":
-    perf_unit_ns = 1e6
+    perfUnitNs = 1e6
     break
   case "ns":
-    perf_unit_ns = 1
+    perfUnitNs = 1
     break
 }
 
-let color_perf_name = (
-  perf_result: PerfResultWithStatus,
-  perf_name: string,
+let colorPerfName = (
+  perfResult: PerfResultWithStatus,
+  perfName: string,
 ) => {
   let color: Color
-  switch (perf_result.status) {
+  switch (perfResult.status) {
     case PerfResultStatus.Failure:
       color = red
       break
@@ -47,15 +47,15 @@ let color_perf_name = (
       color = gray
       break
   }
-  return color(perf_name)
+  return color(perfName)
 }
 
-let color_perfs_ops_per_s = (
-  perf_result: PerfResultWithStatus,
+let colorPerfsOpsPerS = (
+  perfResult: PerfResultWithStatus,
   opsPerSecond: string,
 ) => {
   let color: Color
-  switch (perf_result.status) {
+  switch (perfResult.status) {
     case PerfResultStatus.Failure:
       color = red
       break
@@ -72,12 +72,12 @@ let color_perfs_ops_per_s = (
   return color(opsPerSecond)
 }
 
-let color_perf_margin = (
-  perf_result: PerfResultWithStatus,
-  perf_margin: string,
+let colorPerfMargin = (
+  perfResult: PerfResultWithStatus,
+  perfMargin: string,
 ) => {
   let color: Color
-  switch (perf_result.status) {
+  switch (perfResult.status) {
     case PerfResultStatus.Failure:
       color = red
       break
@@ -91,15 +91,15 @@ let color_perf_margin = (
       color = dim
       break
   }
-  return color(perf_margin)
+  return color(perfMargin)
 }
 
-let color_perf_deviation = (
-  perf_result: PerfResultWithStatus,
-  perf_deviation: string,
+let colorPerfDeviation = (
+  perfResult: PerfResultWithStatus,
+  perfDeviation: string,
 ) => {
   let color: Color
-  switch (perf_result.status) {
+  switch (perfResult.status) {
     case PerfResultStatus.Success:
       color = green
       break
@@ -113,10 +113,10 @@ let color_perf_deviation = (
       color = dim
       break
   }
-  return color(perf_deviation)
+  return color(perfDeviation)
 }
 
-let ignored_dirs = new Set(["node_modules", ".git", ".github", ".vscode"])
+let ignoredDirs = new Set(["node_modules", ".git", ".github", ".vscode"])
 let dir = path.dirname(url.fileURLToPath(import.meta.url))
 let cwd = process.cwd()
 let stack = [cwd]
@@ -129,16 +129,16 @@ while (cursor > 0) {
   for (let i = 0; i < files.length; i++) {
     let file = path.join(dir, files[i])
     let stat = fs.lstatSync(file)
-    if (stat.isDirectory() && !ignored_dirs.has(files[i])) {
+    if (stat.isDirectory() && !ignoredDirs.has(files[i])) {
       stack[cursor++] = file
-    } else if (file.endsWith(config.bench_module_extension)) {
+    } else if (file.endsWith(config.benchModuleExtension)) {
       benches.push(file)
     }
   }
 }
 
-let print_bench_result = (bench_name: string, bench_result: BenchResult) => {
-  let relative_bench_path = bench_name.replace(cwd, "")
+let printBenchResult = (benchName: string, benchResult: BenchResult) => {
+  let relativeBenchPath = benchName.replace(cwd, "")
   console.log("")
   console.log(relative_bench_path.replace(/^(.*[\\\/])/, dim("$&")))
   let max_perf_name_length = 0

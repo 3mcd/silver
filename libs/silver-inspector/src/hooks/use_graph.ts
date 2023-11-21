@@ -2,35 +2,35 @@ import {useContext, useLayoutEffect, useState} from "react"
 import {Graph, Signal, SparseMap} from "silver-ecs"
 import {worldContext} from "../context/world_context"
 
-let compare_nodes = (a: Graph.Node, b: Graph.Node) => {
-  return a.type.component_ids.length - b.type.component_ids.length
+let compareNodes = (a: Graph.Node, b: Graph.Node) => {
+  return a.type.componentIds.length - b.type.componentIds.length
 }
 
 export let useGraph = () => {
   let world = useContext(worldContext)
   let [nodes, setNodes] = useState(() =>
-    SparseMap.values(world.graph.nodes_by_id).slice().sort(compare_nodes),
+    SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
   )
   useLayoutEffect(() => {
-    let unsubscribe_created = Signal.subscribe(
+    let unsubscribeCreated = Signal.subscribe(
       world.graph.root.$created,
       () => {
         setNodes(
-          SparseMap.values(world.graph.nodes_by_id).slice().sort(compare_nodes),
+          SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
         )
       },
     )
-    let unsubscribe_removed = Signal.subscribe(
+    let unsubscribeRemoved = Signal.subscribe(
       world.graph.root.$removed,
       () => {
         setNodes(
-          SparseMap.values(world.graph.nodes_by_id).slice().sort(compare_nodes),
+          SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
         )
       },
     )
     return () => {
-      unsubscribe_created()
-      unsubscribe_removed()
+      unsubscribeCreated()
+      unsubscribeRemoved()
     }
   }, [])
 

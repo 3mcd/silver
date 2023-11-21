@@ -1,14 +1,14 @@
 export type Config = {
-  bench_globals: Record<string, unknown>
-  bench_module_extension: string
-  bench_results_extension: string
-  perf_unit: "s" | "ms" | "ns"
-  perf_samples_to_discard_per_extreme: number
-  perf_iterations: number
-  perf_success_threshold: number
-  perf_warning_threshold: number
-  perf_failure_threshold: number
-  write_failures: boolean
+  benchGlobals: Record<string, unknown>
+  benchModuleExtension: string
+  benchResultsExtension: string
+  perfUnit: "s" | "ms" | "ns"
+  perfSamplesToDiscardPerExtreme: number
+  perfIterations: number
+  perfSuccessThreshold: number
+  perfWarningThreshold: number
+  perfFailureThreshold: number
+  writeFailures: boolean
 }
 
 export enum PerfResultStatus {

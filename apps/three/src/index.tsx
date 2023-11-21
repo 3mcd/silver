@@ -1,5 +1,5 @@
 import {Not, make, query, run} from "silver-ecs"
-import {makeDebugAliases} from "silver-hammer"
+import {makeDebugAliases} from "silver-inspector"
 import {
   AngularVelocity,
   DebugSelected,
@@ -40,7 +40,7 @@ requestAnimationFrame(loop)
 
 import React from "react"
 import ReactDOM from "react-dom/client"
-import Hammer from "silver-hammer/app"
+import Hammer from "silver-inspector/app"
 
 const aliases = makeDebugAliases()
   .set(ThreePerspectiveCamera, "Camera")

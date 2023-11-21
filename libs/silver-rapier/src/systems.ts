@@ -13,27 +13,27 @@ import {Body, RigidBody} from "./schema"
 import {RigidBodyDesc, World} from "@dimforge/rapier3d"
 
 export let rapier3dSystem: System = world => {
-  let rapier_world = new World({x: 0.0, y: -9.81, z: 0.0})
-  let dynamic_bodies = query(world, RigidBody)
-  let dynamic_bodies_in = query(world, RigidBody, In())
-  let fixed_bodies_in = query(world, Body, In(), Not(RigidBody))
-  let handles_by_entity = SparseMap.make<RigidBodyHandle>()
-  let scale_collider_desc = (collider_desc: ColliderDesc, scale: Scale) => {
-    switch (collider_desc.shape.type) {
+  let rapierWorld = new World({x: 0.0, y: -9.81, z: 0.0})
+  let dynamicBodies = query(world, RigidBody)
+  let dynamicBodiesIn = query(world, RigidBody, In())
+  let fixedBodiesIn = query(world, Body, In(), Not(RigidBody))
+  let handlesByEntity = SparseMap.make<RigidBodyHandle>()
+  let scaleColliderDesc = (colliderDesc: ColliderDesc, scale: Scale) => {
+    switch (colliderDesc.shape.type) {
       case ShapeType.Cuboid: {
-        let shape = collider_desc.shape as Cuboid
+        let shape = colliderDesc.shape as Cuboid
         return ColliderDesc.cuboid(
           shape.halfExtents.x * scale.x,
           shape.halfExtents.y * scale.y,
           shape.halfExtents.z * scale.z,
-        ).setRestitution(collider_desc.restitution)
+        ).setRestitution(colliderDesc.restitution)
       }
       case ShapeType.Ball: {
-        let shape = collider_desc.shape as Ball
+        let shape = colliderDesc.shape as Ball
         return ColliderDesc.ball(shape.radius * scale.x)
       }
       case ShapeType.Capsule: {
-        let shape = collider_desc.shape as Capsule
+        let shape = colliderDesc.shape as Capsule
         return ColliderDesc.capsule(
           shape.halfHeight * scale.y,
           shape.radius * scale.x,
@@ -42,52 +42,52 @@ export let rapier3dSystem: System = world => {
     }
   }
   return () => {
-    fixed_bodies_in.each((entity, collider_desc, position, rotation) => {
-      let rigid_body_desc = RigidBodyDesc.fixed()
+    fixedBodiesIn.each((entity, colliderDesc, position, rotation) => {
+      let rigidBodyDesc = RigidBodyDesc.fixed()
         .setTranslation(position.x, position.y, position.z)
         .setRotation(rotation)
-      let rigid_body = rapier_world.createRigidBody(rigid_body_desc)
+      let rigidBody = rapierWorld.createRigidBody(rigidBodyDesc)
       if (world.has(entity, Scale)) {
-        collider_desc = scale_collider_desc(
-          collider_desc,
+        colliderDesc = scaleColliderDesc(
+          colliderDesc,
           world.get(entity, Scale),
         )!
       }
-      SparseMap.set(handles_by_entity, entity, rigid_body.handle)
-      rapier_world.createCollider(collider_desc, rigid_body)
+      SparseMap.set(handlesByEntity, entity, rigidBody.handle)
+      rapierWorld.createCollider(colliderDesc, rigidBody)
     })
-    dynamic_bodies_in.each(
-      (entity, collider_desc, position, rotation, velocity) => {
-        let rigid_body_desc = RigidBodyDesc.dynamic()
+    dynamicBodiesIn.each(
+      (entity, colliderDesc, position, rotation, velocity) => {
+        let rigidBodyDesc = RigidBodyDesc.dynamic()
           .setTranslation(position.x, position.y, position.z)
           .setRotation(rotation)
           .setLinvel(velocity.x, velocity.y, velocity.z)
-        let rigid_body = rapier_world.createRigidBody(rigid_body_desc)
+        let rigidBody = rapierWorld.createRigidBody(rigidBodyDesc)
         if (world.has(entity, Scale)) {
-          collider_desc = scale_collider_desc(
-            collider_desc,
+          colliderDesc = scaleColliderDesc(
+            colliderDesc,
             world.get(entity, Scale),
           )!
         }
-        SparseMap.set(handles_by_entity, entity, rigid_body.handle)
-        rapier_world.createCollider(collider_desc, rigid_body)
+        SparseMap.set(handlesByEntity, entity, rigidBody.handle)
+        rapierWorld.createCollider(colliderDesc, rigidBody)
       },
     )
-    rapier_world.step()
-    dynamic_bodies.each(
-      (entity, _, position, rotation, velocity, angular_velocity) => {
-        let handle = SparseMap.get(handles_by_entity, entity)
+    rapierWorld.step()
+    dynamicBodies.each(
+      (entity, _, position, rotation, velocity, angularVelocity) => {
+        let handle = SparseMap.get(handlesByEntity, entity)
         if (handle) {
-          let rigid_body = rapier_world.getRigidBody(handle)
-          let rigid_body_translation = rigid_body.translation()
-          let rigid_body_rotation = rigid_body.rotation()
-          position.x = rigid_body_translation.x
-          position.y = rigid_body_translation.y
-          position.z = rigid_body_translation.z
-          rotation.x = rigid_body_rotation.x
-          rotation.y = rigid_body_rotation.y
-          rotation.z = rigid_body_rotation.z
-          rotation.w = rigid_body_rotation.w
+          let rigidBody = rapierWorld.getRigidBody(handle)
+          let rigidBodyTranslation = rigidBody.translation()
+          let rigidBodyRotation = rigidBody.rotation()
+          position.x = rigidBodyTranslation.x
+          position.y = rigidBodyTranslation.y
+          position.z = rigidBodyTranslation.z
+          rotation.x = rigidBodyRotation.x
+          rotation.y = rigidBodyRotation.y
+          rotation.z = rigidBodyRotation.z
+          rotation.w = rigidBodyRotation.w
         }
       },
     )

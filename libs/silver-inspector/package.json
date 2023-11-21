@@ -1,5 +1,5 @@
 {
-  "name": "silver-hammer",
+  "name": "silver-inspector",
   "version": "0.0.1",
   "description": "silver-ecs devtool",
   "keywords": [
@@ -20,10 +20,10 @@
     "type": "git",
     "url": "https://github.com/3mcd/silver"
   },
-  "main": "dist/silver-hammer.cjs.js",
-  "module": "dist/silver-hammer.esm.js",
+  "main": "dist/silver-inspector.cjs.js",
+  "module": "dist/silver-inspector.esm.js",
   "source": "./src/index.ts",
-  "types": "./dist/silver-hammer.cjs.d.ts",
+  "types": "./dist/silver-inspector.cjs.d.ts",
   "scripts": {
     "build": "postcss -o dist.css src/index.css",
     "prepare": "panda codegen"

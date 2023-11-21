@@ -1,5 +1,5 @@
 import {createContext} from "react"
-import {Component, Hash, Type, is_relationship, parse_hi} from "silver-ecs"
+import {Component, Hash, Type, isRelationship, parseHi} from "silver-ecs"
 
 export class Aliases {
   aliases
@@ -16,15 +16,15 @@ export class Aliases {
   get = (type: Type) => {
     return `(${
       this.aliases[type.hash] ??
-      type.component_ids.map(id => this.aliases[Hash.word(0, id)]).join(",")
+      type.componentIds.map(id => this.aliases[Hash.word(0, id)]).join(",")
     })`
   }
 
   getComponent = (component: Component) => {
-    if (is_relationship(component)) {
-      let relation_id = parse_hi(component.id)
-      let entity_id = parse_hi(component.id)
-      return `${this.aliases[Hash.word(0, relation_id)]}:${entity_id}`
+    if (isRelationship(component)) {
+      let relationId = parseHi(component.id)
+      let entityId = parseHi(component.id)
+      return `${this.aliases[Hash.word(0, relationId)]}:${entityId}`
     }
     return this.aliases[Hash.word(0, component.id)]
   }

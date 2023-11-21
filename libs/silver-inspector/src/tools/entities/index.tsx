@@ -27,7 +27,7 @@ export let Entities = (props: Props) => {
   let [state, setState] = useState<State>({
     status: "nodes",
   })
-  let on_back = useCallback(() => {
+  let onBack = useCallback(() => {
     switch (state.status) {
       case "node":
         return setState({status: "nodes"})
@@ -35,10 +35,10 @@ export let Entities = (props: Props) => {
         return setState({status: "node", node: state.node})
     }
   }, [state])
-  let on_node_selected = useCallback((node: ecs.Graph.Node) => {
+  let onNodeSelected = useCallback((node: ecs.Graph.Node) => {
     setState({status: "node", node})
   }, [])
-  let on_entity_selected = useCallback(
+  let onEntitySelected = useCallback(
     (entity: ecs.Entity, select: boolean) => {
       if (select) {
         if (world.has(entity, DebugSelected)) {
@@ -54,32 +54,32 @@ export let Entities = (props: Props) => {
     },
     [state],
   )
-  let on_entity_hover_in = useCallback((entity: ecs.Entity) => {
+  let onEntityHoverIn = useCallback((entity: ecs.Entity) => {
     if (!world.has(entity, DebugHighlighted)) {
       world.add(entity, DebugHighlighted)
     }
   }, [])
-  let on_entity_hover_out = useCallback((entity: ecs.Entity) => {
+  let onEntityHoverOut = useCallback((entity: ecs.Entity) => {
     if (world.has(entity, DebugHighlighted)) {
       world.remove(entity, DebugHighlighted)
     }
   }, [])
   switch (state.status) {
     case "nodes":
-      return <EntityNodes onNodeSelected={on_node_selected} />
+      return <EntityNodes onNodeSelected={onNodeSelected} />
     case "node":
       return (
         <EntityNode
           node={state.node}
-          onEntitySelected={on_entity_selected}
-          onEntityHoverIn={on_entity_hover_in}
-          onEntityHoverOut={on_entity_hover_out}
-          onBack={on_back}
+          onEntitySelected={onEntitySelected}
+          onEntityHoverIn={onEntityHoverIn}
+          onEntityHoverOut={onEntityHoverOut}
+          onBack={onBack}
         />
       )
     case "entity":
       return (
-        <Entity entity={state.entity} type={state.node.type} onBack={on_back} />
+        <Entity entity={state.entity} type={state.node.type} onBack={onBack} />
       )
   }
 }

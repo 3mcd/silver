@@ -32,7 +32,7 @@ import {
   Scale,
   Transform,
 } from "silver-lib"
-import {highlighted_material, selected_material} from "./materials"
+import {highlightedMaterial, selectedMaterial} from "./materials"
 
 CameraControls.install({
   THREE: {
@@ -48,7 +48,7 @@ CameraControls.install({
   },
 })
 
-let make_renderer = () => {
+let makeRenderer = () => {
   let renderer = new three.WebGLRenderer({
     antialias: true,
   })
@@ -58,7 +58,7 @@ let make_renderer = () => {
   return renderer
 }
 
-let renderer = make_renderer()
+let renderer = makeRenderer()
 renderer.toneMapping = three.ACESFilmicToneMapping
 renderer.toneMappingExposure = 0.5
 renderer.shadowMap.enabled = true
@@ -66,37 +66,37 @@ renderer.shadowMap.type = three.PCFSoftShadowMap
 
 let scene = new three.Scene()
 
-let object_instances = SparseMap.make<SparseSet.T<Entity>>()
-let objects_by_entity = SparseMap.make<three.Object3D>()
-let entities_by_object = new WeakMap<three.Object3D, Entity>()
+let objectInstances = SparseMap.make<SparseSet.T<Entity>>()
+let objectsByEntity = SparseMap.make<three.Object3D>()
+let entitiesByObject = new WeakMap<three.Object3D, Entity>()
 
 export let threeSystem: System = world => {
   return () => {
-    run(world, mesh_system)
-    run(world, scale_system)
-    run(world, lights_system)
-    run(world, instance_system)
-    run(world, camera_system)
-    run(world, debug_system)
+    run(world, meshSystem)
+    run(world, scaleSystem)
+    run(world, lightsSystem)
+    run(world, instanceSystem)
+    run(world, cameraSystem)
+    run(world, debugSystem)
   }
 }
 
-export let mesh_system: System = world => {
-  let meshes_in = query(world, Mesh, In(), Not(InstanceCount))
+export let meshSystem: System = world => {
+  let meshesIn = query(world, Mesh, In(), Not(InstanceCount))
   let transforms = query(world, Transform, Not(InstanceOf))
 
   return () => {
-    meshes_in.each((entity, geometry, material) => {
+    meshesIn.each((entity, geometry, material) => {
       let mesh = new three.Mesh(geometry, material)
       mesh.castShadow = world.has(entity, CastsShadow)
       mesh.receiveShadow = world.has(entity, ReceivesShadow)
-      SparseMap.set(objects_by_entity, entity, mesh)
-      entities_by_object.set(mesh, entity)
+      SparseMap.set(objectsByEntity, entity, mesh)
+      entitiesByObject.set(mesh, entity)
       scene.add(mesh)
     })
 
     transforms.each((entity, position, rotation) => {
-      let mesh = SparseMap.get(objects_by_entity, entity)
+      let mesh = SparseMap.get(objectsByEntity, entity)
       if (mesh) {
         mesh.position.set(position.x, position.y, position.z)
         mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
@@ -105,11 +105,11 @@ export let mesh_system: System = world => {
   }
 }
 
-export let scale_system: System = world => {
-  let scaled_in = query(world, Scale, In())
+export let scaleSystem: System = world => {
+  let scaledIn = query(world, Scale, In())
   return () => {
-    scaled_in.each((entity, scale) => {
-      let mesh = SparseMap.get(objects_by_entity, entity)
+    scaledIn.each((entity, scale) => {
+      let mesh = SparseMap.get(objectsByEntity, entity)
       if (mesh) {
         mesh.scale.set(scale.x, scale.y, scale.z)
       }
@@ -117,45 +117,45 @@ export let scale_system: System = world => {
   }
 }
 
-export let lights_system: System = world => {
-  let lights_in = query(world, Light, In())
+export let lightsSystem: System = world => {
+  let lightsIn = query(world, Light, In())
   return () => {
-    lights_in.each((entity, light) => {
-      SparseMap.set(objects_by_entity, entity, light)
-      entities_by_object.set(light, entity)
+    lightsIn.each((entity, light) => {
+      SparseMap.set(objectsByEntity, entity, light)
+      entitiesByObject.set(light, entity)
       scene.add(light)
     })
   }
 }
 
-export let instance_system: System = world => {
+export let instanceSystem: System = world => {
   let instanced = query(world, Instanced)
-  let instanced_in = query(world, Instanced, In())
-  let instances_in = query(world, type(IsInstance, Transform), In())
-  let instances_w_transforms = query(
+  let instancedIn = query(world, Instanced, In())
+  let instancesIn = query(world, type(IsInstance, Transform), In())
+  let instancesWTransforms = query(
     world,
     type(InstanceOf, Position, Rotation),
   )
   const proxy = new three.Object3D()
   return () => {
-    instanced_in.each((entity, geometry, material, count) => {
+    instancedIn.each((entity, geometry, material, count) => {
       // Create a new InstancedMesh for each `Instanced` entity and add it to the scene.
       let mesh = new three.InstancedMesh(geometry, material, count)
       mesh.castShadow = world.has(entity, CastsShadow)
       mesh.receiveShadow = world.has(entity, ReceivesShadow)
-      SparseMap.set(objects_by_entity, entity, mesh)
-      entities_by_object.set(mesh, entity)
+      SparseMap.set(objectsByEntity, entity, mesh)
+      entitiesByObject.set(mesh, entity)
       scene.add(mesh)
       // Create an instance list used to track the index of each instance.
-      if (!SparseMap.has(object_instances, entity)) {
-        SparseMap.set(object_instances, entity, SparseSet.make())
+      if (!SparseMap.has(objectInstances, entity)) {
+        SparseMap.set(objectInstances, entity, SparseSet.make())
       }
     })
 
-    instances_in.each((entity, position, rotation) => {
+    instancesIn.each((entity, position, rotation) => {
       const proxy = new three.Object3D()
-      let instance_of = world.getExclusiveRelative(entity, InstanceOf)
-      let instances = SparseMap.get(object_instances, instance_of)
+      let instanceOf = world.getExclusiveRelative(entity, InstanceOf)
+      let instances = SparseMap.get(objectInstances, instanceOf)
       proxy.position.set(position.x, position.y, position.z)
       proxy.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
       if (world.has(entity, Scale)) {
@@ -163,7 +163,7 @@ export let instance_system: System = world => {
         proxy.scale.set(scale.x, scale.y, scale.z)
       }
       proxy.updateMatrix()
-      let mesh = SparseMap.get(objects_by_entity, instance_of) as
+      let mesh = SparseMap.get(objectsByEntity, instanceOf) as
         | three.InstancedMesh
         | undefined
       if (instances) {
@@ -175,17 +175,17 @@ export let instance_system: System = world => {
       }
     })
 
-    instanced.each(instance_of => {
-      const instance_set = SparseMap.get(object_instances, instance_of)
-      if (instance_set === undefined) {
+    instanced.each(instanceOf => {
+      const instanceSet = SparseMap.get(objectInstances, instanceOf)
+      if (instanceSet === undefined) {
         return
       }
       let mesh = SparseMap.get(
-        objects_by_entity,
-        instance_of,
+        objectsByEntity,
+        instanceOf,
       ) as three.InstancedMesh
-      instances_w_transforms.each(
-        instance_of,
+      instancesWTransforms.each(
+        instanceOf,
         (instance, position, rotation) => {
           proxy.position.set(position.x, position.y, position.z)
           proxy.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
@@ -195,7 +195,7 @@ export let instance_system: System = world => {
           }
           proxy.updateMatrix()
           mesh.setMatrixAt(
-            SparseSet.index_of(instance_set, instance),
+            SparseSet.indexOf(instanceSet, instance),
             proxy.matrix,
           )
           mesh.instanceMatrix.needsUpdate = true
@@ -205,7 +205,7 @@ export let instance_system: System = world => {
   }
 }
 
-let toggle_selected = (world: World, entity: Entity) => {
+let toggleSelected = (world: World, entity: Entity) => {
   if (world.has(entity, DebugSelected)) {
     world.remove(entity, DebugSelected)
   } else {
@@ -213,11 +213,11 @@ let toggle_selected = (world: World, entity: Entity) => {
   }
 }
 
-export let camera_system: System = world => {
+export let cameraSystem: System = world => {
   let clock = new three.Clock()
   let camera: three.PerspectiveCamera | three.OrthographicCamera
-  let camera_controls: CameraControls
-  let cameras_in = query(world, Camera, In())
+  let cameraControls: CameraControls
+  let camerasIn = query(world, Camera, In())
 
   let raycaster = new three.Raycaster()
   raycaster.layers.set(0)
@@ -231,29 +231,29 @@ export let camera_system: System = world => {
     raycaster.setFromCamera(mouse, camera)
     let intersects = raycaster.intersectObjects(scene.children)
     if (intersects.length > 0) {
-      let entity = entities_by_object.get(intersects[0].object)
+      let entity = entitiesByObject.get(intersects[0].object)
       if (entity !== undefined) {
         if (world.has(entity, InstanceCount)) {
-          let instanced_mesh = SparseMap.get(objects_by_entity, entity)!
-          let instances = SparseMap.get(object_instances, entity)!
-          let instance_intersects = raycaster.intersectObject(instanced_mesh)
-          if (instance_intersects.length > 0) {
+          let instancedMesh = SparseMap.get(objectsByEntity, entity)!
+          let instances = SparseMap.get(objectInstances, entity)!
+          let instanceIntersects = raycaster.intersectObject(instancedMesh)
+          if (instanceIntersects.length > 0) {
             let instance = SparseSet.at(
               instances,
-              instance_intersects[0].instanceId!,
+              instanceIntersects[0].instanceId!,
             )
-            toggle_selected(world, instance)
+            toggleSelected(world, instance)
           }
         } else {
-          toggle_selected(world, entity)
+          toggleSelected(world, entity)
         }
       }
     }
   })
 
   return () => {
-    cameras_in.each((entity, _camera) => {
-      camera = _camera
+    camerasIn.each((entity, Camera) => {
+      camera = Camera
       if (world.has(entity, Position)) {
         let position = world.get(entity, Position)
         camera.position.set(position.x, position.y, position.z)
@@ -264,49 +264,49 @@ export let camera_system: System = world => {
       }
       camera.layers.enable(0)
       camera.layers.enable(1)
-      camera_controls = new CameraControls(camera, renderer.domElement)
+      cameraControls = new CameraControls(camera, renderer.domElement)
     })
     if (camera) {
       let delta = clock.getDelta()
-      camera_controls?.update(delta)
+      cameraControls?.update(delta)
       renderer.render(scene, camera)
     }
   }
 }
 
-export let debug_system: System = world => {
-  let highlighted_in = query(world, DebugHighlighted, In(), Not(IsInstance))
-  let highlighted_out = query(world, DebugHighlighted, Out(), Not(IsInstance))
-  let selected_in = query(world, DebugSelected, In(), Not(IsInstance))
-  let selected_out = query(world, DebugSelected, Out(), Not(IsInstance))
-  let selected_instances_in = query(
+export let debugSystem: System = world => {
+  let highlightedIn = query(world, DebugHighlighted, In(), Not(IsInstance))
+  let highlightedOut = query(world, DebugHighlighted, Out(), Not(IsInstance))
+  let selectedIn = query(world, DebugSelected, In(), Not(IsInstance))
+  let selectedOut = query(world, DebugSelected, Out(), Not(IsInstance))
+  let selectedInstancesIn = query(
     world,
     type(DebugSelected, IsInstance),
     In(),
   )
-  let selected_instances_out = query(
+  let selectedInstancesOut = query(
     world,
     type(DebugSelected, IsInstance),
     Out(),
   )
-  let debug_color = new three.Color(0x00ff00)
+  let debugColor = new three.Color(0x00ff00)
   return () => {
-    highlighted_in.each(entity => {
-      let mesh = SparseMap.get(objects_by_entity, entity)
+    highlightedIn.each(entity => {
+      let mesh = SparseMap.get(objectsByEntity, entity)
       if (!mesh) {
         return
       }
-      let highlighted_geometry = (mesh as three.Mesh).geometry
+      let highlightedGeometry = (mesh as three.Mesh).geometry
       let highlighted = new three.Mesh(
-        highlighted_geometry,
-        highlighted_material,
+        highlightedGeometry,
+        highlightedMaterial,
       )
       highlighted.name = "silver_debug_highlighted"
       highlighted.layers.set(1)
       mesh.add(highlighted)
     })
-    highlighted_out.each(entity => {
-      let mesh = SparseMap.get(objects_by_entity, entity)
+    highlightedOut.each(entity => {
+      let mesh = SparseMap.get(objectsByEntity, entity)
       if (!mesh) {
         return
       }
@@ -314,20 +314,20 @@ export let debug_system: System = world => {
         mesh.children.find(child => child.name === "silver_debug_highlighted")!,
       )
     })
-    selected_in.each(entity => {
-      let mesh = SparseMap.get(objects_by_entity, entity)
+    selectedIn.each(entity => {
+      let mesh = SparseMap.get(objectsByEntity, entity)
       if (!mesh) {
         return
       }
-      let selected_geometry = (mesh as three.Mesh).geometry
-      let selected = new three.Mesh(selected_geometry, selected_material)
+      let selectedGeometry = (mesh as three.Mesh).geometry
+      let selected = new three.Mesh(selectedGeometry, selectedMaterial)
       selected.name = "silver_debug_selected"
       selected.layers.set(1)
       mesh.add(selected)
       console.log("selected", entity)
     })
-    selected_out.each(entity => {
-      let mesh = SparseMap.get(objects_by_entity, entity)
+    selectedOut.each(entity => {
+      let mesh = SparseMap.get(objectsByEntity, entity)
       if (!mesh) {
         return
       }
@@ -336,26 +336,26 @@ export let debug_system: System = world => {
       )
       console.log("deselected", entity)
     })
-    selected_instances_in.each(entity => {
-      let instance_of = world.getExclusiveRelative(entity, InstanceOf)
-      let instances = SparseMap.get(object_instances, instance_of)
+    selectedInstancesIn.each(entity => {
+      let instanceOf = world.getExclusiveRelative(entity, InstanceOf)
+      let instances = SparseMap.get(objectInstances, instanceOf)
       if (instances) {
-        let index = SparseSet.index_of(instances, entity)
-        let mesh = SparseMap.get(objects_by_entity, instance_of) as
+        let index = SparseSet.indexOf(instances, entity)
+        let mesh = SparseMap.get(objectsByEntity, instanceOf) as
           | three.InstancedMesh
           | undefined
         if (mesh?.isInstancedMesh) {
-          mesh.setColorAt(index, debug_color)
+          mesh.setColorAt(index, debugColor)
           mesh.instanceColor!.needsUpdate = true
         }
       }
     })
-    selected_instances_out.each(entity => {
-      let instance_of = world.getExclusiveRelative(entity, InstanceOf)
-      let instances = SparseMap.get(object_instances, instance_of)
+    selectedInstancesOut.each(entity => {
+      let instanceOf = world.getExclusiveRelative(entity, InstanceOf)
+      let instances = SparseMap.get(objectInstances, instanceOf)
       if (instances) {
-        let index = SparseSet.index_of(instances, entity)
-        let mesh = SparseMap.get(objects_by_entity, instance_of) as
+        let index = SparseSet.indexOf(instances, entity)
+        let mesh = SparseMap.get(objectsByEntity, instanceOf) as
           | three.InstancedMesh
           | undefined
         if (mesh?.isInstancedMesh) {

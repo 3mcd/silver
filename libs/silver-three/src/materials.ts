@@ -1,6 +1,6 @@
 import {BackSide, ShaderMaterial} from "three"
 
-export let selected_material = new ShaderMaterial({
+export let selectedMaterial = new ShaderMaterial({
   vertexShader: `uniform float size;
   void main() {
     vec3 transformed = position + normal * size/100.;
@@ -18,7 +18,7 @@ export let selected_material = new ShaderMaterial({
   side: BackSide,
 })
 
-export let highlighted_material = new ShaderMaterial({
+export let highlightedMaterial = new ShaderMaterial({
   vertexShader: `uniform float size;
   void main() {
     vec3 transformed = position + normal * size/100.;

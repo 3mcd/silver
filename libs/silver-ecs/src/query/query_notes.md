@@ -27,7 +27,7 @@ query.each(t /* 98 */, v /* 55 */, e => {
 When a query learns of a new node that stores entities on a team and in a vehicle (i.e. matches `(OnTeam, InVehicle)`), it marshals the node's entities into a multi-dimensional map that looks something like this:
 
 ```ts
-relationship_map = {
+relationshipMap = {
   [hash(98, 55)]: [e1], // live list of entities on team 98 and in vehicle 55
 }
 ```
@@ -37,7 +37,7 @@ When executed, the query uses the provided `t` and `v` arguments to look up the 
 ```ts
 query.each(t, v, e => {})
 // translates roughly to:
-relationship_map[t][v].forEach(e => {
+relationshipMap[t][v].forEach(e => {
   // `e` is on team `t` and in vehicle `v`
 })
 ```
@@ -55,7 +55,7 @@ This type contains an additional relationship to team `99`. Entities in this tab
 Because the query only accepts a single team argument, it stores the entities the same way as before:
 
 ```ts
-relationship_map = {
+relationshipMap = {
   [hash(98, 55)]: [e1],
   [hash(99, 55)]: [e1],
 }
@@ -70,7 +70,7 @@ q = query(world, type(OnTeam, OnTeam, InVehicle))
 In this case, the query stores the entities in a slightly different way:
 
 ```ts
-relationship_map = {
+relationshipMap = {
   [hash(98, 99, 55)]: [e1],
   [hash(99, 98, 55)]: [e1],
 }
@@ -97,8 +97,8 @@ If we have two planets, both orbiting a star, the query would yield the followin
 
 ```ts
 results = [
-  [planet_1, [star_1, planet_1_orbit], planet_1_geometry],
-  [planet_2, [star_1, planet_2_orbit], planet_2_geometry],
+  [planet_1, [star_1, planet_1Orbit], planet_1Geometry],
+  [planet_2, [star_1, planet_2Orbit], planet_2Geometry],
 ]
 ```
 
@@ -106,9 +106,9 @@ But what if we have a planet that orbits the star, and a moon that orbits the pl
 
 ```ts
 results = [
-  [planet_1, [star_1, planet_1_orbit], planet_1_geometry],
-  [planet_2, [star_1, planet_2_orbit], planet_2_geometry],
-  [moon_1, [planet_1, moon_1_orbit], moon_1_geometry],
+  [planet_1, [star_1, planet_1Orbit], planet_1Geometry],
+  [planet_2, [star_1, planet_2Orbit], planet_2Geometry],
+  [moon_1, [planet_1, moon_1Orbit], moon_1Geometry],
 ]
 ```
 
@@ -131,9 +131,9 @@ We'd need to compute all permutations of these two relations to give the proper 
 
 ```ts
 results = [
-  [planet_1, system_1, [star_1, planet_1_orbit], planet_1_geometry],
-  [planet_2, system_2, [star_2, planet_2_orbit], planet_2_geometry],
-  [moon_1, system_1, [planet_1, moon_1_orbit], moon_1_geometry],
+  [planet_1, system_1, [star_1, planet_1Orbit], planet_1Geometry],
+  [planet_2, system_2, [star_2, planet_2Orbit], planet_2Geometry],
+  [moon_1, system_1, [planet_1, moon_1Orbit], moon_1Geometry],
 ]
 ```
 
@@ -143,7 +143,7 @@ Finally, what if a body can be influenced by gravity of many objects, thereby "o
 
 ```ts
 results = [
-  [planet_1, system_1, [star_1, planet_1_star_1_orbit], planet_1_geometry],
-  [planet_1, system_1, [star_2, planet_1_star_2_orbit], planet_1_geometry],
+  [planet_1, system_1, [star_1, planet_1Star_1Orbit], planet_1Geometry],
+  [planet_1, system_1, [star_2, planet_1Star_2Orbit], planet_1Geometry],
 ]
 ```

@@ -1,4 +1,4 @@
-import {Component, Entity, is_tag, parse_lo} from "silver-ecs"
+import {Component, Entity, isTag, parseLo} from "silver-ecs"
 import {useWorld} from "../hooks/use_world"
 import React, {useMemo} from "react"
 import {Code} from "./code"
@@ -15,23 +15,23 @@ export let Value = (props: Props) => {
     if ("schema" in props.component && props.component.schema) {
       let schema = props.component.schema!
       let keys = Object.keys(props.component.schema)
-      let value = world.stores[props.component.id][parse_lo(props.entity)] as
+      let value = world.stores[props.component.id][parseLo(props.entity)] as
         | Record<string, string | number>
         | string
         | number
       let children: React.ReactNode
       if (typeof schema === "object") {
         children = keys.map(key => {
-          let inner_schema = schema[key]
-          let inner_value: string | number = (
+          let innerSchema = schema[key]
+          let innerValue: string | number = (
             value as Record<string, string | number>
           )[key]
-          if (inner_schema === "string") {
-            inner_value = `"${inner_value}"`
+          if (innerSchema === "string") {
+            innerValue = `"${inner_value}"`
           } else {
-            inner_value = (inner_value as number).toFixed(3)
+            innerValue = (innerValue as number).toFixed(3)
           }
-          return <Text as="span" key={key}>{`${key}: ${inner_value}\n`}</Text>
+          return <Text as="span" key={key}>{`${key}: ${innerValue}\n`}</Text>
         })
       } else if (schema === "string") {
         children = <Text as="span">{value as string}</Text>
@@ -50,7 +50,7 @@ export let Value = (props: Props) => {
         </Code>
       )
     } else {
-      return is_tag(props.component) ? "✅" : "?"
+      return isTag(props.component) ? "✅" : "?"
     }
   }, [])
   return value

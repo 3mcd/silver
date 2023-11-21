@@ -54,7 +54,7 @@ export let Type = (props: Props) => {
   return (
     <Text>
       {props.type.components.map((component, i) =>
-        ecs.is_relation(component) ? null : (
+        ecs.isRelation(component) ? null : (
           <Fragment key={component.id}>
             <Component component={component} />
             {i < props.type.components.length - 1 && ", "}

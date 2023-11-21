@@ -1,4 +1,3 @@
-import {Graph, SparseSet} from "silver-ecs"
 import {Table} from "../../components/table"
 import {Type} from "../../components/type"
 import {QueryDefs} from "../../context/query_context"

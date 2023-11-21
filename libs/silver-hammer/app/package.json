@@ -1,4 +1,0 @@
-{
-  "main": "dist/silver-hammer-app.cjs.js",
-  "module": "dist/silver-hammer-app.esm.js"
-}

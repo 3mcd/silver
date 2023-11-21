@@ -3,10 +3,10 @@ import {useCallback, useState} from "react"
 import {
   Entity,
   Type,
-  is_relation,
-  is_tag,
-  is_tag_relationship,
-  stores_value,
+  isRelation,
+  isTag,
+  isTagRelationship,
+  storesValue,
 } from "silver-ecs"
 import {DebugSelected} from "silver-lib"
 import {Stack, styled} from "../../styled-system/jsx"
@@ -52,8 +52,8 @@ export let EntityRow = (props: EntityRowProps) => {
       }}
     >
       <Table.Cell>{props.entity}</Table.Cell>
-      {props.type.components.filter(stores_value).map(component =>
-        is_relation(component) ? null : (
+      {props.type.components.filter(storesValue).map(component =>
+        isRelation(component) ? null : (
           <Table.Cell key={component.id}>
             <Value entity={props.entity} component={component} />
           </Table.Cell>
@@ -67,14 +67,14 @@ export let EntityList = (props: Props) => {
   let world = useWorld()
   let aliases = useAliases()
   let [page, setPage] = useState({page: 1, pageSize: 15})
-  let on_page_change = useCallback(
+  let onPageChange = useCallback(
     (details: {page: number; pageSize: number}) => {
       setPage(details)
     },
     [],
   )
   let offset = (page.page - 1) * page.pageSize
-  let tags = props.type.components.filter(is_tag)
+  let tags = props.type.components.filter(isTag)
   return (
     <Stack height="100%">
       <styled.div>
@@ -116,10 +116,10 @@ export let EntityList = (props: Props) => {
               {props.type.components
                 .filter(
                   component =>
-                    !is_tag(component) && !is_tag_relationship(component),
+                    !isTag(component) && !isTagRelationship(component),
                 )
                 .map(component =>
-                  is_relation(component) ? null : (
+                  isRelation(component) ? null : (
                     <Table.Head key={component.id}>
                       {aliases.getComponent(component)}
                     </Table.Head>
@@ -152,7 +152,7 @@ export let EntityList = (props: Props) => {
         <Pagination.Root
           count={props.entities.length}
           pageSize={page.pageSize}
-          onPageChange={on_page_change}
+          onPageChange={onPageChange}
           paddingBottom="3"
         >
           {({pages}) => (

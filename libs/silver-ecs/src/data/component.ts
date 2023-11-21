@@ -119,16 +119,16 @@ export type TRelation = TagRelation | ValueRelation
 export type TRelationship = TagRelationship | ValueRelationship
 export type T = TBase | TRelation | TRelationship
 
-let next_component_id = 1
-export let make_component_id = () => {
-  let component_id = next_component_id++
-  Entity.assert_valid_hi(component_id)
-  return component_id
+let nextComponentId = 1
+export let makeComponentId = () => {
+  let componentId = nextComponentId++
+  Entity.assertValidHi(componentId)
+  return componentId
 }
 
 let relations = new Map<number, TRelation>()
-export let get_relation = (component_id: number): TRelation | undefined => {
-  return relations.get(component_id)
+export let getRelation = (componentId: number): TRelation | undefined => {
+  return relations.get(componentId)
 }
 
 class Component {
@@ -239,18 +239,18 @@ export function value<U>(): Type.Type<[Value<U>]>
  */
 export function value(): Type.Type<[Value<unknown>]>
 export function value(schema?: Data.Schema) {
-  return Type.make(make(make_component_id(), Kind.Value, undefined, schema))
+  return Type.make(make(makeComponentId(), Kind.Value, undefined, schema))
 }
 
 /**
  * Define a tag. Tags are components with no data.
  *
  * @example <caption>Define a tag and add it to an entity.</caption>
- * let Red_team = ecs.tag()
- * let entity = world.spawn(Red_team)
+ * let RedTeam = ecs.tag()
+ * let entity = world.spawn(RedTeam)
  */
 export let tag = (): Type.Type<[Tag]> =>
-  Type.make(make(make_component_id(), Kind.Tag))
+  Type.make(make(makeComponentId(), Kind.Tag))
 
 /**
  * Define a relation using the given schema.
@@ -321,14 +321,14 @@ export function valueRelation(
   schema?: Data.Schema | Topology,
   topology?: Topology,
 ) {
-  let component_id = make_component_id()
+  let componentId = makeComponentId()
   let component = make(
-    component_id,
+    componentId,
     Kind.ValueRelation,
     (typeof schema === "number" ? schema : topology) ?? Topology.Inclusive,
     typeof schema === "number" ? undefined : schema,
   )
-  relations.set(component_id, component)
+  relations.set(componentId, component)
   return Type.make(component)
 }
 
@@ -344,28 +344,28 @@ export function valueRelation(
 export let relation = (
   topology = Topology.Inclusive,
 ): Type.Type<[TagRelation]> => {
-  let component_id = make_component_id()
-  let component = make(component_id, Kind.TagRelation, topology)
-  relations.set(component_id, component)
+  let componentId = makeComponentId()
+  let component = make(componentId, Kind.TagRelation, topology)
+  relations.set(componentId, component)
   return Type.make(component)
 }
 
 type RelationshipOf<U extends ValueRelation | TagRelation> =
   U extends ValueRelation ? ValueRelationship : TagRelationship
 
-export let make_relationship = <U extends ValueRelation | TagRelation>(
+export let makeRelationship = <U extends ValueRelation | TagRelation>(
   component: U,
   entity: Entity.T,
 ): RelationshipOf<U> => {
-  let component_id = Entity.make(Entity.parse_lo(entity), component.id)
+  let componentId = Entity.make(Entity.parseLo(entity), component.id)
   if (component.kind === Kind.TagRelation) {
-    return make(component_id, Kind.TagRelationship) as RelationshipOf<U>
+    return make(componentId, Kind.TagRelationship) as RelationshipOf<U>
   } else {
-    return make(component_id, Kind.ValueRelationship) as RelationshipOf<U>
+    return make(componentId, Kind.ValueRelationship) as RelationshipOf<U>
   }
 }
 
-export let stores_value = (component: T): boolean => {
+export let storesValue = (component: T): boolean => {
   switch (component.kind) {
     case Kind.Value:
     case Kind.ValueRelationship:
@@ -375,10 +375,10 @@ export let stores_value = (component: T): boolean => {
   }
 }
 
-export let is_value = (component: T): component is Value =>
+export let isValue = (component: T): component is Value =>
   component.kind === Kind.Value
 
-export let is_initialized = (component: T): boolean => {
+export let isInitialized = (component: T): boolean => {
   switch (component.kind) {
     case Kind.Value:
     case Kind.ValueRelation:
@@ -389,27 +389,27 @@ export let is_initialized = (component: T): boolean => {
   }
 }
 
-export let is_tag_relation = (component: T): component is TagRelation =>
+export let isTagRelation = (component: T): component is TagRelation =>
   component.kind === Kind.TagRelation
 
-export let is_value_relation = (component: T): component is ValueRelation =>
+export let isValueRelation = (component: T): component is ValueRelation =>
   component.kind === Kind.ValueRelation
 
-export let is_relation = (
+export let isRelation = (
   component: T,
 ): component is ValueRelation | TagRelation =>
   component.kind === Kind.TagRelation || component.kind === Kind.ValueRelation
 
-export let is_relationship = (component: T): component is TRelationship =>
+export let isRelationship = (component: T): component is TRelationship =>
   component.kind === Kind.ValueRelationship ||
   component.kind === Kind.TagRelationship
 
-export let is_value_relationship = (
+export let isValueRelationship = (
   component: T,
 ): component is ValueRelationship => component.kind === Kind.ValueRelationship
 
-export let is_tag_relationship = (component: T): component is TagRelationship =>
+export let isTagRelationship = (component: T): component is TagRelationship =>
   component.kind === Kind.TagRelationship
 
-export let is_tag = (component: T): component is Tag | TagRelation =>
+export let isTag = (component: T): component is Tag | TagRelation =>
   component.kind === Kind.Tag || component.kind === Kind.TagRelation

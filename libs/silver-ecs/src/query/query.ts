@@ -33,7 +33,7 @@ class QueryChanged {
   }
 }
 
-let make_each_iterator_filter_exp = (changed: QueryChanged[]) => {
+let makeEachIteratorFilterExp = (changed: QueryChanged[]) => {
   let s = ""
   for (let i = 0; i < changed.length; i++) {
     s += `c${i}(e)===false||`
@@ -41,10 +41,10 @@ let make_each_iterator_filter_exp = (changed: QueryChanged[]) => {
   return s.slice(0, s.length - 2)
 }
 
-let make_each_iterator_fetch_exp = (type: Type.T) => {
+let makeEachIteratorFetchExp = (type: Type.T) => {
   let s = ""
-  for (let i = 0; i < type.component_spec.length; i++) {
-    let {id, kind} = type.component_spec[i]
+  for (let i = 0; i < type.componentSpec.length; i++) {
+    let {id, kind} = type.componentSpec[i]
     if (kind === Component.Kind.Value) {
       s += `s${i}[e],`
     } else if (kind === Component.Kind.ValueRelation) {
@@ -54,17 +54,17 @@ let make_each_iterator_fetch_exp = (type: Type.T) => {
   return s.slice(0, s.length - 1)
 }
 
-let make_each_iterator_params_exp = (type: Type.T) => {
+let makeEachIteratorParamsExp = (type: Type.T) => {
   let s = ""
-  for (let i = 0; i < type.component_spec.length; i++) {
-    if (Component.is_relation(type.component_spec[i])) {
+  for (let i = 0; i < type.componentSpec.length; i++) {
+    if (Component.isRelation(type.componentSpec[i])) {
       s += `r${i},`
     }
   }
   return s
 }
 
-let make_each_iterator_body = (fetch_exp: string, filter: string) => {
+let makeEachIteratorBody = (fetch_exp: string, filter: string) => {
   let s = ""
   s += "for(let i=0;i<M.length;i++){"
   s += "let m=M[i];"
@@ -78,7 +78,7 @@ let make_each_iterator_body = (fetch_exp: string, filter: string) => {
   return s
 }
 
-let make_changed_declarations = (changed: QueryChanged[]) => {
+let makeChangedDeclarations = (changed: QueryChanged[]) => {
   let s = ""
   for (let i = 0; i < changed.length; i++) {
     s += `let c${i}=C[${i}];`
@@ -86,10 +86,10 @@ let make_changed_declarations = (changed: QueryChanged[]) => {
   return s
 }
 
-let make_store_declarations = (type: Type.T) => {
+let makeStoreDeclarations = (type: Type.T) => {
   let s = ""
-  for (let i = 0; i < type.component_spec.length; i++) {
-    let component = type.component_spec[i]
+  for (let i = 0; i < type.componentSpec.length; i++) {
+    let component = type.componentSpec[i]
     if (component.kind === Component.Kind.Value) {
       s += `let s${i}=S[${component.id}];`
     }
@@ -97,10 +97,10 @@ let make_store_declarations = (type: Type.T) => {
   return s
 }
 
-let make_relation_matches_declaration = (type: Type.T) => {
+let makeRelationMatchesDeclarations = (type: Type.T) => {
   let s = `let h=0;`
-  for (let i = 0; i < type.component_spec.length; i++) {
-    if (Component.is_relation(type.component_spec[i])) {
+  for (let i = 0; i < type.componentSpec.length; i++) {
+    if (Component.isRelation(type.componentSpec[i])) {
       s += `h=Math.imul((h<<5)^(r${i}|0),0x9e3779b9);`
     }
   }
@@ -108,27 +108,27 @@ let make_relation_matches_declaration = (type: Type.T) => {
   return s
 }
 
-let make_common_exps = (type: Type.T, changed: QueryChanged[]) => {
-  let fetch = make_each_iterator_fetch_exp(type)
-  let filter = make_each_iterator_filter_exp(changed)
-  let params = make_each_iterator_params_exp(type)
-  let body = make_store_declarations(type) + make_changed_declarations(changed)
+let makeCommonExps = (type: Type.T, changed: QueryChanged[]) => {
+  let fetch = makeEachIteratorFetchExp(type)
+  let filter = makeEachIteratorFilterExp(changed)
+  let params = makeEachIteratorParamsExp(type)
+  let body = makeStoreDeclarations(type) + makeChangedDeclarations(changed)
   return {fetch, filter, params, body}
 }
 
-let compile_each_iterator_with_relations = <U extends Component.T[]>(
+let compileEachIteratorWithRelations = <U extends Component.T[]>(
   world: World.T,
   type: Type.T<U>,
   relative_matches: Entity.T[][][],
   changed: QueryChanged[],
 ): Each<U> => {
   let changed_predicates = changed.map(changed => changed.predicate)
-  let exps = make_common_exps(type, changed)
+  let exps = makeCommonExps(type, changed)
   let body = exps.body
   body += `return function each_iterator(${exps.params}$){`
-  body += make_relation_matches_declaration(type)
+  body += makeRelationMatchesDeclarations(type)
   body += "if(M===undefined)return;"
-  body += make_each_iterator_body(exps.fetch, exps.filter)
+  body += makeEachIteratorBody(exps.fetch, exps.filter)
   body += "}"
   let closure = Function("S", "C", "R", "W", body)
   return closure(
@@ -139,48 +139,48 @@ let compile_each_iterator_with_relations = <U extends Component.T[]>(
   )
 }
 
-let compile_each_iterator = <U extends Component.T[]>(
+let compileEachIterator = <U extends Component.T[]>(
   world: World.T,
   type: Type.T<U>,
   matches: Entity.T[][],
   changed: QueryChanged[],
 ): Each<U> => {
-  let changed_predicates = changed.map(changed => changed.predicate)
-  let exps = make_common_exps(type, changed)
+  let changedPredicates = changed.map(changed => changed.predicate)
+  let exps = makeCommonExps(type, changed)
   let body = exps.body
   body += `return function each_iterator(${exps.params}$){`
-  body += make_each_iterator_body(exps.fetch, exps.filter)
+  body += makeEachIteratorBody(exps.fetch, exps.filter)
   body += "}"
   let closure = Function("S", "C", "M", body)
-  return closure(world.stores, changed_predicates, matches)
+  return closure(world.stores, changedPredicates, matches)
 }
 
-let make_relative_keys = (query: T, node_type: Type.T) => {
-  let relation_relatives: number[][] = []
+let makeRelativeKeys = (query: T, nodeType: Type.T) => {
+  let relationRelatives: number[][] = []
   // Extract a list of the node's included relatives for each relation.
   // e.g. [[1,2,3], [5,6]]
-  for (let i = 0; i < query.type.relations_spec.length; i++) {
-    let relation = query.type.relations_spec[i]
-    let relatives = (relation_relatives[i] ??= [])
-    for (let j = 0; j < node_type.relationships.length; j++) {
-      let relationship = node_type.relationships[j]
-      let relation_id = Entity.parse_hi(relationship.id)
-      if (relation.id === relation_id) {
-        let relative = Entity.parse_lo(relationship.id)
+  for (let i = 0; i < query.type.relationsSpec.length; i++) {
+    let relation = query.type.relationsSpec[i]
+    let relatives = (relationRelatives[i] ??= [])
+    for (let j = 0; j < nodeType.relationships.length; j++) {
+      let relationship = nodeType.relationships[j]
+      let relationId = Entity.parseHi(relationship.id)
+      if (relation.id === relationId) {
+        let relative = Entity.parseLo(relationship.id)
         relatives.push(relative)
       }
     }
   }
   // Compute the cartesian product of relatives.
   // e.g. [[1,5], [1,6], [2,5], [2,6], [3,5], [3,6]]
-  let relation_relatives_product = product(relation_relatives)
+  let relationRelativesProduct = product(relationRelatives)
   // Create an integer key for each permutation for fast lookup.
-  let relative_keys: number[] = []
-  for (let i = 0; i < relation_relatives_product.length; i++) {
-    let flat = relation_relatives_product[i].flat(1)
-    relative_keys.push(Hash.words(flat))
+  let relativeKeys: number[] = []
+  for (let i = 0; i < relationRelativesProduct.length; i++) {
+    let flat = relationRelativesProduct[i].flat(1)
+    relativeKeys.push(Hash.words(flat))
   }
-  return relative_keys
+  return relativeKeys
 }
 
 class QueryFilters {
@@ -201,7 +201,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
   matches
   monitor
   node
-  relative_matches
+  relativeMatches
   type
 
   constructor(world: World.T, type: Type.T<U>, filters: Filter.T[]) {
@@ -214,27 +214,27 @@ export class Query<U extends Component.T[] = Component.T[]> {
       }
     }
     let matches = SparseMap.make<Entity.T[]>()
-    let relative_matches: Entity.T[][][] = []
-    this.filters = initialize_filters(filters, world)
+    let relativeMatches: Entity.T[][][] = []
+    this.filters = initializeFilters(filters, world)
     this.matches = matches
     this.monitor = monitor
     this.node = Graph.resolve(world.graph, type)
-    this.relative_matches = relative_matches
+    this.relativeMatches = relativeMatches
     this.type = type
     for (let i = 0; i < type.components.length; i++) {
       let component = type.components[i]
-      if (Component.is_value(component)) {
+      if (Component.isValue(component)) {
         world.store(component.id)
       }
     }
-    this.#iterator = Type.has_relations(type)
-      ? compile_each_iterator_with_relations(
+    this.#iterator = Type.hasRelations(type)
+      ? compileEachIteratorWithRelations(
           world,
           type,
-          relative_matches,
+          relativeMatches,
           this.filters.changed,
         )
-      : compile_each_iterator(
+      : compileEachIterator(
           world,
           type,
           SparseMap.values(matches),
@@ -257,14 +257,14 @@ export class Query<U extends Component.T[] = Component.T[]> {
     }
     // If the query is a monitor, release the array of matched entities.
     if (this.monitor && SparseMap.size(this.matches) > 0) {
-      this.relative_matches = []
+      this.relativeMatches = []
       SparseMap.clear(this.matches)
     }
   }
 }
 export type T<U extends Component.T[] = Component.T[]> = Query<U>
 
-let remember_node = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
+let rememberNode = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
   for (let i = 0; i < query.filters.not.length; i++) {
     if (Type.has(node.type, query.filters.not[i].type)) {
       return false
@@ -277,25 +277,25 @@ let remember_node = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
   }
   // If this query has relations, store the node's entities at each potential
   // permutation of its contained relatives.
-  if (Type.has_relations(query.type)) {
-    let relative_keys = make_relative_keys(query, node.type)
-    for (let i = 0; i < relative_keys.length; i++) {
-      let relative_key = relative_keys[i]
-      let relative_match = (query.relative_matches[relative_key] ??= [])
-      relative_match.push(entities)
+  if (Type.hasRelations(query.type)) {
+    let relativeKeys = makeRelativeKeys(query, node.type)
+    for (let i = 0; i < relativeKeys.length; i++) {
+      let relativeKey = relativeKeys[i]
+      let relativeMatch = (query.relativeMatches[relativeKey] ??= [])
+      relativeMatch.push(entities)
     }
   }
   if (query.monitor) {
     // If the query is a monitor, copy all of the entities into a single list
     // that will be released immediately after the next iteration.
-    let entity_matches = SparseMap.get(query.matches, node.type.hash)
-    if (entity_matches === undefined) {
-      entity_matches = []
-      SparseMap.set(query.matches, node.type.hash, entity_matches)
+    let entityMatches = SparseMap.get(query.matches, node.type.hash)
+    if (entityMatches === undefined) {
+      entityMatches = []
+      SparseMap.set(query.matches, node.type.hash, entityMatches)
     }
     for (let i = 0; i < entities.length; i++) {
       let entity = entities[i]
-      entity_matches.push(entity)
+      entityMatches.push(entity)
     }
   } else {
     // If the query is not a monitor, add the live collection to the query's
@@ -307,18 +307,18 @@ let remember_node = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
   return true
 }
 
-let forget_node = (query: Query, node: Graph.Node) => {
-  if (Type.has_relations(query.type)) {
-    let relative_keys = make_relative_keys(query, node.type)
-    for (let i = 0; i < relative_keys.length; i++) {
-      let relative_key = relative_keys[i]
-      query.relative_matches[relative_key] = undefined!
+let forgetNode = (query: Query, node: Graph.Node) => {
+  if (Type.hasRelations(query.type)) {
+    let relativeKeys = makeRelativeKeys(query, node.type)
+    for (let i = 0; i < relativeKeys.length; i++) {
+      let relativeKey = relativeKeys[i]
+      query.relativeMatches[relativeKey] = undefined!
     }
   }
   SparseMap.delete(query.matches, node.type.hash)
 }
 
-let initialize_filters = (filters: Filter.T[], world: World.T) => {
+let initializeFilters = (filters: Filter.T[], world: World.T) => {
   let changed: QueryChanged[] = []
   let is: Filter.T[] = []
   let not: Filter.T[] = []
@@ -332,13 +332,13 @@ let initialize_filters = (filters: Filter.T[], world: World.T) => {
         not.push(filter)
         break
       case Filter.Kind.Changed: {
-        let changed_state = Changed.make_filter_state()
-        let changed_predicate = Changed.compile_predicate(
+        let changedState = Changed.makeFilterState()
+        let changedPredicate = Changed.compilePredicate(
           filter.type,
           world.changes,
-          changed_state,
+          changedState,
         )
-        changed.push(new QueryChanged(changed_state, changed_predicate))
+        changed.push(new QueryChanged(changedState, changedPredicate))
         break
       }
       case Filter.Kind.In:
@@ -350,24 +350,24 @@ let initialize_filters = (filters: Filter.T[], world: World.T) => {
   return new QueryFilters(changed, is, not)
 }
 
-let init_graph_listeners_for_monitor = (query: Query, filters: Filter.T[]) => {
+let initGraphListenersForMonitor = (query: Query, filters: Filter.T[]) => {
   for (let i = 0; i < filters.length; i++) {
     let filter = filters[i]
     switch (filter.kind) {
       case Filter.Kind.In:
       case Filter.Kind.Out: {
-        let on_transition_event = (event: Transition.Event) => {
-          remember_node(query, event.node, event.entities)
+        let onTransitionEvent = (event: Transition.Event) => {
+          rememberNode(query, event.node, event.entities)
         }
         Signal.subscribe(
           filter.kind === Filter.Kind.In
             ? query.node.$included
             : query.node.$excluded,
-          on_transition_event,
+          onTransitionEvent,
         )
         if (filter.kind === Filter.Kind.In) {
           Graph.traverse(query.node, node => {
-            remember_node(query, node, SparseSet.values(node.entities))
+            rememberNode(query, node, SparseSet.values(node.entities))
           })
         }
         break
@@ -376,16 +376,16 @@ let init_graph_listeners_for_monitor = (query: Query, filters: Filter.T[]) => {
   }
 }
 
-let init_graph_listeners = (query: Query) => {
-  let on_node_created = (node: Graph.Node) => {
-    remember_node(query, node, SparseSet.values(node.entities))
+let initGraphListeners = (query: Query) => {
+  let onNodeCreated = (node: Graph.Node) => {
+    rememberNode(query, node, SparseSet.values(node.entities))
   }
-  let on_node_removed = (node: Graph.Node) => {
-    forget_node(query, node)
+  let onNodeRemoved = (node: Graph.Node) => {
+    forgetNode(query, node)
   }
-  Signal.subscribe(query.node.$created, on_node_created)
-  Signal.subscribe(query.node.$removed, on_node_removed)
-  Graph.traverse(query.node, on_node_created)
+  Signal.subscribe(query.node.$created, onNodeCreated)
+  Signal.subscribe(query.node.$removed, onNodeRemoved)
+  Graph.traverse(query.node, onNodeCreated)
 }
 
 export let make = <U extends Component.T[]>(
@@ -395,9 +395,9 @@ export let make = <U extends Component.T[]>(
 ): Query<U> => {
   let query = new Query(world, type, filters)
   if (query.monitor) {
-    init_graph_listeners_for_monitor(query, filters)
+    initGraphListenersForMonitor(query, filters)
   } else {
-    init_graph_listeners(query)
+    initGraphListeners(query)
   }
   return query
 }

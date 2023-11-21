@@ -16,6 +16,6 @@ perf("drain 1000 values", () => {
     StepBuffer.insert(buffer, i % 500, i)
   }
   return () => {
-    StepBuffer.drain_to(buffer, 500)
+    StepBuffer.drainTo(buffer, 500)
   }
 })

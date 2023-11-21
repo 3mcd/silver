@@ -67,7 +67,7 @@ export class BTreeMap<V, K extends number = number> {
   delete(lo: K, hi?: K, inclusive?: boolean): boolean {
     if (hi) {
       let count = 0
-      let leaf: Leaf<K> | null = this.root.find_leaf(lo)
+      let leaf: Leaf<K> | null = this.root.findLeaf(lo)
       do {
         let keys = leaf.keys
         for (let i = 0, length = keys.length; i < length; i++) {
@@ -112,7 +112,7 @@ export class BTreeMap<V, K extends number = number> {
     inclusive: boolean = true,
   ): void {
     if (this.size === 0) return
-    let leaf: Leaf<K> | null = this.root.find_leaf(lo)
+    let leaf: Leaf<K> | null = this.root.findLeaf(lo)
     do {
       let keys = leaf.keys
       for (let i = 0, length = keys.length; i < length; i++) {
@@ -141,10 +141,10 @@ abstract class NodeBase<K extends number> {
   }
   abstract get lo(): K
   abstract get hi(): K
-  abstract borrow_left(source: NodeBase<K>): void
-  abstract borrow_right(source: NodeBase<K>): void
+  abstract borrowLeft(source: NodeBase<K>): void
+  abstract borrowRight(source: NodeBase<K>): void
   abstract delete(key: K): void
-  abstract find_leaf(key: K): Leaf<K>
+  abstract findLeaf(key: K): Leaf<K>
   abstract merge(source: NodeBase<K>): void
   abstract set(key: K): void
   abstract shrink(): NodeBase<K>
@@ -168,33 +168,33 @@ class Node<V, K extends number> extends NodeBase<K> {
   }
 
   set(key: K): void {
-    let slot = this.slot_of(key, this.keys, this.compare)
+    let slot = this.slotOf(key, this.keys, this.compare)
     let child = this.children[slot]
     if (child.keys.length > child.max) {
       let sibling
       if (slot > 0) {
         sibling = this.children[slot - 1]
         if (sibling.keys.length < sibling.max) {
-          sibling.borrow_right(child)
+          sibling.borrowRight(child)
           this.keys[slot - 1] = child.lo
         } else if (slot < this.children.length - 1) {
           sibling = this.children[slot + 1]
           if (sibling.keys.length < sibling.max) {
-            sibling.borrow_left(child)
+            sibling.borrowLeft(child)
             this.keys[slot] = sibling.lo
           } else {
-            this.split_child(child, slot)
+            this.splitChild(child, slot)
           }
         } else {
-          this.split_child(child, slot)
+          this.splitChild(child, slot)
         }
       } else {
         sibling = this.children[1]
         if (sibling.keys.length < sibling.max) {
-          sibling.borrow_left(child)
+          sibling.borrowLeft(child)
           this.keys[slot] = sibling.lo
         } else {
-          this.split_child(child, slot)
+          this.splitChild(child, slot)
         }
       }
     }
@@ -202,16 +202,16 @@ class Node<V, K extends number> extends NodeBase<K> {
 
   delete(key: K): void {
     let keys = this.keys
-    let slot = this.slot_of(key, keys, this.compare)
+    let slot = this.slotOf(key, keys, this.compare)
     let child = this.children[slot]
     child.delete(key)
     if (slot > 0) keys[slot - 1] = child.lo
-    if (child.keys.length < child.min) this.consolidate_child(child, slot)
+    if (child.keys.length < child.min) this.consolidateChild(child, slot)
   }
 
-  find_leaf(key: K): Leaf<K> {
-    let slot = this.slot_of(key, this.keys, this.compare)
-    return this.children[slot].find_leaf(key)
+  findLeaf(key: K): Leaf<K> {
+    let slot = this.slotOf(key, this.keys, this.compare)
+    return this.children[slot].findLeaf(key)
   }
 
   split(): Node<V, K> {
@@ -226,13 +226,13 @@ class Node<V, K extends number> extends NodeBase<K> {
     return this.children[0]
   }
 
-  borrow_left(source: Node<V, K>): void {
+  borrowLeft(source: Node<V, K>): void {
     this.keys.unshift(this.lo)
     source.keys.pop()
     this.children.unshift(source.children.pop()!)
   }
 
-  borrow_right(source: Node<V, K>): void {
+  borrowRight(source: Node<V, K>): void {
     this.keys.push(source.lo)
     source.keys.shift()
     this.children.push(source.children.shift()!)
@@ -248,25 +248,25 @@ class Node<V, K extends number> extends NodeBase<K> {
     }
   }
 
-  split_child(child: NodeBase<K>, slot: number): void {
-    let new_child = child.split()
-    this.keys.splice(slot, 0, new_child.lo)
-    this.children.splice(slot + 1, 0, new_child)
+  splitChild(child: NodeBase<K>, slot: number): void {
+    let newChild = child.split()
+    this.keys.splice(slot, 0, newChild.lo)
+    this.children.splice(slot + 1, 0, newChild)
   }
 
-  consolidate_child(child: NodeBase<K>, slot: number): void {
+  consolidateChild(child: NodeBase<K>, slot: number): void {
     let keys = this.keys
     let children = this.children
     let sibling
     if (slot > 0) {
       sibling = children[slot - 1]
       if (sibling.keys.length > sibling.min) {
-        child.borrow_left(sibling)
+        child.borrowLeft(sibling)
         keys[slot - 1] = child.lo
       } else if (slot < this.children.length - 1) {
         sibling = children[slot + 1]
         if (sibling.keys.length > sibling.min) {
-          child.borrow_right(sibling)
+          child.borrowRight(sibling)
           keys[slot] = sibling.lo
         } else {
           children[slot - 1].merge(child)
@@ -281,7 +281,7 @@ class Node<V, K extends number> extends NodeBase<K> {
     } else {
       sibling = children[slot + 1]
       if (sibling.keys.length > sibling.min) {
-        child.borrow_right(sibling)
+        child.borrowRight(sibling)
         keys[slot] = sibling.lo
       } else {
         child.merge(children[1])
@@ -291,7 +291,7 @@ class Node<V, K extends number> extends NodeBase<K> {
     }
   }
 
-  slot_of(element: K, array: K[], compare: BTreeMapCompare<K>): number {
+  slotOf(element: K, array: K[], compare: BTreeMapCompare<K>): number {
     let top = array.length
     let middle = top >>> 1
     let bottom = 0
@@ -330,7 +330,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     if (this.keys.length === 0) {
       this.keys.push(key)
     } else {
-      let slot = this.slot_of(key, this.keys, this.compare)
+      let slot = this.slotOf(key, this.keys, this.compare)
       this.keys.splice(slot, 0, key)
     }
   }
@@ -339,7 +339,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     this.keys.splice(this.keys.indexOf(key), 1)
   }
 
-  find_leaf(): Leaf<K> {
+  findLeaf(): Leaf<K> {
     return this
   }
 
@@ -355,11 +355,11 @@ class Leaf<K extends number> extends NodeBase<K> {
     return new Leaf<K>(this.order, this.compare)
   }
 
-  borrow_left(source: Leaf<K>): void {
+  borrowLeft(source: Leaf<K>): void {
     this.keys.unshift(source.keys.pop()!)
   }
 
-  borrow_right(source: Leaf<K>): void {
+  borrowRight(source: Leaf<K>): void {
     this.keys.push(source.keys.shift()!)
   }
 
@@ -370,7 +370,7 @@ class Leaf<K extends number> extends NodeBase<K> {
     this.next = source.next
   }
 
-  slot_of(element: K, array: K[], compare: BTreeMapCompare<K>): number {
+  slotOf(element: K, array: K[], compare: BTreeMapCompare<K>): number {
     let top = array.length
     let middle = top >>> 1
     let bottom = 0
@@ -409,18 +409,18 @@ export let insert = <U>(buffer: T<U>, time: number, event: U) => {
   }
 }
 
-export let _delete = <U>(buffer: T<U>, time: number) => {
+export let Delete = <U>(buffer: T<U>, time: number) => {
   buffer.map.delete(buffer.min, time, true)
   buffer.min = time
 }
-export {_delete as delete}
+export {Delete as delete}
 
-export let delete_range = <U>(buffer: T<U>, time: number) => {
+export let deleteRange = <U>(buffer: T<U>, time: number) => {
   buffer.map.delete(buffer.min, time, true)
   buffer.min = time
 }
 
-export let drain_to = <U>(
+export let drainTo = <U>(
   buffer: T<U>,
   time: number,
   iteratee?: (value: U, key: number) => void,

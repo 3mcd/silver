@@ -45,13 +45,13 @@ let Inspector = () => {
 export default function App(props: AppProps) {
   let [open, setOpen] = useState(false)
   useEffect(() => {
-    let on_keydown = (e: KeyboardEvent) => {
+    let onKeydown = (e: KeyboardEvent) => {
       if (e.key === "`") {
         setOpen(open => !open)
       }
     }
-    document.addEventListener("keydown", on_keydown)
-    return () => document.removeEventListener("keydown", on_keydown)
+    document.addEventListener("keydown", onKeydown)
+    return () => document.removeEventListener("keydown", onKeydown)
   })
   return (
     <WorldProvider world={props.world}>

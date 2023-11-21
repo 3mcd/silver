@@ -8,10 +8,10 @@ export let run = (
   world: World.T,
   system: (world: World.T) => () => void,
 ): void => {
-  let system_impl = systems.get(system)
-  if (system_impl === undefined) {
-    system_impl = system(world)
-    systems.set(system, system_impl)
+  let systemImpl = systems.get(system)
+  if (systemImpl === undefined) {
+    systemImpl = system(world)
+    systems.set(system, systemImpl)
   }
-  system_impl()
+  systemImpl()
 }

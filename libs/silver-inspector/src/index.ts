@@ -14,39 +14,39 @@ export let mount = (world: World, element: HTMLElement, aliases: Aliases) => {
 // import {Edge, Network, Node} from "vis-network"
 // import {DataSet} from "vis-data"
 
-// let make_color = (value: number) => `hsl(0,0%,${40 + value * 60}%)`
+// let makeColor = (value: number) => `hsl(0,0%,${40 + value * 60}%)`
 // let nodes = new DataSet<Node>([])
 // let edges = new DataSet<Edge>([])
-// let edge_ids = new Set<string>()
-// let make_edge = (a: Type, b: Type) => {
+// let edgeIds = new Set<string>()
+// let makeEdge = (a: Type, b: Type) => {
 //   let from = a.hash
 //   let to = b.hash
 //   let id =
 //     a.components.length > b.components.length
 //       ? `${to}-${from}`
 //       : `${from}-${to}`
-//   if (edge_ids.has(id)) return
-//   let color = make_color(a.components.length / 40)
-//   edge_ids.add(id)
+//   if (edgeIds.has(id)) return
+//   let color = makeColor(a.components.length / 40)
+//   edgeIds.add(id)
 //   edges.add({id, from, to, color})
 // }
 
 // let nodesInserted = 0
 
 // export let mount = (world: World, root: HTMLElement, aliases?: Aliases) => {
-//   let insert_node = (node: Graph.Node) => {
+//   let insertNode = (node: Graph.Node) => {
 //     let level = node.type.components.length
-//     let color = make_color(level / 10)
+//     let color = makeColor(level / 10)
 //     nodes.add({
 //       id: node.type.hash,
-//       label: node.type.component_ids
+//       label: node.type.componentIds
 //         .map(id => aliases?.aliases[id] ?? id)
 //         .join(","),
 //       level,
 //       color,
 //     })
-//     node.edges_right.forEach(nextNode => make_edge(node.type, nextNode.type))
-//     node.edges_left.forEach(prevNode => make_edge(node.type, prevNode.type))
+//     node.edgesRight.forEach(nextNode => makeEdge(node.type, nextNode.type))
+//     node.edgesLeft.forEach(prevNode => makeEdge(node.type, prevNode.type))
 //     nodesInserted++
 //   }
 //   let graph = new Network(
@@ -73,11 +73,11 @@ export let mount = (world: World, element: HTMLElement, aliases: Aliases) => {
 //       },
 //     },
 //   )
-//   let graph_subscriber = Signal.subscribe(
+//   let graphSubscriber = Signal.subscribe(
 //     world.graph.root.$created,
-//     insert_node,
+//     insertNode,
 //   )
-//   Graph.traverse(world.graph.root, insert_node)
+//   Graph.traverse(world.graph.root, insertNode)
 //   document.addEventListener("keyup", e => {
 //     if (e.key === "`") {
 //       e.preventDefault()

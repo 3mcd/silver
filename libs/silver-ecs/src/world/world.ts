@@ -14,10 +14,10 @@ import * as Graph from "./graph"
 import * as Transition from "./transition"
 
 export class World {
-  #entity_registry
-  #entity_relationship_roots
-  #nodes_by_entity
-  #nodes_to_delete
+  #entityRegistry
+  #entityRelationshipRoots
+  #nodesByEntity
+  #nodesToDelete
   #stage
   #tick
   #transition
@@ -27,21 +27,21 @@ export class World {
   readonly changes
 
   constructor(tick = 0) {
-    this.#entity_registry = EntityRegistry.make()
-    this.#entity_relationship_roots = [] as Graph.Node[][]
-    this.#nodes_by_entity = SparseMap.make<Graph.Node>()
-    this.#nodes_to_delete = [] as Graph.Node[]
+    this.#entityRegistry = EntityRegistry.make()
+    this.#entityRelationshipRoots = [] as Graph.Node[][]
+    this.#nodesByEntity = SparseMap.make<Graph.Node>()
+    this.#nodesToDelete = [] as Graph.Node[]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
     this.#transition = Transition.make()
     this.changes = Changes.make()
     this.graph = Graph.make()
     this.stores = [] as unknown[][]
-    Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
+    Signal.subscribe(this.graph.root.$created, this.#recordRelationNode)
   }
 
   #locate(entity: Entity.T) {
-    let node = SparseMap.get(this.#nodes_by_entity, entity)
+    let node = SparseMap.get(this.#nodesByEntity, entity)
     Assert.ok(node !== undefined)
     return node
   }
@@ -49,13 +49,13 @@ export class World {
   /**
    * Move an entity from its current node to a new node.
    */
-  #move(entity: Entity.T, prev_node: Graph.Node, next_node: Graph.Node) {
-    Graph.remove_entity(prev_node, entity)
-    Graph.insert_entity(next_node, entity)
-    SparseMap.set(this.#nodes_by_entity, entity, next_node)
+  #move(entity: Entity.T, prevNode: Graph.Node, nextNode: Graph.Node) {
+    Graph.removeEntity(prevNode, entity)
+    Graph.insertEntity(nextNode, entity)
+    SparseMap.set(this.#nodesByEntity, entity, nextNode)
     // Track the entity's transition from the previous node to the next node
     // for monitor queries.
-    Transition.move(this.#transition, entity, prev_node, next_node)
+    Transition.move(this.#transition, entity, prevNode, nextNode)
   }
 
   /**
@@ -88,25 +88,25 @@ export class World {
   /**
    * Update an entity's component values.
    */
-  #write_many(entity: Entity.T, type: Type.T, init: unknown[]) {
-    let init_index = 0
-    for (let i = 0; i < type.component_spec.length; i++) {
-      let component = type.component_spec[i]
-      if (Component.is_value_relation(component)) {
+  #writeMany(entity: Entity.T, type: Type.T, init: unknown[]) {
+    let initIndex = 0
+    for (let i = 0; i < type.componentSpec.length; i++) {
+      let component = type.componentSpec[i]
+      if (Component.isValueRelation(component)) {
         // Relation components are initialized with a tuple of [entity, value].
         // Iterate each pair and write the value into the relationship's
         // component array.
-        let value = init[init_index] as Commands.InitValueRelation
-        this.#write_relationship(entity, component, value[0], value[1])
-        init_index++
-      } else if (Component.is_tag_relation(component)) {
+        let value = init[initIndex] as Commands.InitValueRelation
+        this.#writeRelationship(entity, component, value[0], value[1])
+        initIndex++
+      } else if (Component.isTagRelation(component)) {
         // Skip over tag relations because their entity is stored solely in
         // the relationship id.
-        init_index++
-      } else if (Component.is_value(component)) {
-        let value = init[init_index]
+        initIndex++
+      } else if (Component.isValue(component)) {
+        let value = init[initIndex]
         this.#write(entity, component, value)
-        init_index++
+        initIndex++
       }
     }
   }
@@ -114,10 +114,10 @@ export class World {
   /**
    * Clear an entity's component values for a given type.
    */
-  #clear_many(entity: Entity.T, type: Type.T) {
+  #clearMany(entity: Entity.T, type: Type.T) {
     for (let i = 0; i < type.components.length; i++) {
       let component = type.components[i]
-      if (Component.stores_value(component)) {
+      if (Component.storesValue(component)) {
         this.#write(entity, component, undefined)
       }
     }
@@ -126,7 +126,7 @@ export class World {
   /**
    * Update the data of a value relationship for a given entity.
    */
-  #write_relationship<U extends Component.ValueRelation>(
+  #writeRelationship<U extends Component.ValueRelation>(
     entity: Entity.T,
     component: U,
     relative: Entity.T,
@@ -136,11 +136,11 @@ export class World {
     // to the relationship between the component and the relative. All entities
     // associated to the relative through this component will store their
     // values in the same component array.
-    let relationship_component_id = Entity.make(
-      Entity.parse_lo(relative),
+    let relationshipComponentId = Entity.make(
+      Entity.parseLo(relative),
       component.id,
     )
-    this.store(relationship_component_id)[entity] = value
+    this.store(relationshipComponentId)[entity] = value
     this.#bump(entity, component)
   }
 
@@ -148,13 +148,13 @@ export class World {
    * Insert a new entity into the entity graph and write initial component
    * values.
    */
-  #apply_spawn(command: Commands.Spawn) {
+  #applySpawn(command: Commands.Spawn) {
     let {entity, type, init} = command
     let node = Graph.resolve(this.graph, type)
     // Insert the entity into the graph, write initial component values and
     // and remember its new node.
-    Graph.insert_entity(node, entity)
-    this.#write_many(entity, type, init)
+    Graph.insertEntity(node, entity)
+    this.#writeMany(entity, type, init)
     this.#move(entity, this.graph.root, node)
   }
 
@@ -162,60 +162,60 @@ export class World {
    * Remove an entity from the entity graph and clear all component values and
    * relationships.
    */
-  #apply_despawn(command: Commands.Despawn) {
+  #applyDespawn(command: Commands.Despawn) {
     this.#despawn(command.entity)
   }
 
   #despawn(entity: Entity.T) {
     let node = this.#locate(entity)
     // Release all component values.
-    this.#clear_many(entity, node.type)
+    this.#clearMany(entity, node.type)
     // Release all relationship nodes associated with this entity and move the
     // previously related entities to the left in the graph.
-    this.#clear_entity_relationships(entity)
+    this.#clearEntityRelationships(entity)
     // Remove the entity from the graph, forget its node, release the entity id
     // and record the move for monitor queries.
-    Graph.remove_entity(node, entity)
-    SparseMap.delete(this.#nodes_by_entity, entity)
-    EntityRegistry.release(this.#entity_registry, entity)
+    Graph.removeEntity(node, entity)
+    SparseMap.delete(this.#nodesByEntity, entity)
+    EntityRegistry.release(this.#entityRegistry, entity)
     Transition.move(this.#transition, entity, node, this.graph.root)
   }
 
   /**
    * Add or update a component for an entity.
    */
-  #apply_add(command: Commands.Add) {
+  #applyAdd(command: Commands.Add) {
     let {entity, type, init} = command
-    let prev_node = this.#locate(entity)
-    let next_type = Type.with(prev_node.type, type)
-    let next_node = Graph.resolve(this.graph, next_type)
+    let prevNode = this.#locate(entity)
+    let nextType = Type.with(prevNode.type, type)
+    let nextNode = Graph.resolve(this.graph, nextType)
     // If the entity does not have one or more of the components in the added
     // type, move the entity to its new node.
-    if (prev_node !== next_node) {
-      this.#move(entity, prev_node, next_node)
-      SparseMap.set(this.#nodes_by_entity, entity, next_node)
+    if (prevNode !== nextNode) {
+      this.#move(entity, prevNode, nextNode)
+      SparseMap.set(this.#nodesByEntity, entity, nextNode)
     }
     // Store added and updated component values.
-    this.#write_many(entity, type, init)
+    this.#writeMany(entity, type, init)
   }
 
   /**
    * Remove components from an entity.
    */
-  #apply_remove(command: Commands.Remove) {
+  #applyRemove(command: Commands.Remove) {
     let {entity, type} = command
-    let prev_node = this.#locate(entity)
-    let next_type = Type.without(prev_node.type, type)
-    let next_node = Graph.resolve(this.graph, next_type)
+    let prevNode = this.#locate(entity)
+    let nextType = Type.without(prevNode.type, type)
+    let nextNode = Graph.resolve(this.graph, nextType)
     // If the entity does not contain a component of the added type, do
     // nothing.
-    if (prev_node === next_node) {
+    if (prevNode === nextNode) {
       return
     }
     // Move the entity to its new node (to the left) and release removed
     // component values.
-    this.#move(entity, prev_node, next_node)
-    this.#clear_many(entity, type)
+    this.#move(entity, prevNode, nextNode)
+    this.#clearMany(entity, type)
   }
 
   /**
@@ -223,24 +223,24 @@ export class World {
    * id. This map is used to dispose an entity's relationship nodes when the
    * entity is despawned.
    */
-  #record_relation_node = (node: Graph.Node) => {
+  #recordRelationNode = (node: Graph.Node) => {
     for (let i = 0; i < node.type.relationships.length; i++) {
       let relationship = node.type.relationships[i]
-      let relationship_entity_id = Entity.parse_lo(relationship.id)
-      let relationship_entity = EntityRegistry.hydrate(
-        this.#entity_registry,
-        relationship_entity_id,
+      let relationshipEntityId = Entity.parseLo(relationship.id)
+      let relationshipEntity = EntityRegistry.hydrate(
+        this.#entityRegistry,
+        relationshipEntityId,
       )
       // Get or create the list of relationship nodes for the relationship
       // entity.
-      let entity_relationship_roots = (this.#entity_relationship_roots[
-        relationship_entity
+      let entityRelationshipRoots = (this.#entityRelationshipRoots[
+        relationshipEntity
       ] ??= [])
       // Get or create the root relationship node and insert it into the
       // entity's list of relationship nodes.
       // TODO: This results in duplicate nodes in the array when more specific
       // nodes are created to the right of already-tracked nodes.
-      entity_relationship_roots.push(
+      entityRelationshipRoots.push(
         Graph.resolve(this.graph, Type.make(relationship)),
       )
     }
@@ -250,57 +250,57 @@ export class World {
    * Remove all relationship nodes associated with an entity and move related
    * entities to the left in the graph.
    */
-  #clear_entity_relationships(entity: Entity.T) {
+  #clearEntityRelationships(entity: Entity.T) {
     // Look up nodes that lead to the entity's relatives.
-    let entity_relationship_roots = this.#entity_relationship_roots[entity]
-    if (entity_relationship_roots === undefined) {
+    let entityRelationshipRoots = this.#entityRelationshipRoots[entity]
+    if (entityRelationshipRoots === undefined) {
       return
     }
-    for (let i = 0; i < entity_relationship_roots.length; i++) {
-      let relationship_root = entity_relationship_roots[i]
-      let relationship_relation = Type.component_at(
-        relationship_root.type,
+    for (let i = 0; i < entityRelationshipRoots.length; i++) {
+      let relationshipRoot = entityRelationshipRoots[i]
+      let relationshipRelation = Type.componentAt(
+        relationshipRoot.type,
         0,
       ) as Component.TRelationship
-      let relationship_store = this.store(relationship_relation.id)
-      let relation_id = Entity.parse_hi(relationship_relation.id)
-      let relation = Assert.exists(Component.get_relation(relation_id))
+      let relationshipStore = this.store(relationshipRelation.id)
+      let relationId = Entity.parseHi(relationshipRelation.id)
+      let relation = Assert.exists(Component.getRelation(relationId))
       // If the relationship is inclusive (i.e. not hierarchical), remove the
       // relationship from all related entities.
       if (relation.topology === Component.Topology.Inclusive) {
-        Graph.move_entities_left(
+        Graph.moveEntitiesLeft(
           this.graph,
-          relationship_root,
-          relationship_relation,
+          relationshipRoot,
+          relationshipRelation,
           (entity, node) => {
-            SparseMap.set(this.#nodes_by_entity, entity, node)
-            relationship_store[entity] = undefined!
+            SparseMap.set(this.#nodesByEntity, entity, node)
+            relationshipStore[entity] = undefined!
           },
         )
       }
       // Delete the root relationship node, which will also delete all
       // relationship nodes that lead to the entity's relatives.
-      this.#nodes_to_delete.push(relationship_root)
+      this.#nodesToDelete.push(relationshipRoot)
     }
-    this.#entity_relationship_roots[entity] = undefined!
+    this.#entityRelationshipRoots[entity] = undefined!
   }
 
   /**
    * Apply a single command.
    */
-  #apply_command = (command: Commands.T) => {
+  #applyCommand = (command: Commands.T) => {
     switch (command.kind) {
       case "spawn":
-        this.#apply_spawn(command)
+        this.#applySpawn(command)
         break
       case "despawn":
-        this.#apply_despawn(command)
+        this.#applyDespawn(command)
         break
       case "add":
-        this.#apply_add(command)
+        this.#applyAdd(command)
         break
       case "remove":
-        this.#apply_remove(command)
+        this.#applyRemove(command)
         break
     }
   }
@@ -347,12 +347,12 @@ export class World {
     ...values: Commands.Init<U>
   ): Entity.T
   spawn(type?: Type.T, ...values: Commands.Init): Entity.T {
-    let entity = EntityRegistry.retain(this.#entity_registry)
+    let entity = EntityRegistry.retain(this.#entityRegistry)
     Stage.insert(
       this.#stage,
       this.#tick,
       Commands.spawn(
-        type ? Type.with_relationships(type, values) : Type.make(),
+        type ? Type.withRelationships(type, values) : Type.make(),
         entity,
         values,
       ),
@@ -387,7 +387,7 @@ export class World {
    * ```
    */
   despawn(entity: Entity.T) {
-    EntityRegistry.check(this.#entity_registry, entity)
+    EntityRegistry.check(this.#entityRegistry, entity)
     Stage.insert(this.#stage, this.#tick, Commands.despawn(entity))
   }
 
@@ -424,13 +424,13 @@ export class World {
     type: Type.Type<U>,
     ...values: Commands.Init<U>
   ) {
-    EntityRegistry.check(this.#entity_registry, entity)
+    EntityRegistry.check(this.#entityRegistry, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
       Commands.add(
-        Type.has_relations(type)
-          ? (Type.with_relationships(type, values) as Type.T<U>)
+        Type.hasRelations(type)
+          ? (Type.withRelationships(type, values) as Type.T<U>)
           : type,
         entity,
         values,
@@ -477,13 +477,13 @@ export class World {
     ...relatives: Component.Relatives<U>
   ): void
   remove(entity: Entity.T, type: Type.T, relatives?: Entity.T[]) {
-    EntityRegistry.check(this.#entity_registry, entity)
+    EntityRegistry.check(this.#entityRegistry, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
       Commands.remove(
-        Type.has_relations(type)
-          ? Type.with_relationships(type, relatives!)
+        Type.hasRelations(type)
+          ? Type.withRelationships(type, relatives!)
           : type,
         entity,
       ),
@@ -532,12 +532,12 @@ export class World {
     init: Commands.InitSingle<U>,
   ) {
     this.#locate(entity)
-    let component = Type.component_at(type)
-    if (Component.is_value_relation(component)) {
+    let component = Type.componentAt(type)
+    if (Component.isValueRelation(component)) {
       let value = init as Commands.InitValueRelation<
         U extends Component.ValueRelation<infer V> ? V : never
       >
-      this.#write_relationship(entity, component, value[0], value[1])
+      this.#writeRelationship(entity, component, value[0], value[1])
     } else {
       this.#write(entity, component, init)
     }
@@ -583,10 +583,10 @@ export class World {
   ): boolean
   has(entity: Entity.T, type: Type.Unitary, relative?: Entity.T): boolean {
     let node = this.#locate(entity)
-    let component = Type.component_at(type)
-    if (Component.is_relation(component)) {
+    let component = Type.componentAt(type)
+    if (Component.isRelation(component)) {
       let relationship = Entity.make(Assert.exists(relative), component.id)
-      return Type.has_id(node.type, relationship)
+      return Type.hasId(node.type, relationship)
     }
     return Type.has(node.type, type)
   }
@@ -629,8 +629,8 @@ export class World {
     relative?: Entity.T,
   ): Commands.InitSingle {
     this.#locate(entity)
-    let component = Type.component_at(type)
-    if (Component.is_relation(component)) {
+    let component = Type.componentAt(type)
+    if (Component.isRelation(component)) {
       let relationship = Entity.make(Assert.exists(relative), component.id)
       return this.store(relationship)[entity]
     }
@@ -667,8 +667,8 @@ export class World {
     let node = this.#locate(entity)
     return Type.has(
       node.type,
-      Type.has_relations(type)
-        ? Type.with_relationships(type, relatives)
+      Type.hasRelations(type)
+        ? Type.withRelationships(type, relatives)
         : type,
     )
   }
@@ -680,12 +680,12 @@ export class World {
   step(tick: number = this.#tick + 1) {
     // Execute all commands in the stage up to the given tick.
     while (this.#tick < tick) {
-      Stage.drain_to(this.#stage, tick, this.#apply_command)
+      Stage.drainTo(this.#stage, tick, this.#applyCommand)
       this.#tick++
     }
     // Immediately despawn all entities whose nodes are marked for deletion.
-    for (let i = 0; i < this.#nodes_to_delete.length; i++) {
-      let node = this.#nodes_to_delete[i]
+    for (let i = 0; i < this.#nodesToDelete.length; i++) {
+      let node = this.#nodesToDelete[i]
       Graph.traverse(node, node => {
         SparseSet.each(node.entities, entity => {
           this.#despawn(entity)
@@ -696,8 +696,8 @@ export class World {
     Transition.drain(this.#transition, this.graph, "stage")
     // Drop all nodes marked for deletion.
     let node: Graph.Node
-    while ((node = this.#nodes_to_delete.pop()!)) {
-      Graph.delete_node(this.graph, node)
+    while ((node = this.#nodesToDelete.pop()!)) {
+      Graph.deleteNode(this.graph, node)
     }
   }
 
@@ -715,19 +715,19 @@ export class World {
     }
     for (let i = 0; i < node.type.relationships.length; i++) {
       let relationship = node.type.relationships[i]
-      let relationship_component_id = Entity.parse_hi(relationship.id)
-      if (relationship_component_id === component.id) {
+      let relationshipComponentId = Entity.parseHi(relationship.id)
+      if (relationshipComponentId === component.id) {
         return EntityRegistry.hydrate(
-          this.#entity_registry,
-          Entity.parse_lo(relationship.id),
+          this.#entityRegistry,
+          Entity.parseLo(relationship.id),
         )
       }
     }
     throw new Error("Unexpected")
   }
 
-  store(component_id: number) {
-    return (this.stores[component_id] ??= [])
+  store(componentId: number) {
+    return (this.stores[componentId] ??= [])
   }
 
   with<U extends Component.T[]>(type: Type.T<U>, ...init: Commands.Init<U>) {

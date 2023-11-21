@@ -7,7 +7,7 @@ const network = document.getElementById("network")!
 const nodes = new DataSet<Node>([])
 const edges = new DataSet<Edge>([])
 const edgeIds = new Set<string>()
-const makeTypeId = (type: ecs.Type) => type.component_ids.toString()
+const makeTypeId = (type: ecs.Type) => type.componentIds.toString()
 const makeEdge = (a: ecs.Type, b: ecs.Type) => {
   const from = makeTypeId(a)
   const to = makeTypeId(b)
@@ -29,12 +29,12 @@ const onNodeInserted = (node: ecs.Graph.Node) => {
   const color = getColor(level / 10)
   nodes.add({
     id,
-    label: node.type.component_ids.map(id => alpha[id - 3]).join(","),
+    label: node.type.componentIds.map(id => alpha[id - 3]).join(","),
     level,
     color,
   })
-  node.edges_right.forEach(nextNode => makeEdge(node.type, nextNode.type))
-  node.edges_left.forEach(prevNode => makeEdge(node.type, prevNode.type))
+  node.edgesRight.forEach(nextNode => makeEdge(node.type, nextNode.type))
+  node.edgesLeft.forEach(prevNode => makeEdge(node.type, prevNode.type))
   nodesInserted++
 }
 

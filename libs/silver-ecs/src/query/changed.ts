@@ -16,29 +16,29 @@ export class FilterState {
 
 export type Predicate = (entity: Entity.T) => boolean
 
-export let make_filter_state = (): FilterState => {
+export let makeFilterState = (): FilterState => {
   return new FilterState()
 }
 
-export let make_component_changed_predicate = (component: Component.T) => {
-  let component_id = component.id
+export let makeComponentChangedPredicate = (component: Component.T) => {
+  let componentId = component.id
   // make the component+entity key
-  let s = `let k${component_id}=((${component_id}&${Entity.HI})<<${Entity.LO_EXTENT})|(e&${Entity.LO});`
+  let s = `let k${componentId}=((${componentId}&${Entity.HI})<<${Entity.LO_EXTENT})|(e&${Entity.LO});`
   // get the previous and next versions
-  s += `let b${component_id}=B[k${component_id}];`
+  s += `let b${componentId}=B[k${componentId}];`
   // if the next version is undefined, the entity has not changed (or does not
   // have the component)
-  s += `if(b${component_id}===undefined)return false;`
-  s += `let a${component_id}=A[k${component_id}];`
+  s += `if(b${componentId}===undefined)return false;`
+  s += `let a${componentId}=A[k${componentId}];`
   // if a version exists and is greater than or equal to the next version, the
   // entity has not changed
-  s += `if(a${component_id}!==undefined&&a${component_id}>=b${component_id})return false;`
+  s += `if(a${componentId}!==undefined&&a${componentId}>=b${componentId})return false;`
   // the entity has changed, so stage the new version
-  s += `$(k${component_id},b${component_id});`
+  s += `$(k${componentId},b${componentId});`
   return s
 }
 
-export let compile_predicate = (
+export let compilePredicate = (
   type: Type.T,
   changes: Changes.T,
   state: FilterState,
@@ -48,7 +48,7 @@ export let compile_predicate = (
   let body = "return function changed(e){"
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
-    body += make_component_changed_predicate(component)
+    body += makeComponentChangedPredicate(component)
   }
   body += "return true}"
   let closure = Function("A", "B", "$", body)
