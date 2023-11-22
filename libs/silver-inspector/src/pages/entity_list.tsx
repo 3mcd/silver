@@ -9,7 +9,7 @@ import {
   storesValue,
 } from "silver-ecs"
 import {DebugSelected} from "silver-lib"
-import {Stack, styled} from "../../styled-system/jsx"
+import {Box, HStack, Stack, styled} from "../../styled-system/jsx"
 import {Button} from "../components/button"
 import {IconButton} from "../components/icon_button"
 import {Pagination} from "../components/pagination"
@@ -18,9 +18,13 @@ import {Text} from "../components/text"
 import {Value} from "../components/value"
 import {useAliases} from "../hooks/use_aliases"
 import {useWorld} from "../hooks/use_world"
+import {Badge} from "../components/badge"
+import {Link} from "../components/link"
+import {Heading} from "../components/heading"
 
 type Props = {
   type: Type
+  title: string
   entities: Entity[]
   onBack(): void
   onEntitySelected(entity: Entity, select: boolean): void
@@ -67,47 +71,68 @@ export let EntityList = (props: Props) => {
   let world = useWorld()
   let aliases = useAliases()
   let [page, setPage] = useState({page: 1, pageSize: 15})
-  let onPageChange = useCallback(
-    (details: {page: number; pageSize: number}) => {
-      setPage(details)
-    },
-    [],
-  )
-  let offset = (page.page - 1) * page.pageSize
-  let tags = props.type.components.filter(isTag)
+  let pageOffset = (page.page - 1) * page.pageSize
   return (
     <Stack height="100%">
-      <styled.div>
-        <Button onClick={props.onBack}>Back</Button>
-      </styled.div>
-      <styled.div>
-        <styled.dl>
-          {tags.length > 0 && (
-            <>
-              <styled.dt fontWeight="medium">Tags</styled.dt>
-              <styled.dd marginLeft="3">
-                <Text>
-                  {tags
-                    .map(component => aliases.getComponent(component))
-                    .join(", ")}
-                </Text>
-              </styled.dd>
-            </>
-          )}
-          {props.type.relationships.length > 0 && (
-            <>
-              <styled.dt fontWeight="medium">Relationships</styled.dt>
-              <styled.dd marginLeft="3">
-                <Text>
-                  {props.type.relationships
-                    .map(aliases.getComponent)
-                    .join(", ")}
-                </Text>
-              </styled.dd>
-            </>
-          )}
-        </styled.dl>
-      </styled.div>
+      <HStack>
+        <IconButton onClick={props.onBack} variant="ghost" aria-label="Back">
+          <ChevronLeftIcon />
+        </IconButton>
+        <Heading>{props.title}</Heading>
+      </HStack>
+      <HStack
+        paddingX="2"
+        fontSize="sm"
+        gap="2"
+        paddingBottom="4"
+        borderBottom="1px solid token(colors.border.subtle)"
+      >
+        {props.type.tags.length > 0 && (
+          <Box flex="1">
+            <Heading as="h3" fontWeight="medium" fontSize="sm">
+              Tags
+            </Heading>
+            <HStack gap="1">
+              {props.type.tags.map(tag => (
+                <Badge key={tag.id} variant="solid">
+                  {aliases.getComponentAlias(tag)}
+                </Badge>
+              ))}
+            </HStack>
+          </Box>
+        )}
+        {props.type.relationships.length > 0 && (
+          <Box flex="1">
+            <Heading as="h3" fontWeight="medium" fontSize="sm">
+              Relationships
+            </Heading>
+            <styled.ul>
+              {props.type.relationships.map(relationship => {
+                let [relationAlias, relative] = aliases
+                  .getComponentAlias(relationship)
+                  .split(":")
+                return (
+                  <li key={relationship.id}>
+                    <Text as="span" marginRight="1">
+                      {relationAlias}:
+                    </Text>
+                    <Link
+                      onClick={() =>
+                        props.onEntitySelected(
+                          world.hydrate(Number(relative)),
+                          false,
+                        )
+                      }
+                    >
+                      {relative}
+                    </Link>
+                  </li>
+                )
+              })}
+            </styled.ul>
+          </Box>
+        )}
+      </HStack>
       <styled.div overflow="auto" flex="1">
         <Table.Root>
           <Table.Header position="sticky" top="0" background="bg.default">
@@ -121,7 +146,7 @@ export let EntityList = (props: Props) => {
                 .map(component =>
                   isRelation(component) ? null : (
                     <Table.Head key={component.id}>
-                      {aliases.getComponent(component)}
+                      {aliases.getComponentAlias(component)}
                     </Table.Head>
                   ),
                 )}
@@ -131,7 +156,7 @@ export let EntityList = (props: Props) => {
             {props.entities
               .slice()
               .sort()
-              .slice(offset, offset + page.pageSize)
+              .slice(pageOffset, pageOffset + page.pageSize)
               .map(entity => (
                 <EntityRow
                   key={entity}
@@ -152,7 +177,7 @@ export let EntityList = (props: Props) => {
         <Pagination.Root
           count={props.entities.length}
           pageSize={page.pageSize}
-          onPageChange={onPageChange}
+          onPageChange={setPage}
           paddingBottom="3"
         >
           {({pages}) => (

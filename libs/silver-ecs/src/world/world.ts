@@ -667,9 +667,7 @@ export class World {
     let node = this.#locate(entity)
     return Type.has(
       node.type,
-      Type.hasRelations(type)
-        ? Type.withRelationships(type, relatives)
-        : type,
+      Type.hasRelations(type) ? Type.withRelationships(type, relatives) : type,
     )
   }
 
@@ -726,6 +724,10 @@ export class World {
     throw new Error("Unexpected")
   }
 
+  hydrate(entityId: number) {
+    return EntityRegistry.hydrate(this.#entityRegistry, entityId)
+  }
+
   store(componentId: number) {
     return (this.stores[componentId] ??= [])
   }
@@ -736,4 +738,4 @@ export class World {
 }
 export type T = World
 
-export let make = (tick = 0): World => new World(tick)
+export let makeWorld = (tick = 0): World => new World(tick)

@@ -33,6 +33,7 @@ export let Query = (props: Props) => {
   }, [props.query, system, version])
   return (
     <EntityList
+      title={`Query: ${props.query.name}`}
       entities={results}
       type={props.query.query.type}
       onEntitySelected={props.onEntitySelected}

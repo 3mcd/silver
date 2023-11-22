@@ -16,7 +16,7 @@ type ComponentProps = {
 
 export let Component = (props: ComponentProps) => {
   let aliases = useAliases()
-  let alias = aliases.getComponent(props.component) ?? props.component.id
+  let alias = aliases.getComponentAlias(props.component) ?? props.component.id
   let schema = "schema" in props.component ? props.component.schema : undefined
   if (schema === undefined) {
     return <Text as="span">{alias}</Text>

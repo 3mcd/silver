@@ -14,4 +14,5 @@ export default defineConfig({
   include: ["./src/**/*.{js,jsx,ts,tsx}"],
   jsxFramework: "react",
   outdir: "styled-system",
+  outExtension: "js",
 })

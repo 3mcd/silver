@@ -54,16 +54,8 @@ export let Entities = (props: Props) => {
     },
     [state],
   )
-  let onEntityHoverIn = useCallback((entity: ecs.Entity) => {
-    if (!world.has(entity, DebugHighlighted)) {
-      world.add(entity, DebugHighlighted)
-    }
-  }, [])
-  let onEntityHoverOut = useCallback((entity: ecs.Entity) => {
-    if (world.has(entity, DebugHighlighted)) {
-      world.remove(entity, DebugHighlighted)
-    }
-  }, [])
+  let onEntityHoverIn = useCallback((entity: ecs.Entity) => {}, [])
+  let onEntityHoverOut = useCallback((entity: ecs.Entity) => {}, [])
   switch (state.status) {
     case "nodes":
       return <EntityNodes onNodeSelected={onNodeSelected} />

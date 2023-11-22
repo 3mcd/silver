@@ -71,6 +71,12 @@ importers:
       silver-ecs:
         specifier: workspace:*
         version: link:../../libs/silver-ecs
+      silver-inspector:
+        specifier: workspace:*
+        version: link:../../libs/silver-inspector
+      silver-lib:
+        specifier: workspace:*
+        version: link:../../libs/silver-lib
     devDependencies:
       vite:
         specifier: ^4.3.4

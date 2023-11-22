@@ -1,13 +1,20 @@
 import React from "react"
 import {createRoot} from "react-dom/client"
-import {Type, World} from "silver-ecs"
+import {Query, Type, World} from "silver-ecs"
 import App from "./app"
 import {Aliases, makeDebugAliases} from "./context/alias_context"
 
 export {makeDebugAliases}
 
-export let mount = (world: World, element: HTMLElement, aliases: Aliases) => {
-  createRoot(element).render(React.createElement(App, {world}))
+export let mount = (
+  world: World,
+  element: HTMLElement,
+  aliases?: Aliases,
+  queries?: {[name: string]: Query},
+) => {
+  createRoot(element).render(
+    React.createElement(App, {world, aliases, queries}),
+  )
 }
 
 // import {Graph, Signal, Type, World} from "silver-ecs"

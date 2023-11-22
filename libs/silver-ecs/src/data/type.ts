@@ -215,6 +215,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
   relationsSpec
   relationships
   sparse
+  tags
 
   constructor(componentSpec: U) {
     let components = sortSpec(componentSpec.slice())
@@ -226,6 +227,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
     this.relationsSpec = componentSpec.filter(Component.isRelation)
     this.relationships = components.filter(Component.isRelationship)
     this.sparse = []
+    this.tags = components.filter(Component.isTag)
     for (let i = 0; i < components.length; i++) {
       let component = components[i]
       if (Component.isRelation(component) && hasComponent(this, component)) {

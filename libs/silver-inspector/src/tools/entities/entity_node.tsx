@@ -1,10 +1,6 @@
-import {
-  Entity,
-  Graph,
-  SparseSet
-} from "silver-ecs"
-import { useNode } from "../../hooks/use_graph"
-import { EntityList } from "../../pages/entity_list"
+import {Entity, Graph, SparseSet} from "silver-ecs"
+import {useNode} from "../../hooks/use_graph"
+import {EntityList} from "../../pages/entity_list"
 
 type Props = {
   node: Graph.Node
@@ -18,6 +14,7 @@ export let EntityNode = (props: Props) => {
   useNode(props.node)
   return (
     <EntityList
+      title="Node"
       entities={SparseSet.values(props.node.entities)}
       type={props.node.type}
       onEntitySelected={props.onEntitySelected}

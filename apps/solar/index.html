@@ -12,9 +12,22 @@
         height: 100vh;
         display: block;
       }
+      #inspector {
+        position: fixed;
+        top: 0;
+        left: 0;
+        border-top: 1px solid #fff;
+        background-color: #fff;
+        height: 100vh;
+      }
     </style>
+    <link
+      rel="stylesheet"
+      href="../../node_modules/silver-inspector/dist.css"
+    />
   </head>
   <body>
+    <div id="inspector"></div>
     <canvas></canvas>
     <script src="./index.ts" type="module"></script>
   </body>

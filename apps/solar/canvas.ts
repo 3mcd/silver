@@ -85,14 +85,25 @@ export const arc = (
   radius: number,
   start: number,
   end: number,
-  width: number,
+  lineWidth: number,
 ) => {
-  context.lineWidth = width
+  context.lineWidth = lineWidth
   context.strokeStyle = color
   context.beginPath()
   context.arc(0, 0, radius, start, end)
   context.stroke()
   context.closePath()
+}
+
+export const rect = (
+  color: string,
+  width: number,
+  height: number,
+  lineWidth: number,
+) => {
+  context.lineWidth = lineWidth
+  context.strokeStyle = color
+  context.strokeRect(0, 0, width, height)
 }
 
 const getCursorPosition = (event: MouseEvent) => {

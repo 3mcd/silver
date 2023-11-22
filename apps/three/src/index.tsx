@@ -1,29 +1,20 @@
 import {Not, make, query, run} from "silver-ecs"
 import {makeDebugAliases} from "silver-inspector"
-import {
-  AngularVelocity,
-  DebugSelected,
-  Kinetic,
-  LinearVelocity,
-  Position,
-  Rotation,
-  Scale,
-  Transform,
-} from "silver-lib"
+import {DebugSelected, Kinetic, Transform} from "silver-lib"
 import {Collider, rapier3dSystem} from "silver-rapier"
 import {
   CastsShadow,
+  InstanceCount,
+  InstanceOf,
+  Instanced,
+  IsInstance,
+  Mesh,
   ReceivesShadow,
   ThreeGeometry,
   ThreeLight,
   ThreeMaterial,
   ThreePerspectiveCamera,
   threeSystem,
-  InstanceOf,
-  InstanceCount,
-  IsInstance,
-  Mesh,
-  Instanced,
 } from "silver-three"
 import {spawnSystem} from "./systems"
 
@@ -40,7 +31,7 @@ requestAnimationFrame(loop)
 
 import React from "react"
 import ReactDOM from "react-dom/client"
-import Hammer from "silver-inspector/app"
+import Inspector from "silver-inspector/app"
 
 const aliases = makeDebugAliases()
   .set(ThreePerspectiveCamera, "Camera")
@@ -49,20 +40,14 @@ const aliases = makeDebugAliases()
   .set(ThreeMaterial, "Material")
   .set(CastsShadow, "CastsShadow")
   .set(ReceivesShadow, "ReceivesShadow")
-  .set(Scale, "Scale")
   .set(Collider, "Collider")
-  .set(Position, "Position")
-  .set(Rotation, "Rotation")
-  .set(LinearVelocity, "LinearVelocity")
-  .set(AngularVelocity, "AngularVelocity")
   .set(IsInstance, "IsInstance")
   .set(InstanceOf, "InstanceOf")
   .set(InstanceCount, "InstanceCount")
-  .set(DebugSelected, "DebugSelected")
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+ReactDOM.createRoot(document.getElementById("inspector")!).render(
   <React.StrictMode>
-    <Hammer
+    <Inspector
       world={world}
       aliases={aliases}
       queries={{

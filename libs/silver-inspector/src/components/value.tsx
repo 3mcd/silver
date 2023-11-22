@@ -27,7 +27,7 @@ export let Value = (props: Props) => {
             value as Record<string, string | number>
           )[key]
           if (innerSchema === "string") {
-            innerValue = `"${inner_value}"`
+            innerValue = innerValue.toString()
           } else {
             innerValue = (innerValue as number).toFixed(3)
           }

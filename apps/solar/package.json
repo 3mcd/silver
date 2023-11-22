@@ -11,7 +11,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "silver-ecs": "workspace:*"
+    "silver-ecs": "workspace:*",
+    "silver-lib": "workspace:*",
+    "silver-inspector": "workspace:*"
   },
   "devDependencies": {
     "vite": "^4.3.4"
