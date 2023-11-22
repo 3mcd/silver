@@ -31,7 +31,6 @@ export let useQuery = (query: ecs.Query) => {
     })
     if (hit) {
       setVersion(v => v + 1)
-      console.log(matches)
     }
   }, [monitorIn, monitorOut, matches])
   return ecs.SparseSet.values(matches)

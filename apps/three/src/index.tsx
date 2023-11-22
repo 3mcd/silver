@@ -60,16 +60,15 @@ window
   })
 
 ReactDOM.createRoot(document.getElementById("inspector")!).render(
-  <React.StrictMode>
-    <Inspector
-      world={world}
-      aliases={aliases}
-      queries={{
-        Meshes: query(world, Mesh, Not(Instanced)),
-        Kinetics: query(world, Kinetic),
-        Transforms: query(world, Transform),
-        Selected: query(world, DebugSelected),
-      }}
-    />
-  </React.StrictMode>,
+  <Inspector
+    world={world}
+    aliases={aliases}
+    queries={{
+      Meshes: query(world, Mesh, Not(Instanced)),
+      Kinetics: query(world, Kinetic),
+      Transforms: query(world, Transform),
+      Selected: query(world, DebugSelected),
+      Light: query(world, ThreeLight),
+    }}
+  />,
 )

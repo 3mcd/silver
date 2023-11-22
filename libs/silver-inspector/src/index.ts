@@ -1,6 +1,6 @@
 import React from "react"
 import {createRoot} from "react-dom/client"
-import {Query, Type, World} from "silver-ecs"
+import {Query, World} from "silver-ecs"
 import App from "./app"
 import {Aliases, makeDebugAliases} from "./context/alias_context"
 

@@ -186,6 +186,12 @@ importers:
       react-force-graph-3d:
         specifier: ^1.24.0
         version: 1.24.0(react@18.2.0)
+      three:
+        specifier: ^0.158.0
+        version: 0.158.0
+      three-spritetext:
+        specifier: ^1.8.1
+        version: 1.8.1(three@0.158.0)
     devDependencies:
       '@pandacss/dev':
         specifier: ^0.18.3
@@ -8062,6 +8068,15 @@ packages:
       accessor-fn: 1.5.0
       kapsule: 1.14.5
       polished: 4.2.2
+      three: 0.158.0
+    dev: false
+
+  /three-spritetext@1.8.1(three@0.158.0):
+    resolution: {integrity: sha512-pohv5CcdeUtAPLi9KhG0kcDLj3gmzdIFK/QlgsTJe+U07oQFSj+K0DLPQKbNDPWAK+7YzhulkRcjWdVIQ5F7nw==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      three: '>=0.86.0'
+    dependencies:
       three: 0.158.0
     dev: false
 
