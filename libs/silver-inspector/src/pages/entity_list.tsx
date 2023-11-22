@@ -1,5 +1,5 @@
 import {ChevronLeftIcon, ChevronRightIcon} from "lucide-react"
-import {useCallback, useState} from "react"
+import React, {memo, useCallback, useMemo, useRef, useState} from "react"
 import {
   Entity,
   Type,
@@ -22,6 +22,7 @@ import {Badge} from "../components/badge"
 import {Link} from "../components/link"
 import {Heading} from "../components/heading"
 import {TypeHeader} from "../components/type_header"
+import {PageHeading} from "../components/page_heading"
 
 type Props = {
   type: Type
@@ -36,25 +37,47 @@ type Props = {
 type EntityRowProps = {
   entity: Entity
   type: Type
-  onClick(event: React.MouseEvent): void
-  onMouseEnter(): void
-  onMouseLeave(): void
+  onClick(entity: Entity, ctrlKey: boolean): void
+  onMouseEnter(entity: Entity): void
+  onMouseLeave(entity: Entity): void
   selected: boolean
 }
 
-export let EntityRow = (props: EntityRowProps) => {
+let entityRowHover = {
+  color: "accent.fg",
+  backgroundColor: "accent.default",
+  cursor: "pointer",
+}
+
+export let EntityRow = memo((props: EntityRowProps) => {
+  let onClick = useCallback(
+    (event: React.MouseEvent<HTMLTableRowElement, MouseEvent>) => {
+      props.onClick(props.entity, event.ctrlKey)
+    },
+    [props.entity, props.onClick],
+  )
+  let timeout = useRef<number | NodeJS.Timeout | null>(null)
+  let onMouseEnter = useCallback(() => {
+    timeout.current = setTimeout(() => {
+      props.onMouseEnter(props.entity)
+    }, 500)
+  }, [props.entity, props.onMouseEnter])
+  let onMouseLeave = useCallback(() => {
+    if (timeout.current) {
+      clearTimeout(timeout.current)
+      props.onMouseLeave(props.entity)
+    }
+    timeout.current = null
+  }, [props.entity, props.onMouseLeave])
+
   return (
     <Table.Row
-      onClick={props.onClick}
-      onMouseEnter={props.onMouseEnter}
-      onMouseLeave={props.onMouseLeave}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       backgroundColor={props.selected ? "green" : undefined}
       color={props.selected ? "accent.fg" : undefined}
-      _hover={{
-        color: "accent.fg",
-        backgroundColor: "accent.default",
-        cursor: "pointer",
-      }}
+      _hover={entityRowHover}
     >
       <Table.Cell>{props.entity}</Table.Cell>
       {props.type.components.filter(storesValue).map(component =>
@@ -66,41 +89,45 @@ export let EntityRow = (props: EntityRowProps) => {
       )}
     </Table.Row>
   )
+})
+
+type EntityListHeaderProps = {
+  type: Type
 }
+
+export let EntityListHeader = memo((props: EntityListHeaderProps) => {
+  let aliases = useAliases()
+  return (
+    <Table.Header position="sticky" top="0" background="bg.default">
+      <Table.Row>
+        <Table.Head>ID</Table.Head>
+        {props.type.components
+          .filter(
+            component => !isTag(component) && !isTagRelationship(component),
+          )
+          .map(component =>
+            isRelation(component) ? null : (
+              <Table.Head key={component.id}>
+                {aliases.getComponentAlias(component)}
+              </Table.Head>
+            ),
+          )}
+      </Table.Row>
+    </Table.Header>
+  )
+})
 
 export let EntityList = (props: Props) => {
   let world = useWorld()
-  let aliases = useAliases()
   let [page, setPage] = useState({page: 1, pageSize: 15})
   let pageOffset = (page.page - 1) * page.pageSize
   return (
     <Stack height="100%">
-      <HStack>
-        <IconButton onClick={props.onBack} variant="ghost" aria-label="Back">
-          <ChevronLeftIcon />
-        </IconButton>
-        <Heading>{props.title}</Heading>
-      </HStack>
+      <PageHeading title={props.title} onBack={props.onBack} />
       <TypeHeader type={props.type} onEntitySelected={props.onEntitySelected} />
       <styled.div overflow="auto" flex="1">
         <Table.Root>
-          <Table.Header position="sticky" top="0" background="bg.default">
-            <Table.Row>
-              <Table.Head>ID</Table.Head>
-              {props.type.components
-                .filter(
-                  component =>
-                    !isTag(component) && !isTagRelationship(component),
-                )
-                .map(component =>
-                  isRelation(component) ? null : (
-                    <Table.Head key={component.id}>
-                      {aliases.getComponentAlias(component)}
-                    </Table.Head>
-                  ),
-                )}
-            </Table.Row>
-          </Table.Header>
+          <EntityListHeader type={props.type} />
           <Table.Body overflow="auto">
             {props.entities
               .slice()
@@ -111,11 +138,9 @@ export let EntityList = (props: Props) => {
                   key={entity}
                   entity={entity}
                   type={props.type}
-                  onClick={e => {
-                    props.onEntitySelected(entity, e.ctrlKey)
-                  }}
-                  onMouseEnter={() => props.onEntityHoverIn(entity)}
-                  onMouseLeave={() => props.onEntityHoverOut(entity)}
+                  onClick={props.onEntitySelected}
+                  onMouseEnter={props.onEntityHoverIn}
+                  onMouseLeave={props.onEntityHoverOut}
                   selected={world.has(entity, DebugSelected)}
                 />
               ))}
@@ -128,6 +153,7 @@ export let EntityList = (props: Props) => {
           pageSize={page.pageSize}
           onPageChange={setPage}
           paddingBottom="3"
+          overflow="auto"
         >
           {({pages}) => (
             <>

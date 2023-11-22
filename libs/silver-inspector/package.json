@@ -35,15 +35,15 @@
     "lucide-react": "^0.292.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "vis-data": "^7.1.7",
-    "vis-network": "^9.1.6"
+    "react-force-graph-3d": "^1.24.0"
   },
   "devDependencies": {
     "@pandacss/dev": "^0.18.3",
     "@park-ui/panda-preset": "^0.23.0",
     "postcss": "^8.4.31",
     "postcss-cli": "^10.1.0",
-    "silver-ecs": "workspace:*"
+    "silver-ecs": "workspace:*",
+    "silver-lib": "workspace:*"
   },
   "peerDependencies": {
     "silver-ecs": "workspace:*",

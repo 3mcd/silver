@@ -43,6 +43,10 @@ export let rapier3dSystem: System = world => {
   }
   return () => {
     fixedBodiesIn.each((entity, colliderDesc, position, rotation) => {
+      let handle = SparseMap.get(handlesByEntity, entity)
+      if (handle !== undefined) {
+        rapierWorld.removeRigidBody(rapierWorld.getRigidBody(handle))
+      }
       let rigidBodyDesc = RigidBodyDesc.fixed()
         .setTranslation(position.x, position.y, position.z)
         .setRotation(rotation)
@@ -58,6 +62,10 @@ export let rapier3dSystem: System = world => {
     })
     dynamicBodiesIn.each(
       (entity, colliderDesc, position, rotation, velocity) => {
+        let handle = SparseMap.get(handlesByEntity, entity)
+        if (handle !== undefined) {
+          rapierWorld.removeRigidBody(rapierWorld.getRigidBody(handle))
+        }
         let rigidBodyDesc = RigidBodyDesc.dynamic()
           .setTranslation(position.x, position.y, position.z)
           .setRotation(rotation)

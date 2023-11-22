@@ -57,13 +57,11 @@ export type Express<U extends T> = U extends Object
   ? {
       [K in keyof U]: Express<U[K]>
     }
-  : T extends Scalar
-  ? T extends Numeric
-    ? number
-    : T extends String
-    ? String
-    : never
-  : never
+  : U extends Numeric
+  ? number
+  : U extends String
+  ? string
+  : unknown
 
 /**
  * Derive a schema from a type.
@@ -80,4 +78,4 @@ export type SchemaOf<U> = U extends object
   ? Numeric
   : U extends string
   ? String
-  : never
+  : T

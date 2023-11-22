@@ -203,6 +203,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
   node
   relativeMatches
   type
+  world
 
   constructor(world: World.T, type: Type.T<U>, filters: Filter.T[]) {
     let monitor = false
@@ -221,6 +222,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
     this.node = Graph.resolve(world.graph, type)
     this.relativeMatches = relativeMatches
     this.type = type
+    this.world = world
     for (let i = 0; i < type.components.length; i++) {
       let component = type.components[i]
       if (Component.isValue(component)) {

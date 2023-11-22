@@ -13,7 +13,7 @@ import {
   ThreeGeometry,
   ThreeLight,
   ThreeMaterial,
-  ThreePerspectiveCamera,
+  ThreeCamera,
   threeSystem,
 } from "silver-three"
 import {spawnSystem} from "./systems"
@@ -34,7 +34,7 @@ import ReactDOM from "react-dom/client"
 import Inspector from "silver-inspector/app"
 
 const aliases = makeDebugAliases()
-  .set(ThreePerspectiveCamera, "Camera")
+  .set(ThreeCamera, "Camera")
   .set(ThreeLight, "Light")
   .set(ThreeGeometry, "Geometry")
   .set(ThreeMaterial, "Material")

@@ -73,7 +73,14 @@ export let Value = (props: Props) => {
         background="transparent"
         color="inherit"
       >
-        <ValueInner schema={(component as any).schema} value={value as any} />
+        {"schema" in component && component.schema !== undefined ? (
+          <ValueInner
+            schema={component.schema}
+            value={value as Express<Schema.T>}
+          />
+        ) : (
+          "?"
+        )}
       </Code>
     )
   } else {

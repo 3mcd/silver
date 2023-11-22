@@ -4,6 +4,7 @@ import {
   AngularVelocity,
   Kinetic,
   LinearVelocity,
+  Name,
   Position,
   Rotation,
   Scale,
@@ -11,11 +12,11 @@ import {
 } from "silver-lib"
 import {Collider} from "silver-rapier"
 import {
-  Camera,
+  ThreeCamera,
   CastsShadow,
   Instance,
   InstanceCount,
-  Light,
+  ThreeLight,
   Mesh,
   ReceivesShadow,
 } from "silver-three"
@@ -99,15 +100,15 @@ export const spawnSystem: System = world => {
     .spawn()
 
   // sunlight
-  world.with(Light, sunlight).with(Transform, sun, Rotation.make()).spawn()
+  world.with(ThreeLight, sunlight).with(Transform, sun, Rotation.make()).spawn()
 
   // ambient light
-  world.with(Light, new AmbientLight(0xfdfbd3, 0.2)).spawn()
+  world.with(ThreeLight, new AmbientLight(0xfdfbd3, 0.2)).spawn()
 
   // camera
   world
     .with(
-      Camera,
+      ThreeCamera,
       new PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
@@ -126,15 +127,19 @@ export const spawnSystem: System = world => {
       new MeshStandardMaterial({color: 0xffffff}),
     )
     .with(Transform, Position.make(-2), Rotation.make())
+    .with(Collider, ColliderDesc.ball(0.5))
+    .with(Name, "ball-1")
     .spawn()
   // thing
-  world
+  let ball2 = world
     .with(
       Mesh,
       new SphereGeometry(0.5, 32, 32),
       new MeshStandardMaterial({color: 0xffffff}),
     )
     .with(Transform, Position.make(), Rotation.make())
+    .with(Collider, ColliderDesc.ball(0.5))
+    .with(Name, "ball-2")
     .spawn()
   // thing
   world
@@ -144,7 +149,13 @@ export const spawnSystem: System = world => {
       new MeshStandardMaterial({color: 0xffffff}),
     )
     .with(Transform, Position.make(2), Rotation.make())
+    .with(Collider, ColliderDesc.ball(0.5))
+    .with(Name, "ball-3")
     .spawn()
 
-  return () => {}
+  return () => {
+    if (world.tick === 500) {
+      world.add(ball2, Kinetic, LinearVelocity.make(), AngularVelocity.make())
+    }
+  }
 }

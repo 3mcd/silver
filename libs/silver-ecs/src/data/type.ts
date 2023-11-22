@@ -201,7 +201,7 @@ export let hasRelations = (type: Type): boolean => {
 
 export let componentAt = <U extends Component.T[], I extends number = 0>(
   type: Type<U>,
-  index: I = 0 as I,
+  index: I,
 ): U[I] => {
   return type.componentSpec[index] as U[I]
 }

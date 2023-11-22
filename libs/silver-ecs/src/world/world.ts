@@ -532,7 +532,7 @@ export class World {
     init: Commands.InitSingle<U>,
   ) {
     this.locate(entity)
-    let component = Type.componentAt(type)
+    let component = Type.componentAt(type, 0)
     if (Component.isValueRelation(component)) {
       let value = init as Commands.InitValueRelation<
         U extends Component.ValueRelation<infer V> ? V : never
@@ -583,7 +583,7 @@ export class World {
   ): boolean
   has(entity: Entity.T, type: Type.Unitary, relative?: Entity.T): boolean {
     let node = this.locate(entity)
-    let component = Type.componentAt(type)
+    let component = Type.componentAt(type, 0)
     if (Component.isRelation(component)) {
       let relationship = Entity.make(Assert.exists(relative), component.id)
       return Type.hasId(node.type, relationship)
@@ -629,7 +629,7 @@ export class World {
     relative?: Entity.T,
   ): Commands.InitSingle {
     this.locate(entity)
-    let component = Type.componentAt(type)
+    let component = Type.componentAt(type, 0)
     if (Component.isRelation(component)) {
       let relationship = Entity.make(Assert.exists(relative), component.id)
       return this.store(relationship)[entity]

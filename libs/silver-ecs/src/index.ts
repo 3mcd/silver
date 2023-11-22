@@ -16,7 +16,7 @@ export {
   getRelation,
 } from "./data/component"
 export * from "./data/schema"
-export {make as type} from "./data/type"
+export {make as type, componentAt} from "./data/type"
 export type {Type} from "./data/type"
 export type {Entity} from "./entity/entity"
 export {Changed, In, Is, Not, Out} from "./query/filter"

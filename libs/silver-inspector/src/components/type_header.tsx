@@ -8,27 +8,22 @@ import * as ecs from "silver-ecs"
 import {useAliases} from "../hooks/use_aliases"
 import {useWorld} from "../hooks/use_world"
 import {DebugHighlighted, DebugSelected} from "silver-lib"
+import {memo} from "react"
 
 type Props = {
   type: ecs.Type
   onEntitySelected(entity: ecs.Entity, select: boolean): void
 }
 
-export let TypeHeader = (props: Props) => {
+export let TypeHeader = memo((props: Props) => {
   let world = useWorld()
   let aliases = useAliases()
   let tags = props.type.tags.filter(
     tag => tag !== DebugHighlighted.components[0],
   )
-  return (
-    <HStack
-      paddingX="2"
-      fontSize="sm"
-      gap="2"
-      paddingBottom="4"
-      borderBottom="1px solid token(colors.border.subtle)"
-    >
-      {props.type.tags.length > 0 && (
+  return tags.length + props.type.relationships.length > 0 ? (
+    <HStack paddingX="2" fontSize="sm" gap="2" paddingBottom="4">
+      {tags.length > 0 && (
         <Box flex="1">
           <Heading as="h3" fontWeight="medium" fontSize="sm">
             Tags
@@ -82,5 +77,5 @@ export let TypeHeader = (props: Props) => {
         </Box>
       )}
     </HStack>
-  )
-}
+  ) : null
+})

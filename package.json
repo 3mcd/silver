@@ -7,7 +7,7 @@
   "scripts": {
     "bench": "PERF_UNIT=ms pnpm --filter=silver-ecs bench",
     "build": "preconstruct build && pnpm -r build",
-    "dev": "pnpm --filter=solar start",
+    "dev": "pnpm --filter=three start",
     "postinstall": "preconstruct dev",
     "reset": "pnpm reset:bench & pnpm reset:dist & pnpm i",
     "reset:bench": "find ./libs -type f -name '*.bench-results' -delete",

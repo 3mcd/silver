@@ -23,13 +23,13 @@ import {
 import * as three from "three"
 import {highlightedMaterial, selectedMaterial} from "./materials"
 import {
-  Camera,
+  ThreeCamera,
   CastsShadow,
   InstanceCount,
   InstanceOf,
   Instanced,
   IsInstance,
-  Light,
+  ThreeLight,
   Mesh,
   ReceivesShadow,
 } from "./schema"
@@ -117,7 +117,7 @@ export let scaleSystem: System = world => {
 }
 
 export let lightsSystem: System = world => {
-  let lightsIn = query(world, Light, In())
+  let lightsIn = query(world, ThreeLight, In())
   return () => {
     lightsIn.each((entity, light) => {
       SparseMap.set(objectsByEntity, entity, light)
@@ -205,7 +205,7 @@ let cameraControls: CameraControls
 
 export let cameraSystem: System = world => {
   let clock = new three.Clock()
-  let camerasIn = query(world, Camera, In())
+  let camerasIn = query(world, ThreeCamera, In())
   let raycaster = new three.Raycaster()
   raycaster.layers.set(0)
   renderer.domElement.addEventListener("click", event => {
@@ -221,8 +221,8 @@ export let cameraSystem: System = world => {
       let entity = entitiesByObject.get(intersects[0].object)
       if (entity !== undefined) {
         if (world.has(entity, InstanceCount)) {
-          let instancedMesh = SparseMap.get(objectsByEntity, entity)!
           let instances = SparseMap.get(objectInstances, entity)!
+          let instancedMesh = SparseMap.get(objectsByEntity, entity)!
           let instanceIntersects = raycaster.intersectObject(instancedMesh)
           if (instanceIntersects.length > 0) {
             let instance = SparseSet.at(

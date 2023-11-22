@@ -9,6 +9,7 @@ import {WorldProvider} from "./context/world_provider"
 import "./index.css"
 import {Entities} from "./tools/entities"
 import {Queries} from "./tools/queries"
+import {Graph} from "./tools/graph"
 
 export type AppProps = {
   world: World
@@ -21,26 +22,27 @@ export type AppProps = {
 let Inspector = () => {
   return (
     <Stack height="100%">
-      <Tabs.Root
-        defaultValue="entities"
-        width="30vw"
-        height="100%"
-        paddingTop="2"
-      >
+      <Tabs.Root defaultValue="world" width="30vw" height="100%" paddingTop="2">
         <Tabs.List>
-          <Tabs.Trigger key="entities" value="entities">
-            Entities
+          <Tabs.Trigger key="world" value="world">
+            World
           </Tabs.Trigger>
           <Tabs.Trigger key="queries" value="queries">
             Queries
           </Tabs.Trigger>
+          <Tabs.Trigger key="graph" value="graph">
+            Graph
+          </Tabs.Trigger>
           <Tabs.Indicator />
         </Tabs.List>
-        <Tabs.Content value="entities" height="100%" overflow="hidden">
+        <Tabs.Content value="world" height="100%" overflow="hidden">
           <Entities />
         </Tabs.Content>
         <Tabs.Content value="queries" height="100%" overflow="hidden">
           <Queries />
+        </Tabs.Content>
+        <Tabs.Content value="graph" height="100%" overflow="hidden">
+          <Graph />
         </Tabs.Content>
       </Tabs.Root>
     </Stack>

@@ -12,6 +12,7 @@ import {
   DebugHighlighted,
   DebugSelected,
   LinearVelocity,
+  Name,
   Position,
   Rotation,
   Scale,
@@ -22,7 +23,8 @@ export class Aliases {
 
   constructor() {
     this.aliases = [] as string[]
-    this.set(Position, "Position")
+    this.set(Name, "Name")
+      .set(Position, "Position")
       .set(Rotation, "Rotation")
       .set(LinearVelocity, "LinearVelocity")
       .set(AngularVelocity, "AngularVelocity")

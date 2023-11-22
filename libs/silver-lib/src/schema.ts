@@ -23,6 +23,8 @@ let withInitializer = <T extends Type, U, V extends (...args: any[]) => U>(
   })
 }
 
+export let Name = value("string")
+
 export interface Position extends Vector3 {}
 export let Position = withInitializer(
   value<Position>({x: "f64", y: "f64", z: "f64"}),
@@ -60,5 +62,5 @@ export let Scale = withInitializer(
 export let Transform = type(Position, Rotation)
 export let Kinetic = type(LinearVelocity, AngularVelocity)
 
-export let DebugSelected = tag() // 6
-export let DebugHighlighted = tag() // 7
+export let DebugSelected = tag()
+export let DebugHighlighted = tag()
