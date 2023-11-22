@@ -21,6 +21,7 @@ import {useWorld} from "../hooks/use_world"
 import {Badge} from "../components/badge"
 import {Link} from "../components/link"
 import {Heading} from "../components/heading"
+import {TypeHeader} from "../components/type_header"
 
 type Props = {
   type: Type
@@ -80,59 +81,7 @@ export let EntityList = (props: Props) => {
         </IconButton>
         <Heading>{props.title}</Heading>
       </HStack>
-      <HStack
-        paddingX="2"
-        fontSize="sm"
-        gap="2"
-        paddingBottom="4"
-        borderBottom="1px solid token(colors.border.subtle)"
-      >
-        {props.type.tags.length > 0 && (
-          <Box flex="1">
-            <Heading as="h3" fontWeight="medium" fontSize="sm">
-              Tags
-            </Heading>
-            <HStack gap="1">
-              {props.type.tags.map(tag => (
-                <Badge key={tag.id} variant="solid">
-                  {aliases.getComponentAlias(tag)}
-                </Badge>
-              ))}
-            </HStack>
-          </Box>
-        )}
-        {props.type.relationships.length > 0 && (
-          <Box flex="1">
-            <Heading as="h3" fontWeight="medium" fontSize="sm">
-              Relationships
-            </Heading>
-            <styled.ul>
-              {props.type.relationships.map(relationship => {
-                let [relationAlias, relative] = aliases
-                  .getComponentAlias(relationship)
-                  .split(":")
-                return (
-                  <li key={relationship.id}>
-                    <Text as="span" marginRight="1">
-                      {relationAlias}:
-                    </Text>
-                    <Link
-                      onClick={() =>
-                        props.onEntitySelected(
-                          world.hydrate(Number(relative)),
-                          false,
-                        )
-                      }
-                    >
-                      {relative}
-                    </Link>
-                  </li>
-                )
-              })}
-            </styled.ul>
-          </Box>
-        )}
-      </HStack>
+      <TypeHeader type={props.type} onEntitySelected={props.onEntitySelected} />
       <styled.div overflow="auto" flex="1">
         <Table.Root>
           <Table.Header position="sticky" top="0" background="bg.default">

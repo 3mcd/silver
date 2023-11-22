@@ -40,7 +40,7 @@ export class World {
     Signal.subscribe(this.graph.root.$created, this.#recordRelationNode)
   }
 
-  #locate(entity: Entity.T) {
+  locate(entity: Entity.T) {
     let node = SparseMap.get(this.#nodesByEntity, entity)
     Assert.ok(node !== undefined)
     return node
@@ -167,7 +167,7 @@ export class World {
   }
 
   #despawn(entity: Entity.T) {
-    let node = this.#locate(entity)
+    let node = this.locate(entity)
     // Release all component values.
     this.#clearMany(entity, node.type)
     // Release all relationship nodes associated with this entity and move the
@@ -186,7 +186,7 @@ export class World {
    */
   #applyAdd(command: Commands.Add) {
     let {entity, type, init} = command
-    let prevNode = this.#locate(entity)
+    let prevNode = this.locate(entity)
     let nextType = Type.with(prevNode.type, type)
     let nextNode = Graph.resolve(this.graph, nextType)
     // If the entity does not have one or more of the components in the added
@@ -204,7 +204,7 @@ export class World {
    */
   #applyRemove(command: Commands.Remove) {
     let {entity, type} = command
-    let prevNode = this.#locate(entity)
+    let prevNode = this.locate(entity)
     let nextType = Type.without(prevNode.type, type)
     let nextNode = Graph.resolve(this.graph, nextType)
     // If the entity does not contain a component of the added type, do
@@ -531,7 +531,7 @@ export class World {
     type: Type.Unitary<U>,
     init: Commands.InitSingle<U>,
   ) {
-    this.#locate(entity)
+    this.locate(entity)
     let component = Type.componentAt(type)
     if (Component.isValueRelation(component)) {
       let value = init as Commands.InitValueRelation<
@@ -582,7 +582,7 @@ export class World {
     relative: Entity.T,
   ): boolean
   has(entity: Entity.T, type: Type.Unitary, relative?: Entity.T): boolean {
-    let node = this.#locate(entity)
+    let node = this.locate(entity)
     let component = Type.componentAt(type)
     if (Component.isRelation(component)) {
       let relationship = Entity.make(Assert.exists(relative), component.id)
@@ -628,7 +628,7 @@ export class World {
     type: Type.Unitary,
     relative?: Entity.T,
   ): Commands.InitSingle {
-    this.#locate(entity)
+    this.locate(entity)
     let component = Type.componentAt(type)
     if (Component.isRelation(component)) {
       let relationship = Entity.make(Assert.exists(relative), component.id)
@@ -664,7 +664,7 @@ export class World {
     type: Type.Type<U>,
     ...relatives: Component.Relatives<U>
   ): boolean {
-    let node = this.#locate(entity)
+    let node = this.locate(entity)
     return Type.has(
       node.type,
       Type.hasRelations(type) ? Type.withRelationships(type, relatives) : type,
@@ -703,7 +703,7 @@ export class World {
     entity: Entity.T,
     relation: Type.Unitary<U>,
   ) {
-    let node = this.#locate(entity)
+    let node = this.locate(entity)
     let component = relation.components[0] as Component.TRelation
     if (component.topology !== Component.Topology.Exclusive) {
       throw new Error("Expected exclusive relation")

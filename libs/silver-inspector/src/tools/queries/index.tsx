@@ -1,16 +1,16 @@
 import {useState} from "react"
-import {Text} from "../../components/text"
+import * as ecs from "silver-ecs"
+import {DebugHighlighted, DebugSelected} from "silver-lib"
 import {QueryDef} from "../../context/query_context"
+import {useWorld} from "../../hooks/use_world"
+import {Entity} from "../../pages/entity"
 import {Query} from "./query"
 import {QueryList} from "./query_list"
-import {Entity} from "silver-ecs"
-import {useWorld} from "../../hooks/use_world"
-import {DebugHighlighted, DebugSelected} from "silver-lib"
 
 type State =
   | {mode: "queries"}
   | {mode: "query"; query: QueryDef}
-  | {mode: "entity"; query: QueryDef; entity: Entity}
+  | {mode: "entity"; query: QueryDef; entity: ecs.Entity}
 
 export let Queries = () => {
   const [state, setState] = useState<State>({mode: "queries"})
@@ -35,6 +35,9 @@ export let Queries = () => {
                 world.add(entity, DebugSelected)
               }
             } else {
+              if (world.has(entity, DebugHighlighted)) {
+                world.remove(entity, DebugHighlighted)
+              }
               setState({mode: "entity", query: state.query, entity})
             }
           }}
@@ -52,9 +55,11 @@ export let Queries = () => {
       )
     case "entity":
       return (
-        <Text onClick={() => setState({mode: "query", query: state.query})}>
-          Back
-        </Text>
+        <Entity
+          entity={state.entity}
+          onBack={() => setState({mode: "query", query: state.query})}
+          onEntitySelected={() => {}}
+        />
       )
   }
 }

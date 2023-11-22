@@ -21,7 +21,12 @@ export type AppProps = {
 let Inspector = () => {
   return (
     <Stack height="100%">
-      <Tabs.Root defaultValue="entities" width="30vw" height="100%">
+      <Tabs.Root
+        defaultValue="entities"
+        width="30vw"
+        height="100%"
+        paddingTop="2"
+      >
         <Tabs.List>
           <Tabs.Trigger key="entities" value="entities">
             Entities

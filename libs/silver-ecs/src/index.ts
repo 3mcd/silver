@@ -13,6 +13,7 @@ export {
   isTag,
   isTagRelationship,
   storesValue,
+  getRelation,
 } from "./data/component"
 export * from "./data/schema"
 export {make as type} from "./data/type"

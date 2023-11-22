@@ -1,12 +1,12 @@
-export let u8 = "u8"
-export let u16 = "u16"
-export let u32 = "u32"
-export let i8 = "i8"
-export let i16 = "i16"
-export let i32 = "i32"
-export let f32 = "f32"
-export let f64 = "f64"
-export let string = "string"
+export const u8 = "u8"
+export const u16 = "u16"
+export const u32 = "u32"
+export const i8 = "i8"
+export const i16 = "i16"
+export const i32 = "i32"
+export const f32 = "f32"
+export const f64 = "f64"
+export const string = "string"
 
 /**
  * A variable-length string.
@@ -36,13 +36,13 @@ export type Scalar = Numeric | String
  * (deeper-nested) objects.
  */
 export interface Object {
-  [key: string]: Schema
+  [key: string]: T
 }
 
 /**
  * A type that describes the shape of a component.
  */
-export type Schema = Object | Scalar
+export type T = Object | Scalar
 
 /**
  * Express the value of a schema.
@@ -53,9 +53,9 @@ export type Schema = Object | Scalar
  * @example <caption>Express the value of an object schema.</caption>
  * type T = Express<{x: "f32", y: "f32"}> // {x: number, y: number}
  */
-export type Express<T extends Schema> = T extends Object
+export type Express<U extends T> = U extends Object
   ? {
-      [K in keyof T]: Express<T[K]>
+      [K in keyof U]: Express<U[K]>
     }
   : T extends Scalar
   ? T extends Numeric
@@ -74,10 +74,10 @@ export type Express<T extends Schema> = T extends Object
  * @example <caption>Derive a schema from an object.</caption>
  * type T = SchemaOf<{x: number, y: number}> // {x: "u8" | "u16" ..., y: "u8" | "u16" ...}
  */
-export type SchemaOf<T> = T extends object
-  ? {[K in keyof T]: SchemaOf<T[K]>}
-  : T extends number
+export type SchemaOf<U> = U extends object
+  ? {[K in keyof U]: SchemaOf<U[K]>}
+  : U extends number
   ? Numeric
-  : T extends string
+  : U extends string
   ? String
   : never

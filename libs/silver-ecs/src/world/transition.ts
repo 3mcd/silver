@@ -46,12 +46,9 @@ let emitSpawnedEntities = (
   nextNode: Graph.Node,
 ) => {
   let event = makeMoveEvent(phase, batch, nextNode)
-  Graph.traverseLeft(
-    nextNode,
-    function emitSpawnedEntities(node: Graph.Node) {
-      Signal.emit(node.$included, event)
-    },
-  )
+  Graph.traverseLeft(nextNode, function emitSpawnedEntities(node: Graph.Node) {
+    Signal.emit(node.$included, event)
+  })
 }
 
 let emitIncludedEntities = (
@@ -61,14 +58,11 @@ let emitIncludedEntities = (
   nextNode: Graph.Node,
 ) => {
   let event = makeMoveEvent(phase, entities, nextNode)
-  Graph.traverseLeft(
-    nextNode,
-    function emitIncludedEntities(node: Graph.Node) {
-      if (node !== prevNode && !Type.isSuperset(prevNode.type, node.type)) {
-        Signal.emit(node.$included, event)
-      }
-    },
-  )
+  Graph.traverseLeft(nextNode, function emitIncludedEntities(node: Graph.Node) {
+    if (node !== prevNode && !Type.isSuperset(prevNode.type, node.type)) {
+      Signal.emit(node.$included, event)
+    }
+  })
 }
 
 let emitExcludedEntities = (
@@ -78,14 +72,11 @@ let emitExcludedEntities = (
   nextNode: Graph.Node,
 ) => {
   let event = makeMoveEvent(phase, entities, prevNode)
-  Graph.traverseLeft(
-    prevNode,
-    function emitExcludedEntities(node: Graph.Node) {
-      if (node !== nextNode && !Type.isSuperset(nextNode.type, node.type)) {
-        Signal.emit(node.$excluded, event)
-      }
-    },
-  )
+  Graph.traverseLeft(prevNode, function emitExcludedEntities(node: Graph.Node) {
+    if (node !== nextNode && !Type.isSuperset(nextNode.type, node.type)) {
+      Signal.emit(node.$excluded, event)
+    }
+  })
 }
 
 let emitDespawnedEntities = (
@@ -110,18 +101,12 @@ let emitMovedEntities = (
 ) => {
   let included = makeMoveEvent(phase, entities, nextNode)
   let excluded = makeMoveEvent(phase, entities, prevNode)
-  Graph.traverseLeft(
-    nextNode,
-    function emitIncludedEntities(node: Graph.Node) {
-      Signal.emit(node.$included, included)
-    },
-  )
-  Graph.traverseLeft(
-    prevNode,
-    function emitExcludedEntities(node: Graph.Node) {
-      Signal.emit(node.$excluded, excluded)
-    },
-  )
+  Graph.traverseLeft(nextNode, function emitIncludedEntities(node: Graph.Node) {
+    Signal.emit(node.$included, included)
+  })
+  Graph.traverseLeft(prevNode, function emitExcludedEntities(node: Graph.Node) {
+    Signal.emit(node.$excluded, excluded)
+  })
 }
 
 class Transition {
@@ -186,19 +171,19 @@ export let move = (
   prevNode: Graph.Node,
   nextNode: Graph.Node,
 ) => {
-  let prevBatchKey = SparseMap.get(transition.entityIndex, entity) ?? 0n
-  let prevBatch = transition.entityBatches.get(prevBatchKey)
-  if (prevBatch !== undefined) {
-    SparseSet.delete(prevBatch, entity)
+  // let prevBatchKey = SparseMap.get(transition.entityIndex, entity) ?? 0n
+  // let prevBatch = transition.entityBatches.get(prevBatchKey)
+  // if (prevBatch !== undefined) {
+  //   SparseSet.delete(prevBatch, entity)
+  // }
+  let batchKey = makeBatchKey(prevNode.id, nextNode.id)
+  let batch = transition.entityBatches.get(batchKey)
+  if (batch === undefined) {
+    batch = SparseSet.make()
+    transition.entityBatches.set(batchKey, batch)
   }
-  let nextBatchKey = makeBatchKey(prevNode.id, nextNode.id)
-  let nextBatch = transition.entityBatches.get(nextBatchKey)
-  if (nextBatch === undefined) {
-    nextBatch = SparseSet.make()
-    transition.entityBatches.set(nextBatchKey, nextBatch)
-  }
-  SparseSet.add(nextBatch, entity)
-  SparseMap.set(transition.entityIndex, entity, nextBatchKey)
+  SparseSet.add(batch, entity)
+  SparseMap.set(transition.entityIndex, entity, batchKey)
 }
 
 export let make = (): T => new Transition()

@@ -47,6 +47,9 @@ export let Entities = (props: Props) => {
           world.add(entity, DebugSelected)
         }
       } else {
+        if (world.has(entity, DebugHighlighted)) {
+          world.remove(entity, DebugHighlighted)
+        }
         if (state.status === "node") {
           setState({status: "entity", entity, node: state.node})
         }
@@ -71,7 +74,11 @@ export let Entities = (props: Props) => {
       )
     case "entity":
       return (
-        <Entity entity={state.entity} type={state.node.type} onBack={onBack} />
+        <Entity
+          entity={state.entity}
+          onBack={onBack}
+          onEntitySelected={onEntitySelected}
+        />
       )
   }
 }

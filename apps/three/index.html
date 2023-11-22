@@ -16,9 +16,15 @@
         position: fixed;
         top: 0;
         left: 0;
-        border-top: 1px solid #fff;
-        background-color: #fff;
         height: 100vh;
+        -webkit-backdrop-filter: blur(11px);
+        backdrop-filter: blur(11px);
+      }
+      .light #inspector {
+        background-color: rgba(255, 255, 255, 0.55);
+      }
+      .dark #inspector {
+        background-color: rgba(0, 0, 0, 0.55);
       }
     </style>
   </head>

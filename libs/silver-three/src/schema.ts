@@ -1,8 +1,14 @@
 import * as ecs from "silver-ecs"
 import * as three from "three"
 
-export let ThreeGeometry = ecs.value<three.BufferGeometry>()
-export let ThreeMaterial = ecs.value<three.Material>()
+export let ThreeGeometry = ecs.value<three.BufferGeometry>({
+  type: "string",
+  uuid: "string",
+})
+export let ThreeMaterial = ecs.value<three.Material>({
+  type: "string",
+  uuid: "string",
+})
 export let ThreeLight = ecs.value<three.Light>()
 export let ThreePerspectiveCamera = ecs.value<three.PerspectiveCamera>()
 

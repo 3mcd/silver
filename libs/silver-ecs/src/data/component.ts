@@ -137,12 +137,7 @@ class Component {
   schema?
   topology
 
-  constructor(
-    id: number,
-    kind: Kind,
-    topology?: Topology,
-    schema?: Data.Schema,
-  ) {
+  constructor(id: number, kind: Kind, topology?: Topology, schema?: Data.T) {
     this.id = id
     this.kind = kind
     this.schema = schema
@@ -165,26 +160,29 @@ function make(
   id: number,
   kind: Kind.Value,
   topology?: Topology,
-  schema?: Data.Schema,
+  schema?: Data.T,
 ): Value
 function make(
   id: number,
   kind: Kind.ValueRelation,
   topology?: Topology,
-  schema?: Data.Schema,
+  schema?: Data.T,
 ): ValueRelation
 function make(
   id: number,
   kind: Kind.ValueRelationship,
   topology?: Topology,
 ): ValueRelationship
-function make(
-  id: number,
-  kind: Kind,
-  topology?: Topology,
-  schema?: Data.Schema,
-): T {
+function make(id: number, kind: Kind, topology?: Topology, schema?: Data.T): T {
   return new Component(id, kind, topology, schema) as T
+}
+
+type RecursivePartial<T> = {
+  [P in keyof T]?: T[P] extends (infer U)[]
+    ? RecursivePartial<U>[]
+    : T[P] extends object | undefined
+    ? RecursivePartial<T[P]>
+    : T[P]
 }
 
 /**
@@ -197,7 +195,7 @@ function make(
  * let Position = ecs.value({x: "f32", y: "f32"})
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function value<U extends Data.Schema>(
+export function value<U extends Data.T>(
   schema: U,
 ): Type.Type<[Value<Data.Express<U>>]>
 /**
@@ -215,7 +213,9 @@ export function value<U extends Data.Schema>(
  * let Position = ecs.value<Position>({x: "f32", y: "f32"}) // Value<Position>
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function value<U>(schema: Data.SchemaOf<U>): Type.Type<[Value<U>]>
+export function value<U>(
+  schema: Data.SchemaOf<RecursivePartial<U>>,
+): Type.Type<[Value<U>]>
 /**
  * Define a schemaless component with a statically-typed shape.
  *
@@ -238,7 +238,7 @@ export function value<U>(): Type.Type<[Value<U>]>
  * let entity = world.spawn(Anything, [[[]]])
  */
 export function value(): Type.Type<[Value<unknown>]>
-export function value(schema?: Data.Schema) {
+export function value(schema?: Data.T) {
   return Type.make(make(makeComponentId(), Kind.Value, undefined, schema))
 }
 
@@ -264,7 +264,7 @@ export let tag = (): Type.Type<[Tag]> =>
  * let Orbits = ecs.relation({distance: "f32", period: "f32"})
  * let entity = world.spawn(Orbits, [sun, {distance: 10, period: 0.5}])
  */
-export function valueRelation<U extends Data.Schema>(
+export function valueRelation<U extends Data.T>(
   schema: U,
   topology?: Topology,
 ): Type.Type<[ValueRelation<Data.Express<U>>]>
@@ -317,10 +317,7 @@ export function valueRelation<U>(
 export function valueRelation(
   topology?: Topology,
 ): Type.Type<[ValueRelation<unknown>]>
-export function valueRelation(
-  schema?: Data.Schema | Topology,
-  topology?: Topology,
-) {
+export function valueRelation(schema?: Data.T | Topology, topology?: Topology) {
   let componentId = makeComponentId()
   let component = make(
     componentId,
@@ -365,7 +362,9 @@ export let makeRelationship = <U extends ValueRelation | TagRelation>(
   }
 }
 
-export let storesValue = (component: T): boolean => {
+export let storesValue = (
+  component: T,
+): component is Value | ValueRelationship => {
   switch (component.kind) {
     case Kind.Value:
     case Kind.ValueRelationship:

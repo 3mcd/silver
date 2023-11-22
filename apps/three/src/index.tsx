@@ -45,16 +45,30 @@ const aliases = makeDebugAliases()
   .set(InstanceOf, "InstanceOf")
   .set(InstanceCount, "InstanceCount")
 
+if (window.matchMedia) {
+  document.documentElement.classList.add(
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light",
+  )
+}
+
+window
+  .matchMedia("(prefers-color-scheme: dark)")
+  .addEventListener("change", event => {
+    document.documentElement.classList.add(event.matches ? "dark" : "light")
+  })
+
 ReactDOM.createRoot(document.getElementById("inspector")!).render(
   <React.StrictMode>
     <Inspector
       world={world}
       aliases={aliases}
       queries={{
-        meshes: query(world, Mesh, Not(Instanced)),
-        kinetics: query(world, Kinetic),
-        transforms: query(world, Transform),
-        selected: query(world, DebugSelected),
+        Meshes: query(world, Mesh, Not(Instanced)),
+        Kinetics: query(world, Kinetic),
+        Transforms: query(world, Transform),
+        Selected: query(world, DebugSelected),
       }}
     />
   </React.StrictMode>,

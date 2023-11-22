@@ -200,10 +200,11 @@ let toggleSelected = (world: World, entity: Entity) => {
   }
 }
 
+let camera: three.PerspectiveCamera | three.OrthographicCamera
+let cameraControls: CameraControls
+
 export let cameraSystem: System = world => {
   let clock = new three.Clock()
-  let camera: three.PerspectiveCamera | three.OrthographicCamera
-  let cameraControls: CameraControls
   let camerasIn = query(world, Camera, In())
   let raycaster = new three.Raycaster()
   raycaster.layers.set(0)
@@ -237,8 +238,8 @@ export let cameraSystem: System = world => {
     }
   })
   return () => {
-    camerasIn.each((entity, Camera) => {
-      camera = Camera
+    camerasIn.each((entity, _camera) => {
+      camera = _camera
       if (world.has(entity, Position)) {
         let position = world.get(entity, Position)
         camera.position.set(position.x, position.y, position.z)
@@ -260,29 +261,11 @@ export let cameraSystem: System = world => {
 }
 
 export let debugSystem: System = world => {
-  let highlightedIn = query(world, DebugHighlighted, In(), Not(IsInstance))
-  let highlightedOut = query(world, DebugHighlighted, Out(), Not(IsInstance))
-  let selectedIn = query(world, DebugSelected, In(), Not(IsInstance))
-  let selectedOut = query(world, DebugSelected, Out(), Not(IsInstance))
-  let selectedInstancesIn = query(world, type(DebugSelected, IsInstance), In())
-  let selectedInstancesOut = query(
-    world,
-    type(DebugSelected, IsInstance),
-    Out(),
-  )
-  let debugColor = new three.Color(0x00ff00)
+  let highlightedIn = query(world, type(Position, DebugHighlighted), In())
+  let highlightedOut = query(world, DebugHighlighted, Out())
+  let selectedIn = query(world, type(Position, DebugSelected), In())
+  let selectedOut = query(world, DebugSelected, Out())
   return () => {
-    highlightedIn.each(entity => {
-      let mesh = SparseMap.get(objectsByEntity, entity)
-      if (!mesh) {
-        return
-      }
-      let highlightedGeometry = (mesh as three.Mesh).geometry
-      let highlighted = new three.Mesh(highlightedGeometry, highlightedMaterial)
-      highlighted.name = "silver_debug_highlighted"
-      highlighted.layers.set(1)
-      mesh.add(highlighted)
-    })
     highlightedOut.each(entity => {
       let mesh = SparseMap.get(objectsByEntity, entity)
       if (!mesh) {
@@ -292,8 +275,37 @@ export let debugSystem: System = world => {
         mesh.children.find(child => child.name === "silver_debug_highlighted")!,
       )
     })
-    selectedIn.each(entity => {
+    highlightedIn.each((entity, position) => {
       let mesh = SparseMap.get(objectsByEntity, entity)
+      cameraControls?.setLookAt(
+        camera.position.x,
+        camera.position.y,
+        camera.position.z,
+        position.x,
+        position.y,
+        position.z,
+        true,
+      )
+      if (!mesh) {
+        return
+      }
+      let highlightedGeometry = (mesh as three.Mesh).geometry
+      let highlighted = new three.Mesh(highlightedGeometry, highlightedMaterial)
+      highlighted.name = "silver_debug_highlighted"
+      highlighted.layers.set(1)
+      mesh.add(highlighted)
+    })
+    selectedIn.each((entity, position) => {
+      let mesh = SparseMap.get(objectsByEntity, entity)
+      cameraControls?.setLookAt(
+        camera.position.x,
+        camera.position.y,
+        camera.position.z,
+        position.x,
+        position.y,
+        position.z,
+        true,
+      )
       if (!mesh) {
         return
       }
@@ -302,7 +314,6 @@ export let debugSystem: System = world => {
       selected.name = "silver_debug_selected"
       selected.layers.set(1)
       mesh.add(selected)
-      console.log("selected", entity)
     })
     selectedOut.each(entity => {
       let mesh = SparseMap.get(objectsByEntity, entity)
@@ -312,38 +323,6 @@ export let debugSystem: System = world => {
       mesh.remove(
         mesh.children.find(child => child.name === "silver_debug_selected")!,
       )
-      console.log("deselected", entity)
-    })
-    selectedInstancesIn.each(entity => {
-      let instanceOf = world.getExclusiveRelative(entity, InstanceOf)
-      let instances = SparseMap.get(objectInstances, instanceOf)
-      if (instances) {
-        let index = SparseSet.indexOf(instances, entity)
-        let mesh = SparseMap.get(objectsByEntity, instanceOf) as
-          | three.InstancedMesh
-          | undefined
-        if (mesh?.isInstancedMesh) {
-          mesh.setColorAt(index, debugColor)
-          mesh.instanceColor!.needsUpdate = true
-        }
-      }
-    })
-    selectedInstancesOut.each(entity => {
-      let instanceOf = world.getExclusiveRelative(entity, InstanceOf)
-      let instances = SparseMap.get(objectInstances, instanceOf)
-      if (instances) {
-        let index = SparseSet.indexOf(instances, entity)
-        let mesh = SparseMap.get(objectsByEntity, instanceOf) as
-          | three.InstancedMesh
-          | undefined
-        if (mesh?.isInstancedMesh) {
-          mesh.setColorAt(
-            index,
-            (mesh.material as three.MeshStandardMaterial).color,
-          )
-          mesh.instanceColor!.needsUpdate = true
-        }
-      }
     })
   }
 }
