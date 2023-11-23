@@ -12,5 +12,11 @@ export let useSelections = () => {
       world.remove(entity, DebugSelected)
     }
   }, [selected])
-  return {selected, clear}
+  let despawn = useCallback(() => {
+    for (let i = 0; i < selected.length; i++) {
+      let entity = selected[i]
+      world.despawn(entity)
+    }
+  }, [selected])
+  return {selected, clear, despawn}
 }

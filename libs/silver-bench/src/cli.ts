@@ -28,10 +28,7 @@ switch (config.perfUnit) {
     break
 }
 
-let colorPerfName = (
-  perfResult: PerfResultWithStatus,
-  perfName: string,
-) => {
+let colorPerfName = (perfResult: PerfResultWithStatus, perfName: string) => {
   let color: Color
   switch (perfResult.status) {
     case PerfResultStatus.Failure:
@@ -140,55 +137,49 @@ while (cursor > 0) {
 let printBenchResult = (benchName: string, benchResult: BenchResult) => {
   let relativeBenchPath = benchName.replace(cwd, "")
   console.log("")
-  console.log(relative_bench_path.replace(/^(.*[\\\/])/, dim("$&")))
-  let max_perf_name_length = 0
-  let max_perf_margin_length = 0
-  let max_perf_ops_per_s_length = 0
-  let perf_results_ops_per_s: Record<string, string> = {}
-  let perf_results_margins: Record<string, string> = {}
-  for (let perf_name in bench_result) {
-    let perf_result = bench_result[perf_name]
-    let perf_ops_per_s = (perf_results_ops_per_s[perf_name] =
-      (1 / (perf_result.mean / perf_unit_ns)).toLocaleString(undefined, {
+  console.log(relativeBenchPath.replace(/^(.*[\\\/])/, dim("$&")))
+  let maxPerfNameLength = 0
+  let maxPerfMarginLength = 0
+  let maxPerfOpsPerSLength = 0
+  let perfResultsOpsPerS: Record<string, string> = {}
+  let perfResultsMargins: Record<string, string> = {}
+  for (let perfName in benchResult) {
+    let perfResult = benchResult[perfName]
+    let perfOpsPerS = (perfResultsOpsPerS[perfName] =
+      (1 / (perfResult.mean / perfUnitNs)).toLocaleString(undefined, {
         maximumFractionDigits: 0,
-      }) + ` ops/${config.perf_unit}`)
-    let perf_margin = (perf_results_margins[perf_name] =
-      "±" + perf_result.margin.toFixed(2) + "%")
-    max_perf_name_length = Math.max(max_perf_name_length, perf_name.length)
-    max_perf_ops_per_s_length = Math.max(
-      max_perf_ops_per_s_length,
-      perf_ops_per_s.length,
-    )
-    max_perf_margin_length = Math.max(
-      max_perf_margin_length,
-      perf_margin.length,
-    )
+      }) + ` ops/${config.perfUnit}`)
+    let perfMargin = (perfResultsMargins[perfName] =
+      "±" + perfResult.margin.toFixed(2) + "%")
+    maxPerfNameLength = Math.max(maxPerfNameLength, perfName.length)
+    maxPerfOpsPerSLength = Math.max(maxPerfOpsPerSLength, perfOpsPerS.length)
+    maxPerfMarginLength = Math.max(maxPerfMarginLength, perfMargin.length)
   }
-  for (let perf_name in bench_result) {
-    let perf_result = bench_result[perf_name]
-    let perf_ops_per_s = perf_results_ops_per_s[perf_name]
-    let perf_ops_per_s_indent = spacer.repeat(
-      max_perf_name_length - perf_name.length + 2,
+  for (let perfName in benchResult) {
+    let perfResult = benchResult[perfName]
+    let perfOpsPerS = perfResultsOpsPerS[perfName]
+    let perfOpsPerSIndent = spacer.repeat(
+      maxPerfNameLength - perfName.length + 2,
     )
-    let perf_margin = perf_results_margins[perf_name]
-    let perf_margin_indent = spacer.repeat(
-      max_perf_ops_per_s_length - perf_ops_per_s.length + 2,
+    let perfMargin = perfResultsMargins[perfName]
+    let perfMarginIndent = spacer.repeat(
+      maxPerfOpsPerSLength - perfOpsPerS.length + 2,
     )
     let line =
-      color_perf_name(perf_result, perf_name) +
-      perf_ops_per_s_indent +
-      color_perfs_ops_per_s(perf_result, perf_ops_per_s) +
-      perf_margin_indent +
-      color_perf_margin(perf_result, perf_margin)
-    if ("deviation" in perf_result) {
-      let perf_deviation_indent = spacer.repeat(
-        max_perf_margin_length - perf_margin.length + 2,
+      colorPerfName(perfResult, perfName) +
+      perfOpsPerSIndent +
+      colorPerfsOpsPerS(perfResult, perfOpsPerS) +
+      perfMarginIndent +
+      colorPerfMargin(perfResult, perfMargin)
+    if ("deviation" in perfResult) {
+      let perfDeviationIndent = spacer.repeat(
+        maxPerfMarginLength - perfMargin.length + 2,
       )
-      let perf_deviation = color_perf_deviation(
-        perf_result,
-        (perf_result.deviation * 100).toFixed(2) + "%",
+      let perfDeviation = colorPerfDeviation(
+        perfResult,
+        (perfResult.deviation * 100).toFixed(2) + "%",
       )
-      line += perf_deviation_indent + perf_deviation
+      line += perfDeviationIndent + perfDeviation
     }
     console.log(line)
   }
@@ -205,17 +196,17 @@ let kill = () => {
 }
 
 for (let i = 0; i < benches.length; i++) {
-  let bench_path = benches[i]
+  let benchPath = benches[i]
   let proc = fork(path.resolve(dir, "bench.js"), {
     execArgv: ["--loader", "tsx", "--no-warnings"],
   })
   proc.on("message", (message: BenchMessage) => {
     switch (message.type) {
       case "bench-ready":
-        proc.send({type: "bench-config", config, path: bench_path})
+        proc.send({type: "bench-config", config, path: benchPath})
         break
       case "bench-result":
-        print_bench_result(bench_path, message.result as BenchResult)
+        printBenchResult(benchPath, message.result as BenchResult)
         proc.kill()
         procs.splice(procs.indexOf(proc), 1)
         break

@@ -138,7 +138,9 @@ export let GraphVis = (props: Props) => {
             let text = node.node.type.components
               .slice(0, 6)
               .map(component =>
-                aliases.getComponentAlias(component).slice(0, 3),
+                aliases
+                  .getComponentAlias(component)
+                  .replace(/(?<=[A-Z])[a-z]+/g, m => m.slice(0, 2)),
               )
               .join(",")
             if (node.node.type.components.length > 6) {

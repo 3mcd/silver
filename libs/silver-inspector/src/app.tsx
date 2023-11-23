@@ -11,7 +11,7 @@ import {Entities} from "./tools/entities"
 import {Queries} from "./tools/queries"
 import {Graph} from "./tools/graph"
 import {IconButton} from "./components/icon_button"
-import {SearchX, X} from "lucide-react"
+import {SearchX, Trash, Trash2, X} from "lucide-react"
 import {SelectedProvider} from "./context/selected_provider"
 import {useSelections} from "./hooks/use_selections"
 
@@ -55,6 +55,17 @@ let Inspector = (props: InspectorProps) => {
               aria-label="Clear selection"
             >
               <SearchX />
+            </IconButton>
+          )}
+          {selections.selected.length > 0 && (
+            <IconButton
+              variant="ghost"
+              size="lg"
+              boxShadow="0 -1px 0 0 inset token(colors.border.default)"
+              onClick={selections.despawn}
+              aria-label="Despawn selection"
+            >
+              <Trash2 />
             </IconButton>
           )}
           <IconButton

@@ -101,7 +101,7 @@ let makeRelationMatchesDeclarations = (type: Type.T) => {
   let s = `let h=0;`
   for (let i = 0; i < type.componentSpec.length; i++) {
     if (Component.isRelation(type.componentSpec[i])) {
-      s += `h=Math.imul((h<<5)^(r${i}|0),0x9e3779b9);`
+      s += `h=Math.imul((h<<4)^(r${i}|0),0x9e3779b9);`
     }
   }
   s += "let M=R[h];"

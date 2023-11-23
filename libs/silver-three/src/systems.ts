@@ -85,7 +85,8 @@ export let threeSystem: System = world => {
 
 export let objectsSystem: System = world => {
   let meshesIn = query(world, Mesh, In(), Not(InstanceCount))
-  let objects = query(world, Transform, Not(InstanceOf))
+  let meshesOut = query(world, Mesh, Out(), Not(InstanceCount))
+  let transforms = query(world, Transform, Not(InstanceOf))
 
   return () => {
     meshesIn.each((entity, geometry, material) => {
@@ -96,7 +97,15 @@ export let objectsSystem: System = world => {
       entitiesByObject.set(mesh, entity)
       scene.add(mesh)
     })
-    objects.each((entity, position, rotation) => {
+    meshesOut.each(entity => {
+      let mesh = SparseMap.get(objectsByEntity, entity)
+      if (mesh) {
+        scene.remove(mesh)
+        SparseMap.delete(objectsByEntity, entity)
+        entitiesByObject.delete(mesh)
+      }
+    })
+    transforms.each((entity, position, rotation) => {
       let mesh = SparseMap.get(objectsByEntity, entity)
       if (mesh) {
         mesh.position.set(position.x, position.y, position.z)

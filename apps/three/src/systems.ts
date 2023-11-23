@@ -57,9 +57,9 @@ export const spawnSystem: System = world => {
 
   // terrain
   world
-    .with(Mesh, new BoxGeometry(200, 1, 200), new MeshStandardMaterial())
+    .with(Mesh, new BoxGeometry(100, 1, 100), new MeshStandardMaterial())
     .with(Transform, Position.make(0, -10, 0), Rotation.make())
-    .with(Collider, ColliderDesc.cuboid(100, 0.5, 100))
+    .with(Collider, ColliderDesc.cuboid(50, 0.5, 50))
     .with(ReceivesShadow)
     .spawn()
 

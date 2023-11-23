@@ -4,8 +4,7 @@ export let makeConfig = (config: Partial<Config>): Config => {
   return {
     benchGlobals: config.benchGlobals ?? {},
     benchModuleExtension: config.benchModuleExtension ?? "bench.ts",
-    benchResultsExtension:
-      config.benchResultsExtension ?? "bench-results.csv",
+    benchResultsExtension: config.benchResultsExtension ?? "bench-results.csv",
     perfSamplesToDiscardPerExtreme:
       config.perfSamplesToDiscardPerExtreme ?? 100,
     perfUnit: config.perfUnit ?? "s",
@@ -19,7 +18,7 @@ export let makeConfig = (config: Partial<Config>): Config => {
 
 function assertPerfUnitValid(
   metric: string,
-): asserts metric is Config["perf_unit"] {
+): asserts metric is Config["perfUnit"] {
   if (metric !== "s" && metric !== "ms" && metric !== "ns") {
     throw new Error(`invalid perf metric: ${metric}`)
   }

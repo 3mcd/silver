@@ -6,7 +6,7 @@ import {
   ShapeType,
   type RigidBodyHandle,
 } from "@dimforge/rapier3d"
-import {In, Not, SparseMap, System, query} from "silver-ecs"
+import {In, Not, Out, SparseMap, System, query} from "silver-ecs"
 import {Scale} from "silver-lib"
 import {Body, RigidBody} from "./schema"
 
@@ -16,7 +16,9 @@ export let rapier3dSystem: System = world => {
   let rapierWorld = new World({x: 0.0, y: -9.81, z: 0.0})
   let dynamicBodies = query(world, RigidBody)
   let dynamicBodiesIn = query(world, RigidBody, In())
+  let dynamicBodiesOut = query(world, RigidBody, Out())
   let fixedBodiesIn = query(world, Body, In(), Not(RigidBody))
+  let fixedBodiesOut = query(world, Body, Out(), Not(RigidBody))
   let handlesByEntity = SparseMap.make<RigidBodyHandle>()
   let scaleColliderDesc = (colliderDesc: ColliderDesc, scale: Scale) => {
     switch (colliderDesc.shape.type) {
@@ -60,6 +62,12 @@ export let rapier3dSystem: System = world => {
       SparseMap.set(handlesByEntity, entity, rigidBody.handle)
       rapierWorld.createCollider(colliderDesc, rigidBody)
     })
+    fixedBodiesOut.each(entity => {
+      let handle = SparseMap.get(handlesByEntity, entity)
+      if (handle !== undefined) {
+        rapierWorld.removeRigidBody(rapierWorld.getRigidBody(handle))
+      }
+    })
     dynamicBodiesIn.each(
       (entity, colliderDesc, position, rotation, velocity) => {
         let handle = SparseMap.get(handlesByEntity, entity)
@@ -81,6 +89,12 @@ export let rapier3dSystem: System = world => {
         rapierWorld.createCollider(colliderDesc, rigidBody)
       },
     )
+    dynamicBodiesOut.each(entity => {
+      let handle = SparseMap.get(handlesByEntity, entity)
+      if (handle !== undefined) {
+        rapierWorld.removeRigidBody(rapierWorld.getRigidBody(handle))
+      }
+    })
     rapierWorld.step()
     dynamicBodies.each(
       (entity, _, position, rotation, velocity, angularVelocity) => {
