@@ -48,11 +48,11 @@ sunlight.shadow.camera.top = 100
 sunlight.shadow.camera.left = -100
 sunlight.shadow.camera.bottom = -100
 sunlight.shadow.camera.right = 100
-sunlight.shadow.mapSize.width = 2048 * 2
-sunlight.shadow.mapSize.height = 2048 * 2
+sunlight.shadow.mapSize.width = 2048
+sunlight.shadow.mapSize.height = 2048
 
 export const spawnSystem: System = world => {
-  const n = 40
+  const n = 20
   const boxCount = Math.pow(n, 2)
 
   // terrain
@@ -136,6 +136,8 @@ export const spawnSystem: System = world => {
         )
         .with(Collider, ColliderDesc.ball(0.5))
         .with(Name, `ball-${i}-${j}`)
+        .with(CastsShadow)
+        .with(ReceivesShadow)
         .spawn()
       balls.push(ball)
     }
