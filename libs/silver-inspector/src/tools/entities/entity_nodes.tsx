@@ -5,7 +5,7 @@ import {Stack} from "../../../styled-system/jsx"
 import {PageHeading} from "../../components/page_heading"
 import {Table} from "../../components/table"
 import {Type} from "../../components/type"
-import {useGraph} from "../../hooks/use_graph"
+import {useGraph, useNode} from "../../hooks/use_graph"
 
 type Props = {
   onNodeSelected: (node: Graph.Node) => void
@@ -27,7 +27,7 @@ let EntityNodeRow = memo((props: EntityNodeRowProps) => {
   let onClick = useCallback(() => {
     props.onClick(props.node)
   }, [props.node, props.onClick])
-  // useNode(props.node)
+  useNode(props.node)
   return (
     <Table.Row onClick={onClick} _hover={entityRowHover}>
       <Table.Cell>

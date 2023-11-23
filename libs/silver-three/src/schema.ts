@@ -13,7 +13,7 @@ export let ThreeCamera = ecs.value<three.PerspectiveCamera>(threeObject)
 
 export let Mesh = ecs.type(ThreeGeometry, ThreeMaterial)
 
-export let InstanceCount = ecs.value<number>()
+export let InstanceCount = ecs.value<number>("u32")
 export let Instanced = ecs.type(Mesh, InstanceCount)
 export let IsInstance = ecs.tag()
 export let InstanceOf = ecs.relation(ecs.Topology.Exclusive)

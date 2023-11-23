@@ -4,7 +4,7 @@ import {useAliases} from "../hooks/use_aliases"
 import {Code} from "./code"
 import {Text} from "./text"
 import {Tooltip} from "./tooltip"
-import {Fragment} from "react"
+import {Fragment, memo} from "react"
 
 type Props = {
   type: ecs.Type
@@ -50,7 +50,7 @@ export let Component = (props: ComponentProps) => {
   )
 }
 
-export let Type = (props: Props) => {
+export let Type = memo((props: Props) => {
   return (
     <Text>
       {props.type.components.map((component, i) =>
@@ -63,4 +63,4 @@ export let Type = (props: Props) => {
       )}
     </Text>
   )
-}
+})

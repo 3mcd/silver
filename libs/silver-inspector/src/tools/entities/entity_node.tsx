@@ -14,7 +14,7 @@ export let EntityNode = (props: Props) => {
   useNode(props.node)
   return (
     <EntityList
-      title="Node"
+      title={`Node ${props.node.id}`}
       entities={SparseSet.values(props.node.entities)}
       type={props.node.type}
       onEntitySelected={props.onEntitySelected}

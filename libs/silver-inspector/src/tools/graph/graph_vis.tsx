@@ -42,6 +42,8 @@ type Props = {
   onNodeSelected(node: ecs.Graph.Node): void
 }
 
+const GROUPS = 12
+
 export let GraphVis = (props: Props) => {
   let {nodes} = useGraph()
   let aliases = useAliases()
@@ -123,9 +125,13 @@ export let GraphVis = (props: Props) => {
         width={rect?.width}
         height={rect?.height}
         backgroundColor="rgba(0,0,0,0)"
-        nodeColor={makeNodeColor}
-        linkDirectionalArrowLength={3.5}
-        linkDirectionalArrowRelPos={1}
+        // @ts-expect-error
+        nodeAutoColorBy={d => d.node.type.components.length % GROUPS}
+        // @ts-expect-error
+        linkAutoColorBy={d =>
+          nodeCache.current[d.source as number].node.type.components.length %
+          GROUPS
+        }
         nodeThreeObject={node => {
           let sprite = ecs.SparseMap.get(spriteCache, node.id as number)
           if (!sprite) {
@@ -135,9 +141,12 @@ export let GraphVis = (props: Props) => {
                 aliases.getComponentAlias(component).slice(0, 3),
               )
               .join(",")
-            sprite = new SpriteText(text || "root", 4, "white")
-            sprite.fontFace = "ui-sans-serif, system-ui"
-            sprite.backgroundColor = makeNodeColor(node)
+            if (node.node.type.components.length > 6) {
+              text += `+${node.node.type.components.length - 6}`
+            }
+            sprite = new SpriteText(text || "root", 2, "white")
+            sprite.fontFace = "monospace"
+            sprite.backgroundColor = node.color
             sprite.borderRadius = 2
             sprite.padding = 1
             ecs.SparseMap.set(spriteCache, node.id as number, sprite)

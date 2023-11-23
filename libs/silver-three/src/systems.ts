@@ -1,5 +1,6 @@
 import CameraControls from "camera-controls"
 import {
+  Changed,
   Entity,
   In,
   Not,
@@ -13,6 +14,7 @@ import {
   type,
 } from "silver-ecs"
 import {
+  Assert,
   DebugHighlighted,
   DebugSelected,
   Position,
@@ -130,9 +132,25 @@ export let lightsSystem: System = world => {
 export let instanceSystem: System = world => {
   let instanced = query(world, Instanced)
   let instancedIn = query(world, Instanced, In())
-  let instancesIn = query(world, type(IsInstance, Transform), In())
-  let instances = query(world, type(InstanceOf, Transform))
+  let instancesIn = query(world, type(Transform, IsInstance), In())
+  let instances = query(world, type(Transform, InstanceOf))
   let proxy = new three.Object3D()
+  let updateInstance = (
+    mesh: three.InstancedMesh,
+    index: number,
+    position: Position,
+    rotation: Rotation,
+    scale?: Scale,
+  ) => {
+    proxy.position.set(position.x, position.y, position.z)
+    proxy.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+    if (scale) {
+      proxy.scale.set(scale.x, scale.y, scale.z)
+    }
+    proxy.updateMatrix()
+    mesh.setMatrixAt(index, proxy.matrix)
+    mesh.instanceMatrix.needsUpdate = true
+  }
   return () => {
     instancedIn.each((entity, geometry, material, count) => {
       // Create a new InstancedMesh for each `Instanced` entity and add it to the scene.
@@ -149,44 +167,29 @@ export let instanceSystem: System = world => {
     })
     instancesIn.each((entity, position, rotation) => {
       let instanceOf = world.getExclusiveRelative(entity, InstanceOf)
-      let instances = SparseMap.get(objectInstances, instanceOf)
-      proxy.position.set(position.x, position.y, position.z)
-      proxy.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
-      if (world.has(entity, Scale)) {
-        let scale = world.get(entity, Scale)
-        proxy.scale.set(scale.x, scale.y, scale.z)
-      }
-      proxy.updateMatrix()
-      let mesh = SparseMap.get(objectsByEntity, instanceOf) as
-        | three.InstancedMesh
-        | undefined
-      if (instances) {
-        let index = SparseSet.add(instances, entity)
-        if (mesh) {
-          mesh.setMatrixAt(index, proxy.matrix)
-          mesh.setColorAt(index, new three.Color(0xffffff))
-        }
-      }
-    })
-    instanced.each(instanceOf => {
-      const instanceSet = SparseMap.get(objectInstances, instanceOf)
-      if (instanceSet === undefined) {
-        return
-      }
-      let mesh = SparseMap.get(
-        objectsByEntity,
-        instanceOf,
+      let instances = Assert.exists(SparseMap.get(objectInstances, instanceOf))
+      let mesh = Assert.exists(
+        SparseMap.get(objectsByEntity, instanceOf),
       ) as three.InstancedMesh
-      instances.each(instanceOf, (instance, position, rotation) => {
-        proxy.position.set(position.x, position.y, position.z)
-        proxy.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
-        if (world.has(instance, Scale)) {
-          let scale = world.get(instance, Scale)
-          proxy.scale.set(scale.x, scale.y, scale.z)
-        }
-        proxy.updateMatrix()
-        mesh.setMatrixAt(SparseSet.indexOf(instanceSet, instance), proxy.matrix)
-        mesh.instanceMatrix.needsUpdate = true
+      updateInstance(
+        mesh,
+        SparseSet.add(instances, entity),
+        position,
+        rotation,
+        world.get(entity, Scale),
+      )
+    })
+    instanced.each(entity => {
+      let mesh = SparseMap.get(objectsByEntity, entity) as three.InstancedMesh
+      let meshInstances = Assert.exists(SparseMap.get(objectInstances, entity))
+      instances.each(entity, (instance, position, rotation) => {
+        updateInstance(
+          mesh,
+          SparseSet.indexOf(meshInstances, instance),
+          position,
+          rotation,
+          world.get(instance, Scale),
+        )
       })
     })
   }

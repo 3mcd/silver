@@ -79,7 +79,7 @@ export const spawnSystem: System = world => {
         .with(Transform, Position.make(j * 2 - n, i * 2, 0), Rotation.make())
         .with(Collider, boxColliderDesc)
         .with(Kinetic, LinearVelocity.make(), AngularVelocity.make())
-        .with(Scale, Scale.make(0.3 + j / n))
+        .with(Scale, Scale.make(((i + 1) * (j + 1)) / boxCount))
         .spawn()
     }
   }

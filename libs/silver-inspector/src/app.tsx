@@ -22,7 +22,13 @@ export type AppProps = {
 let Inspector = () => {
   return (
     <Stack height="100%">
-      <Tabs.Root defaultValue="world" width="30vw" height="100%" paddingTop="2">
+      <Tabs.Root
+        defaultValue="world"
+        width="100%"
+        height="100%"
+        minWidth="20vw"
+        paddingTop="2"
+      >
         <Tabs.List>
           <Tabs.Trigger key="world" value="world">
             World
