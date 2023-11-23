@@ -10,21 +10,19 @@ import {
 } from "silver-ecs"
 import {DebugSelected} from "silver-lib"
 import {Stack, styled} from "../../styled-system/jsx"
-import {Button} from "../components/button"
-import {IconButton} from "../components/icon_button"
-import {PageHeading} from "../components/page_heading"
-import {Pagination} from "../components/pagination"
-import {Table} from "../components/table"
-import {TypeHeader} from "../components/type_header"
-import {Value} from "../components/value"
+import {Button} from "./button"
+import {IconButton} from "./icon_button"
+import {PageHeading} from "./page_heading"
+import {Pagination} from "./pagination"
+import {Table} from "./table"
+import {TypeHeader} from "./type_header"
+import {Value} from "./value"
 import {useAliases} from "../hooks/use_aliases"
 import {useWorld} from "../hooks/use_world"
 
 type Props = {
   type: Type
-  title: string
   entities: Entity[]
-  onBack(): void
   onEntitySelected(entity: Entity, select: boolean): void
   onEntityHoverIn(entity: Entity): void
   onEntityHoverOut(entity: Entity): void
@@ -111,9 +109,7 @@ export let EntityList = (props: Props) => {
   let [page, setPage] = useState({page: 1, pageSize: 15})
   let pageOffset = (page.page - 1) * page.pageSize
   return (
-    <Stack height="100%">
-      <PageHeading title={props.title} onBack={props.onBack} />
-      <TypeHeader type={props.type} onEntitySelected={props.onEntitySelected} />
+    <>
       <styled.div overflow="auto" flex="1">
         <Table.Root>
           <EntityListHeader type={props.type} />
@@ -171,6 +167,6 @@ export let EntityList = (props: Props) => {
           )}
         </Pagination.Root>
       )}
-    </Stack>
+    </>
   )
 }

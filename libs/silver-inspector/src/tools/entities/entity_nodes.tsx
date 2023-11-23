@@ -7,6 +7,7 @@ import {Table} from "../../components/table"
 import {Type} from "../../components/type"
 import {useGraph, useNode} from "../../hooks/use_graph"
 import {DebugSelected} from "silver-lib"
+import {Page} from "../../components/page"
 
 type Props = {
   onNodeSelected: (node: ecs.Graph.Node) => void
@@ -51,8 +52,7 @@ let EntityNodeRow = memo((props: EntityNodeRowProps) => {
 export let EntityNodes = (props: Props) => {
   let {nodes} = useGraph()
   return (
-    <Stack height="100%">
-      <PageHeading title="World" icon={<Globe />} />
+    <Page title="World" icon={<Globe />}>
       <Table.Root>
         <Table.Header position="sticky" top="0" background="rgba(30,30,30,0.8)">
           <Table.Row>
@@ -81,6 +81,6 @@ export let EntityNodes = (props: Props) => {
           </Table.Row>
         </Table.Footer>
       </Table.Root>
-    </Stack>
+    </Page>
   )
 }

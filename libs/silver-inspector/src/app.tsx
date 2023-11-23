@@ -1,19 +1,18 @@
-import {useCallback, useEffect, useState} from "react"
+import {ListX, Trash2, X} from "lucide-react"
 import {Query, World} from "silver-ecs"
-import {HStack, Stack, styled} from "../styled-system/jsx"
+import {HStack, Stack} from "../styled-system/jsx"
+import {IconButton} from "./components/icon_button"
 import {Tabs} from "./components/tabs"
 import {Aliases} from "./context/alias_context"
 import {AliasProvider} from "./context/alias_provider"
 import {QueryProvider} from "./context/query_provider"
+import {SelectedProvider} from "./context/selected_provider"
 import {WorldProvider} from "./context/world_provider"
+import {useSelections} from "./hooks/use_selections"
 import "./index.css"
 import {Entities} from "./tools/entities"
-import {Queries} from "./tools/queries"
 import {Graph} from "./tools/graph"
-import {IconButton} from "./components/icon_button"
-import {SearchX, Trash, Trash2, X} from "lucide-react"
-import {SelectedProvider} from "./context/selected_provider"
-import {useSelections} from "./hooks/use_selections"
+import {Queries} from "./tools/queries"
 
 export type AppProps = {
   world: World
@@ -32,7 +31,12 @@ let Inspector = (props: InspectorProps) => {
   let selections = useSelections()
   return (
     <Stack height="100%" minWidth="500px">
-      <Tabs.Root defaultValue="world" width="100%" height="100%">
+      <Tabs.Root
+        defaultValue="world"
+        width="100%"
+        height="100%"
+        variant="outline"
+      >
         <HStack gap={0} alignItems="flex-end">
           <Tabs.List flex="1">
             <Tabs.Trigger key="world" value="world">
@@ -46,34 +50,23 @@ let Inspector = (props: InspectorProps) => {
             </Tabs.Trigger>
             <Tabs.Indicator />
           </Tabs.List>
-          {selections.selected.length > 0 && (
-            <IconButton
-              variant="ghost"
-              size="lg"
-              boxShadow="0 -1px 0 0 inset token(colors.border.default)"
-              onClick={selections.clear}
-              aria-label="Clear selection"
-            >
-              <SearchX />
-            </IconButton>
-          )}
-          {selections.selected.length > 0 && (
-            <IconButton
-              variant="ghost"
-              size="lg"
-              boxShadow="0 -1px 0 0 inset token(colors.border.default)"
-              onClick={selections.despawn}
-              aria-label="Despawn selection"
-            >
-              <Trash2 />
-            </IconButton>
-          )}
           <IconButton
             variant="ghost"
-            size="lg"
-            boxShadow="0 -1px 0 0 inset token(colors.border.default)"
-            onClick={props.onClose}
+            onClick={selections.clear}
+            aria-label="Clear selection"
+            disabled={selections.selected.length === 0}
           >
+            <ListX />
+          </IconButton>
+          <IconButton
+            variant="ghost"
+            onClick={selections.despawn}
+            aria-label="Despawn selection"
+            disabled={selections.selected.length === 0}
+          >
+            <Trash2 />
+          </IconButton>
+          <IconButton variant="ghost" onClick={props.onClose}>
             <X />
           </IconButton>
         </HStack>

@@ -12,6 +12,7 @@ import {Stack} from "../../../styled-system/jsx"
 import {PageHeading} from "../../components/page_heading"
 import {useAliases} from "../../hooks/use_aliases"
 import {useGraph} from "../../hooks/use_graph"
+import {Page} from "../../components/page"
 
 let makeNodeColor = ({size}: NodeObject<{size: number}>) => {
   if (size === 0) {
@@ -117,8 +118,7 @@ export let GraphVis = (props: Props) => {
   }, [])
 
   return (
-    <Stack height="100%" ref={root}>
-      <PageHeading title="Graph" icon={<Waypoints />} />
+    <Page title="Graph" ref={root} icon={<Waypoints />}>
       <ForceGraph3D
         ref={graph}
         graphData={data}
@@ -157,6 +157,6 @@ export let GraphVis = (props: Props) => {
         }}
         onNodeClick={onNodeClick}
       />
-    </Stack>
+    </Page>
   )
 }

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from "react"
 import * as ecs from "silver-ecs"
 import {Assert} from "silver-lib"
 import {useWorld} from "../../hooks/use_world"
-import {Entity} from "../../pages/entity"
+import {Entity} from "../../components/entity"
 import {EntityNode} from "../entities/entity_node"
 import {GraphVis} from "./graph_vis"
 

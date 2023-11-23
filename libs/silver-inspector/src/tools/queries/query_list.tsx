@@ -6,6 +6,7 @@ import {Table} from "../../components/table"
 import {Type} from "../../components/type"
 import {QueryDefs} from "../../context/query_context"
 import {useQueries} from "../../hooks/use_queries"
+import {Page} from "../../components/page"
 
 type Props = {
   onQuerySelected: (query: QueryDefs[number]) => void
@@ -31,8 +32,7 @@ let QueryRow = memo((props: {query: QueryDefs[number]; onClick(): void}) => {
 export let QueryList = (props: Props) => {
   let queries = useQueries()
   return (
-    <Stack height="100%">
-      <PageHeading title="Queries" icon={<FlaskConical />} />
+    <Page title="Queries" icon={<FlaskConical />}>
       <Table.Root>
         <Table.Header position="sticky" top="0" background="rgba(30,30,30,0.8)">
           <Table.Row>
@@ -50,6 +50,6 @@ export let QueryList = (props: Props) => {
           ))}
         </Table.Body>
       </Table.Root>
-    </Stack>
+    </Page>
   )
 }
