@@ -34,7 +34,7 @@ export let QueryList = (props: Props) => {
     <Stack height="100%">
       <PageHeading title="Queries" icon={<FlaskConical />} />
       <Table.Root>
-        <Table.Header position="sticky" top="0" background="bg.default">
+        <Table.Header position="sticky" top="0" background="rgba(30,30,30,0.8)">
           <Table.Row>
             <Table.Head>Name</Table.Head>
             <Table.Head>Type</Table.Head>

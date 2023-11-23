@@ -35,7 +35,7 @@ export let Entity = memo((props: Props) => {
   return (
     <Stack height="100%">
       <PageHeading
-        title={name ?? `Entity: ${props.entity}`}
+        title={name ?? `Entity ${props.entity}`}
         onBack={props.onBack}
       />
       <TypeHeader type={type} onEntitySelected={props.onEntitySelected} />

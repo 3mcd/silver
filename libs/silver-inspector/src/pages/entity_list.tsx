@@ -1,5 +1,5 @@
 import {ChevronLeftIcon, ChevronRightIcon} from "lucide-react"
-import React, {memo, useCallback, useMemo, useRef, useState} from "react"
+import React, {memo, useCallback, useState} from "react"
 import {
   Entity,
   Type,
@@ -9,20 +9,16 @@ import {
   storesValue,
 } from "silver-ecs"
 import {DebugSelected} from "silver-lib"
-import {Box, HStack, Stack, styled} from "../../styled-system/jsx"
+import {Stack, styled} from "../../styled-system/jsx"
 import {Button} from "../components/button"
 import {IconButton} from "../components/icon_button"
+import {PageHeading} from "../components/page_heading"
 import {Pagination} from "../components/pagination"
 import {Table} from "../components/table"
-import {Text} from "../components/text"
+import {TypeHeader} from "../components/type_header"
 import {Value} from "../components/value"
 import {useAliases} from "../hooks/use_aliases"
 import {useWorld} from "../hooks/use_world"
-import {Badge} from "../components/badge"
-import {Link} from "../components/link"
-import {Heading} from "../components/heading"
-import {TypeHeader} from "../components/type_header"
-import {PageHeading} from "../components/page_heading"
 
 type Props = {
   type: Type
@@ -56,18 +52,11 @@ export let EntityRow = memo((props: EntityRowProps) => {
     },
     [props.entity, props.onClick],
   )
-  let timeout = useRef<number | NodeJS.Timeout | null>(null)
   let onMouseEnter = useCallback(() => {
-    timeout.current = setTimeout(() => {
-      props.onMouseEnter(props.entity)
-    }, 500)
+    props.onMouseEnter(props.entity)
   }, [props.entity, props.onMouseEnter])
   let onMouseLeave = useCallback(() => {
-    if (timeout.current) {
-      clearTimeout(timeout.current)
-      props.onMouseLeave(props.entity)
-    }
-    timeout.current = null
+    props.onMouseLeave(props.entity)
   }, [props.entity, props.onMouseLeave])
 
   return (
@@ -98,7 +87,7 @@ type EntityListHeaderProps = {
 export let EntityListHeader = memo((props: EntityListHeaderProps) => {
   let aliases = useAliases()
   return (
-    <Table.Header position="sticky" top="0" background="bg.default">
+    <Table.Header position="sticky" top="0" background="rgba(30,30,30,0.8)">
       <Table.Row>
         <Table.Head>ID</Table.Head>
         {props.type.components

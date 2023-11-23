@@ -264,6 +264,7 @@ export let cameraSystem: System = world => {
 }
 
 export let debugSystem: System = world => {
+  let highlightedTimer: NodeJS.Timeout | number | undefined
   let highlightedIn = query(world, type(Position, DebugHighlighted), In())
   let highlightedOut = query(world, DebugHighlighted, Out())
   let selectedIn = query(world, type(Position, DebugSelected), In())
@@ -279,16 +280,24 @@ export let debugSystem: System = world => {
       )
     })
     highlightedIn.each((entity, position) => {
+      if (highlightedTimer !== undefined) {
+        clearTimeout(highlightedTimer as NodeJS.Timeout)
+      }
+      highlightedTimer = setTimeout(() => {
+        if (world.has(entity, DebugHighlighted)) {
+          cameraControls?.setLookAt(
+            camera.position.x,
+            camera.position.y,
+            camera.position.z,
+            position.x,
+            position.y,
+            position.z,
+            true,
+          )
+        }
+        highlightedTimer = undefined
+      }, 1000)
       let mesh = SparseMap.get(objectsByEntity, entity)
-      cameraControls?.setLookAt(
-        camera.position.x,
-        camera.position.y,
-        camera.position.z,
-        position.x,
-        position.y,
-        position.z,
-        true,
-      )
       if (!mesh) {
         return
       }

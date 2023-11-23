@@ -171,11 +171,11 @@ export let move = (
   prevNode: Graph.Node,
   nextNode: Graph.Node,
 ) => {
-  // let prevBatchKey = SparseMap.get(transition.entityIndex, entity) ?? 0n
-  // let prevBatch = transition.entityBatches.get(prevBatchKey)
-  // if (prevBatch !== undefined) {
-  //   SparseSet.delete(prevBatch, entity)
-  // }
+  let prevBatchKey = SparseMap.get(transition.entityIndex, entity) ?? 0n
+  let prevBatch = transition.entityBatches.get(prevBatchKey)
+  if (prevBatch !== undefined) {
+    SparseSet.delete(prevBatch, entity)
+  }
   let batchKey = makeBatchKey(prevNode.id, nextNode.id)
   let batch = transition.entityBatches.get(batchKey)
   if (batch === undefined) {

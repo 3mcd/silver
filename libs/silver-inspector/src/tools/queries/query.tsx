@@ -15,7 +15,7 @@ export let Query = (props: Props) => {
   let results = useQuery(props.query.query)
   return (
     <EntityList
-      title={`Query: ${props.query.name}`}
+      title={props.query.name}
       entities={results}
       type={props.query.query.type}
       onEntitySelected={props.onEntitySelected}

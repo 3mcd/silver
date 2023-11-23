@@ -1,5 +1,5 @@
 import {ColliderDesc} from "@dimforge/rapier3d"
-import {System} from "silver-ecs"
+import {Entity, System} from "silver-ecs"
 import {
   AngularVelocity,
   Kinetic,
@@ -119,43 +119,38 @@ export const spawnSystem: System = world => {
     .with(Transform, Position.make(0, 0, -50), Rotation.make())
     .spawn()
 
-  // thing
-  world
-    .with(
-      Mesh,
-      new SphereGeometry(0.5, 32, 32),
-      new MeshStandardMaterial({color: 0xffffff}),
-    )
-    .with(Transform, Position.make(-2), Rotation.make())
-    .with(Collider, ColliderDesc.ball(0.5))
-    .with(Name, "ball-1")
-    .spawn()
-  // thing
-  let ball2 = world
-    .with(
-      Mesh,
-      new SphereGeometry(0.5, 32, 32),
-      new MeshStandardMaterial({color: 0xffffff}),
-    )
-    .with(Transform, Position.make(), Rotation.make())
-    .with(Collider, ColliderDesc.ball(0.5))
-    .with(Name, "ball-2")
-    .spawn()
-  // thing
-  world
-    .with(
-      Mesh,
-      new SphereGeometry(0.5, 32, 32),
-      new MeshStandardMaterial({color: 0xffffff}),
-    )
-    .with(Transform, Position.make(2), Rotation.make())
-    .with(Collider, ColliderDesc.ball(0.5))
-    .with(Name, "ball-3")
-    .spawn()
+  let balls: Entity[] = []
+
+  for (let i = 0; i < 5; i++) {
+    for (let j = 0; j < 5; j++) {
+      let ball = world
+        .with(
+          Mesh,
+          new SphereGeometry(0.5, 32, 32),
+          new MeshStandardMaterial({color: 0xffffff}),
+        )
+        .with(
+          Transform,
+          Position.make(i * 2 - 5, j * 2 - 5, 0),
+          Rotation.make(),
+        )
+        .with(Collider, ColliderDesc.ball(0.5))
+        .with(Name, `ball-${i}-${j}`)
+        .spawn()
+      balls.push(ball)
+    }
+  }
 
   return () => {
     if (world.tick === 500) {
-      world.add(ball2, Kinetic, LinearVelocity.make(), AngularVelocity.make())
+      for (let i = 0; i < balls.length; i++) {
+        world.add(
+          balls[i],
+          Kinetic,
+          LinearVelocity.make(),
+          AngularVelocity.make(),
+        )
+      }
     }
   }
 }

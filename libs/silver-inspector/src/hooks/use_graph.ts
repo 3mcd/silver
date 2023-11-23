@@ -1,4 +1,4 @@
-import {useContext, useLayoutEffect, useState} from "react"
+import {useContext, useEffect, useState} from "react"
 import {Graph, Signal, SparseMap} from "silver-ecs"
 import {worldContext} from "../context/world_context"
 
@@ -11,23 +11,17 @@ export let useGraph = () => {
   let [nodes, setNodes] = useState(() =>
     SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
   )
-  useLayoutEffect(() => {
-    let unsubscribeCreated = Signal.subscribe(
-      world.graph.root.$created,
-      () => {
-        setNodes(
-          SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
-        )
-      },
-    )
-    let unsubscribeRemoved = Signal.subscribe(
-      world.graph.root.$removed,
-      () => {
-        setNodes(
-          SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
-        )
-      },
-    )
+  useEffect(() => {
+    let unsubscribeCreated = Signal.subscribe(world.graph.root.$created, () => {
+      setNodes(
+        SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
+      )
+    })
+    let unsubscribeRemoved = Signal.subscribe(world.graph.root.$removed, () => {
+      setNodes(
+        SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
+      )
+    })
     return () => {
       unsubscribeCreated()
       unsubscribeRemoved()
@@ -39,7 +33,7 @@ export let useGraph = () => {
 
 export let useNode = (node: Graph.Node) => {
   let [version, setVersion] = useState(0)
-  useLayoutEffect(
+  useEffect(
     () => Signal.subscribe(node.$changed, () => setVersion(v => v + 1)),
     [node],
   )
