@@ -724,6 +724,15 @@ export class World {
     throw new Error("Unexpected")
   }
 
+  isAlive(entity: Entity.T) {
+    try {
+      EntityRegistry.check(this.#entityRegistry, entity)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   hydrate(entityId: number) {
     return EntityRegistry.hydrate(this.#entityRegistry, entityId)
   }

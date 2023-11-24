@@ -1,9 +1,9 @@
-import {useCallback, useState} from "react"
+import {useCallback, useEffect, useState} from "react"
 import * as ecs from "silver-ecs"
 import {DebugHighlighted, DebugSelected} from "silver-lib"
 import {QueryDef} from "../../context/query_context"
 import {useWorld} from "../../hooks/use_world"
-import {Entity} from "../../components/entity"
+import {Entity} from "../entities/entity"
 import {Query} from "./query"
 import {QueryList} from "./query_list"
 import {Assert} from "silver-lib"
@@ -60,6 +60,7 @@ export let Queries = () => {
   let onBackQuery = useCallback(() => {
     setState({mode: "queries"})
   }, [])
+
   switch (state.mode) {
     case "queries":
       return <QueryList onQuerySelected={onQuerySelected} />

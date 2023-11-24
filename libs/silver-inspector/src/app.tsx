@@ -51,22 +51,29 @@ let Inspector = (props: InspectorProps) => {
             <Tabs.Indicator />
           </Tabs.List>
           <IconButton
+            aria-label="Clear entity selection"
+            title="Clear entity selection"
             variant="ghost"
-            onClick={selections.clear}
-            aria-label="Clear selection"
             disabled={selections.selected.length === 0}
+            onClick={selections.clear}
           >
             <ListX />
           </IconButton>
           <IconButton
+            aria-label="Despawn selected entities"
+            title="Despawn selected entities"
             variant="ghost"
-            onClick={selections.despawn}
-            aria-label="Despawn selection"
             disabled={selections.selected.length === 0}
+            onClick={selections.despawn}
           >
             <Trash2 />
           </IconButton>
-          <IconButton variant="ghost" onClick={props.onClose}>
+          <IconButton
+            aria-label="Close"
+            title="Close"
+            variant="ghost"
+            onClick={props.onClose}
+          >
             <X />
           </IconButton>
         </HStack>

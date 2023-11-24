@@ -129,11 +129,20 @@ export let scaleSystem: System = world => {
 
 export let lightsSystem: System = world => {
   let lightsIn = query(world, ThreeLight, In())
+  let lightsOut = query(world, ThreeLight, Out())
   return () => {
     lightsIn.each((entity, light) => {
       SparseMap.set(objectsByEntity, entity, light)
       entitiesByObject.set(light, entity)
       scene.add(light)
+    })
+    lightsOut.each(entity => {
+      let light = SparseMap.get(objectsByEntity, entity)
+      if (light) {
+        scene.remove(light)
+        SparseMap.delete(objectsByEntity, entity)
+        entitiesByObject.delete(light)
+      }
     })
   }
 }
