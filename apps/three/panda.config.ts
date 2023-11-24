@@ -17,4 +17,15 @@ export default defineConfig({
   ],
   jsxFramework: "react",
   outdir: "styled-system",
+  theme: {
+    extend: {
+      semanticTokens: {
+        colors: {
+          bg: {
+            default: {value: "#26222095"},
+          },
+        },
+      },
+    },
+  },
 })

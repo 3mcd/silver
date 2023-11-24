@@ -1,13 +1,11 @@
 import {Globe} from "lucide-react"
 import {memo, useCallback, useMemo} from "react"
 import * as ecs from "silver-ecs"
-import {Stack} from "../../../styled-system/jsx"
-import {PageHeading} from "../../components/page_heading"
+import {DebugSelected} from "silver-lib"
+import {Page} from "../../components/page"
 import {Table} from "../../components/table"
 import {Type} from "../../components/type"
 import {useGraph, useNode} from "../../hooks/use_graph"
-import {DebugSelected} from "silver-lib"
-import {Page} from "../../components/page"
 
 type Props = {
   onNodeSelected: (node: ecs.Graph.Node) => void
@@ -15,7 +13,7 @@ type Props = {
 
 let entityRowHover = {
   color: "accent.fg",
-  backgroundColor: "accent.default",
+  backgroundColor: "accent.8",
   cursor: "pointer",
 }
 
@@ -28,7 +26,7 @@ let EntityNodeRow = memo((props: EntityNodeRowProps) => {
   let size = ecs.SparseSet.size(props.node.entities)
   let color = useMemo(
     () =>
-      ecs.hasComponent(props.node.type, DebugSelected) ? "green" : undefined,
+      ecs.hasComponent(props.node.type, DebugSelected) ? "grass.7" : undefined,
     [props.node.type],
   )
   let onClick = useCallback(() => {
@@ -54,7 +52,7 @@ export let EntityNodes = (props: Props) => {
   return (
     <Page title="World" icon={<Globe />}>
       <Table.Root>
-        <Table.Header position="sticky" top="0" background="rgba(30,30,30,0.8)">
+        <Table.Header position="sticky" top="0" background="bg.default">
           <Table.Row>
             <Table.Head>Type</Table.Head>
             <Table.Head textAlign="right">Entity Count</Table.Head>

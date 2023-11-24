@@ -9,6 +9,8 @@ import {TypeHeader} from "../../components/type_header"
 import {useCallback} from "react"
 import {DebugSelected} from "silver-lib"
 import {useWorld} from "../../hooks/use_world"
+import {Box, HStack} from "../../../styled-system/jsx"
+import {Kbd} from "../../components/kbd"
 
 type Props = {
   query: QueryDef
@@ -30,13 +32,19 @@ export let Query = (props: Props) => {
     <Page
       title={props.query.name}
       extra={
-        <IconButton
-          onClick={onSelectAll}
-          aria-label="Select all"
-          variant="ghost"
-        >
-          <ListChecks />
-        </IconButton>
+        <HStack>
+          <Box paddingX={4}>
+            <Kbd>Ctrl + Click</Kbd> to select
+          </Box>
+          <IconButton
+            aria-label="Select all"
+            title="Select all"
+            variant="ghost"
+            onClick={onSelectAll}
+          >
+            <ListChecks />
+          </IconButton>
+        </HStack>
       }
       onBack={props.onBack}
     >

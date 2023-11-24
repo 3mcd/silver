@@ -30,7 +30,7 @@ type InspectorProps = {
 let Inspector = (props: InspectorProps) => {
   let selections = useSelections()
   return (
-    <Stack height="100%" minWidth="500px">
+    <Stack height="100%" minWidth="500px" backgroundColor="bg.default">
       <Tabs.Root
         defaultValue="world"
         width="100%"
@@ -38,14 +38,14 @@ let Inspector = (props: InspectorProps) => {
         variant="outline"
       >
         <HStack gap={0} alignItems="flex-end">
-          <Tabs.List flex="1">
-            <Tabs.Trigger key="world" value="world">
+          <Tabs.List flex="1" marginBottom="0">
+            <Tabs.Trigger key="world" value="world" border="none">
               World
             </Tabs.Trigger>
-            <Tabs.Trigger key="queries" value="queries">
+            <Tabs.Trigger key="queries" value="queries" border="none">
               Queries
             </Tabs.Trigger>
-            <Tabs.Trigger key="graph" value="graph">
+            <Tabs.Trigger key="graph" value="graph" border="none">
               Graph
             </Tabs.Trigger>
             <Tabs.Indicator />
@@ -77,13 +77,31 @@ let Inspector = (props: InspectorProps) => {
             <X />
           </IconButton>
         </HStack>
-        <Tabs.Content value="world" height="100%" overflow="hidden">
+        <Tabs.Content
+          value="world"
+          height="100%"
+          overflow="hidden"
+          paddingX="0 !important"
+          border="none"
+        >
           <Entities />
         </Tabs.Content>
-        <Tabs.Content value="queries" height="100%" overflow="hidden">
+        <Tabs.Content
+          value="queries"
+          height="100%"
+          overflow="hidden"
+          paddingX="0 !important"
+          border="none"
+        >
           <Queries />
         </Tabs.Content>
-        <Tabs.Content value="graph" height="100%" overflow="hidden">
+        <Tabs.Content
+          value="graph"
+          height="100%"
+          overflow="hidden"
+          paddingX="0 !important"
+          border="none"
+        >
           <Graph />
         </Tabs.Content>
       </Tabs.Root>

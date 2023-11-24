@@ -39,7 +39,7 @@ type EntityRowProps = {
 
 let entityRowHover = {
   color: "accent.fg",
-  backgroundColor: "accent.default",
+  backgroundColor: "accent.8",
   cursor: "pointer",
 }
 
@@ -62,7 +62,7 @@ export let EntityRow = memo((props: EntityRowProps) => {
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      backgroundColor={props.selected ? "green" : undefined}
+      backgroundColor={props.selected ? "grass.7" : undefined}
       color={props.selected ? "accent.fg" : undefined}
       _hover={entityRowHover}
     >
@@ -85,7 +85,7 @@ type EntityListHeaderProps = {
 export let EntityListHeader = memo((props: EntityListHeaderProps) => {
   let aliases = useAliases()
   return (
-    <Table.Header position="sticky" top="0" background="rgba(30,30,30,0.8)">
+    <Table.Header position="sticky" top="0" background="bg.default">
       <Table.Row>
         <Table.Head>ID</Table.Head>
         {props.type.components

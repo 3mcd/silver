@@ -1,12 +1,10 @@
 import {FlaskConical} from "lucide-react"
 import {memo} from "react"
-import {Stack} from "../../../styled-system/jsx"
-import {PageHeading} from "../../components/page_heading"
+import {Page} from "../../components/page"
 import {Table} from "../../components/table"
 import {Type} from "../../components/type"
 import {QueryDefs} from "../../context/query_context"
 import {useQueries} from "../../hooks/use_queries"
-import {Page} from "../../components/page"
 
 type Props = {
   onQuerySelected: (query: QueryDefs[number]) => void
@@ -14,7 +12,7 @@ type Props = {
 
 let queryRowHover = {
   color: "accent.fg",
-  backgroundColor: "accent.default",
+  backgroundColor: "accent.8",
   cursor: "pointer",
 }
 
@@ -34,7 +32,7 @@ export let QueryList = (props: Props) => {
   return (
     <Page title="Queries" icon={<FlaskConical />}>
       <Table.Root>
-        <Table.Header position="sticky" top="0" background="rgba(30,30,30,0.8)">
+        <Table.Header position="sticky" top="0" background="bg.default">
           <Table.Row>
             <Table.Head>Name</Table.Head>
             <Table.Head>Type</Table.Head>

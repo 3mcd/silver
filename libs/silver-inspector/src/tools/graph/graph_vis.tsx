@@ -8,11 +8,12 @@ import ForceGraph3D, {
 } from "react-force-graph-3d"
 import * as ecs from "silver-ecs"
 import SpriteText from "three-spritetext"
-import {Stack} from "../../../styled-system/jsx"
+import {Box, Stack} from "../../../styled-system/jsx"
 import {PageHeading} from "../../components/page_heading"
 import {useAliases} from "../../hooks/use_aliases"
 import {useGraph} from "../../hooks/use_graph"
 import {Page} from "../../components/page"
+import {Kbd} from "../../components/kbd"
 
 let makeNodeColor = ({size}: NodeObject<{size: number}>) => {
   if (size === 0) {
@@ -118,7 +119,16 @@ export let GraphVis = (props: Props) => {
   }, [])
 
   return (
-    <Page title="Graph" ref={root} icon={<Waypoints />}>
+    <Page
+      title="Graph"
+      ref={root}
+      icon={<Waypoints />}
+      extra={
+        <Box paddingX={4}>
+          <Kbd>Ctrl + Click</Kbd> to inspect
+        </Box>
+      }
+    >
       <ForceGraph3D
         ref={graph}
         graphData={data}

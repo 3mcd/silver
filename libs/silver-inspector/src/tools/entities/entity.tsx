@@ -1,17 +1,20 @@
-import {ListMinus, ListPlus} from "lucide-react"
-import {Fragment, memo, useCallback, useEffect} from "react"
+import {ListMinus, ListPlus, MoreHorizontal, Trash} from "lucide-react"
+import {Fragment, useCallback, useEffect} from "react"
 import * as ecs from "silver-ecs"
 import {isValue} from "silver-ecs/src/data/component"
 import {DebugHighlighted, DebugSelected, Name} from "silver-lib"
-import {Stack} from "../../../styled-system/jsx"
+import {HStack, Stack} from "../../../styled-system/jsx"
+import {Button} from "../../components/button"
+import {Heading} from "../../components/heading"
+import {IconButton} from "../../components/icon_button"
+import {Menu} from "../../components/menu"
+import {Page} from "../../components/page"
+import {Text} from "../../components/text"
+import {TypeHeader} from "../../components/type_header"
+import {Value} from "../../components/value"
 import {useAliases} from "../../hooks/use_aliases"
 import {useNode} from "../../hooks/use_graph"
 import {useWorld} from "../../hooks/use_world"
-import {Heading} from "../../components/heading"
-import {IconButton} from "../../components/icon_button"
-import {Page} from "../../components/page"
-import {TypeHeader} from "../../components/type_header"
-import {Value} from "../../components/value"
 
 type Props = {
   entity: ecs.Entity
@@ -30,32 +33,56 @@ export let Inner = (props: Props & {type: ecs.Type}) => {
       world.add(props.entity, DebugSelected)
     }
   }, [world, props.entity])
+  let onDespawn = useCallback(() => {
+    world.despawn(props.entity)
+  }, [world, props.entity, props.onBack])
 
   useEffect(() => {
     world.add(props.entity, DebugHighlighted)
     return () => {
       if (world.isAlive(props.entity)) {
         world.remove(props.entity, DebugHighlighted)
+      } else {
+        console.log("Not alive", props.entity)
       }
     }
   }, [world, props.entity])
+
+  let selected = world.has(props.entity, DebugSelected)
 
   return (
     <Page
       title={name ?? `Entity ${props.entity}`}
       onBack={props.onBack}
       extra={
-        <IconButton
-          aria-label="Select entity"
-          variant="ghost"
-          onClick={onSelect}
-        >
-          {world.has(props.entity, DebugSelected) ? (
-            <ListMinus />
-          ) : (
-            <ListPlus />
-          )}
-        </IconButton>
+        <HStack gap={0}>
+          <IconButton
+            aria-label={selected ? "Deselect entity" : "Select entity"}
+            title={selected ? "Deselect entity" : "Select entity"}
+            variant="ghost"
+            onClick={onSelect}
+          >
+            {selected ? <ListMinus /> : <ListPlus />}
+          </IconButton>
+          <Menu.Root>
+            <Menu.Trigger asChild>
+              <IconButton variant="ghost">
+                <MoreHorizontal />
+              </IconButton>
+            </Menu.Trigger>
+            <Menu.Positioner>
+              <Menu.Content>
+                <Menu.ItemGroup id="group-1">
+                  <Menu.Item id="despawn" onClick={onDespawn}>
+                    <HStack gap="2">
+                      <Trash /> Despawn
+                    </HStack>
+                  </Menu.Item>
+                </Menu.ItemGroup>
+              </Menu.Content>
+            </Menu.Positioner>
+          </Menu.Root>
+        </HStack>
       }
     >
       <TypeHeader type={props.type} onEntitySelected={props.onEntitySelected} />
@@ -87,7 +114,7 @@ export let Entity = (props: Props) => {
   } else {
     return (
       <Page title={`Entity ${props.entity}`} onBack={props.onBack}>
-        <p>This entity was despawned and no longer exists.</p>
+        <Text padding={4}>This entity was despawned and no longer exists.</Text>
       </Page>
     )
   }

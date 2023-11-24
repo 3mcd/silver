@@ -47,10 +47,14 @@ export let ValueInner = <U extends Schema.T>(props: ValueInnerProps<U>) => {
       </Code>
     )
   } else if (props.schema === "string") {
-    return <Text as="span">{props.value as unknown as string}</Text>
+    return (
+      <Text as="span" color="amber.12">
+        "{props.value as unknown as string}"
+      </Text>
+    )
   } else {
     return (
-      <Text as="span">
+      <Text as="span" color="blue.11">
         {Math.round((props.value as unknown as number) * 100) / 100}
       </Text>
     )
@@ -72,6 +76,7 @@ export let Value = (props: Props) => {
         border="none"
         background="transparent"
         color="inherit"
+        fontFamily="monospace"
       >
         {"schema" in component && component.schema !== undefined ? (
           <ValueInner

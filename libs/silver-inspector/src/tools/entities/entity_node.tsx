@@ -1,8 +1,8 @@
 import {Entity, Graph, SparseSet} from "silver-ecs"
-import {useNode} from "../../hooks/use_graph"
 import {EntityList} from "../../components/entity_list"
 import {Page} from "../../components/page"
 import {TypeHeader} from "../../components/type_header"
+import {useNode} from "../../hooks/use_graph"
 
 type Props = {
   node: Graph.Node

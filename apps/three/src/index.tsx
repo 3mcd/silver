@@ -1,4 +1,4 @@
-import {Not, make, query, run} from "silver-ecs"
+import {Not, make, query, run, type} from "silver-ecs"
 import {makeDebugAliases} from "silver-inspector"
 import {DebugSelected, Kinetic, Transform} from "silver-lib"
 import {Collider, rapier3dSystem} from "silver-rapier"
@@ -63,11 +63,15 @@ ReactDOM.createRoot(document.getElementById("inspector")!).render(
     world={world}
     aliases={aliases}
     queries={{
-      Meshes: query(world, Mesh, Not(Instanced)),
-      Kinetics: query(world, Kinetic),
-      Transforms: query(world, Transform),
-      Selected: query(world, DebugSelected),
-      Light: query(world, ThreeLight),
+      Lights: query(world, ThreeLight),
+      Cameras: query(world, ThreeCamera),
+      Dynamic: query(world, type(Transform, Collider, Kinetic)),
+      "Dynamic non-instance": query(
+        world,
+        type(Transform, Collider, Kinetic),
+        Not(InstanceOf),
+      ),
+      Static: query(world, type(Transform, Collider), Not(Kinetic)),
     }}
   />,
 )

@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@pandacss/dev": "^0.18.3",
-    "@park-ui/panda-preset": "^0.23.0",
+    "@park-ui/panda-preset": "^0.24.0",
     "postcss": "^8.4.31",
     "postcss-cli": "^10.1.0",
     "silver-ecs": "workspace:*",
