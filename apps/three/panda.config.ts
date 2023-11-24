@@ -22,7 +22,9 @@ export default defineConfig({
       semanticTokens: {
         colors: {
           bg: {
-            default: {value: "#26222095"},
+            default: {
+              value: {base: "#f9f9f990", _dark: "#19191990"},
+            },
           },
         },
       },

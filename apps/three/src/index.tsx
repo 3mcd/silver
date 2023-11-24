@@ -1,19 +1,17 @@
 import {Not, make, query, run, type} from "silver-ecs"
 import {makeDebugAliases} from "silver-inspector"
-import {DebugSelected, Kinetic, Transform} from "silver-lib"
+import {Kinetic, Transform} from "silver-lib"
 import {Collider, rapier3dSystem} from "silver-rapier"
 import {
   CastsShadow,
   InstanceCount,
   InstanceOf,
-  Instanced,
   IsInstance,
-  Mesh,
   ReceivesShadow,
+  ThreeCamera,
   ThreeGeometry,
   ThreeLight,
   ThreeMaterial,
-  ThreeCamera,
   threeSystem,
 } from "silver-three"
 import {spawnSystem} from "./systems"
@@ -45,18 +43,12 @@ const aliases = makeDebugAliases()
   .set(InstanceCount, "InstanceCount")
 
 if (window.matchMedia) {
-  document.documentElement.classList.add(
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light",
-  )
-}
-
-window
-  .matchMedia("(prefers-color-scheme: dark)")
-  .addEventListener("change", event => {
+  const mode = window.matchMedia("(prefers-color-scheme: dark)")
+  const onChange = (event: MediaQueryList | MediaQueryListEvent) =>
     document.documentElement.classList.add(event.matches ? "dark" : "light")
-  })
+  onChange(mode)
+  mode.addEventListener("change", onChange)
+}
 
 ReactDOM.createRoot(document.getElementById("inspector")!).render(
   <Inspector
