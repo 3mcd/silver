@@ -3,9 +3,8 @@ import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
 import {EntityBuilder} from "../entity/entity_builder"
-import * as EntityRegistry from "../entity/entity_registry"
+import * as Entities from "../entity/entities"
 import * as Signal from "../signal"
-import * as SparseMap from "../sparse/sparse_map"
 import * as SparseSet from "../sparse/sparse_set"
 import * as Stage from "../stage"
 import * as Changes from "./changes"
@@ -14,9 +13,8 @@ import * as Graph from "./graph"
 import * as Transition from "./transition"
 
 export class World {
-  #entityRegistry
+  #entities
   #entityRelationshipRoots
-  #nodesByEntity
   #nodesToDelete
   #stage
   #tick
@@ -27,9 +25,8 @@ export class World {
   readonly changes
 
   constructor(tick = 0) {
-    this.#entityRegistry = EntityRegistry.make()
+    this.#entities = Entities.make()
     this.#entityRelationshipRoots = [] as Graph.Node[][]
-    this.#nodesByEntity = SparseMap.make<Graph.Node>()
     this.#nodesToDelete = [] as Graph.Node[]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
@@ -41,21 +38,9 @@ export class World {
   }
 
   locate(entity: Entity.T) {
-    let node = SparseMap.get(this.#nodesByEntity, entity)
+    let node = Transition.locate(this.#transition, entity)
     Assert.ok(node !== undefined)
     return node
-  }
-
-  /**
-   * Move an entity from its current node to a new node.
-   */
-  #move(entity: Entity.T, prevNode: Graph.Node, nextNode: Graph.Node) {
-    Graph.removeEntity(prevNode, entity)
-    Graph.insertEntity(nextNode, entity)
-    SparseMap.set(this.#nodesByEntity, entity, nextNode)
-    // Track the entity's transition from the previous node to the next node
-    // for monitor queries.
-    Transition.move(this.#transition, entity, prevNode, nextNode)
   }
 
   /**
@@ -154,8 +139,8 @@ export class World {
     // Insert the entity into the graph, write initial component values and
     // and remember its new node.
     Graph.insertEntity(node, entity)
+    Transition.move(this.#transition, entity, node)
     this.#writeMany(entity, type, init)
-    this.#move(entity, this.graph.root, node)
   }
 
   /**
@@ -176,9 +161,8 @@ export class World {
     // Remove the entity from the graph, forget its node, release the entity id
     // and record the move for monitor queries.
     Graph.removeEntity(node, entity)
-    SparseMap.delete(this.#nodesByEntity, entity)
-    EntityRegistry.release(this.#entityRegistry, entity)
-    Transition.move(this.#transition, entity, node, this.graph.root)
+    Entities.release(this.#entities, entity)
+    Transition.move(this.#transition, entity, this.graph.root)
   }
 
   /**
@@ -191,10 +175,7 @@ export class World {
     let nextNode = Graph.resolve(this.graph, nextType)
     // If the entity does not have one or more of the components in the added
     // type, move the entity to its new node.
-    if (prevNode !== nextNode) {
-      this.#move(entity, prevNode, nextNode)
-      SparseMap.set(this.#nodesByEntity, entity, nextNode)
-    }
+    Transition.move(this.#transition, entity, nextNode)
     // Store added and updated component values.
     this.#writeMany(entity, type, init)
   }
@@ -207,14 +188,9 @@ export class World {
     let prevNode = this.locate(entity)
     let nextType = Type.without(prevNode.type, type)
     let nextNode = Graph.resolve(this.graph, nextType)
-    // If the entity does not contain a component of the added type, do
-    // nothing.
-    if (prevNode === nextNode) {
-      return
-    }
     // Move the entity to its new node (to the left) and release removed
     // component values.
-    this.#move(entity, prevNode, nextNode)
+    Transition.move(this.#transition, entity, nextNode)
     this.#clearMany(entity, type)
   }
 
@@ -227,8 +203,8 @@ export class World {
     for (let i = 0; i < node.type.relationships.length; i++) {
       let relationship = node.type.relationships[i]
       let relationshipEntityId = Entity.parseLo(relationship.id)
-      let relationshipEntity = EntityRegistry.hydrate(
-        this.#entityRegistry,
+      let relationshipEntity = Entities.hydrate(
+        this.#entities,
         relationshipEntityId,
       )
       // Get or create the list of relationship nodes for the relationship
@@ -273,7 +249,7 @@ export class World {
           relationshipRoot,
           relationshipRelation,
           (entity, node) => {
-            SparseMap.set(this.#nodesByEntity, entity, node)
+            Transition.move(this.#transition, entity, node)
             relationshipStore[entity] = undefined!
           },
         )
@@ -347,7 +323,7 @@ export class World {
     ...values: Commands.Init<U>
   ): Entity.T
   spawn(type?: Type.T, ...values: Commands.Init): Entity.T {
-    let entity = EntityRegistry.retain(this.#entityRegistry)
+    let entity = Entities.retain(this.#entities)
     Stage.insert(
       this.#stage,
       this.#tick,
@@ -387,7 +363,7 @@ export class World {
    * ```
    */
   despawn(entity: Entity.T) {
-    EntityRegistry.check(this.#entityRegistry, entity)
+    Entities.check(this.#entities, entity)
     Stage.insert(this.#stage, this.#tick, Commands.despawn(entity))
   }
 
@@ -424,7 +400,7 @@ export class World {
     type: Type.Type<U>,
     ...values: Commands.Init<U>
   ) {
-    EntityRegistry.check(this.#entityRegistry, entity)
+    Entities.check(this.#entities, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
@@ -477,7 +453,7 @@ export class World {
     ...relatives: Component.Relatives<U>
   ): void
   remove(entity: Entity.T, type: Type.T, relatives?: Entity.T[]) {
-    EntityRegistry.check(this.#entityRegistry, entity)
+    Entities.check(this.#entities, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
@@ -690,8 +666,17 @@ export class World {
         })
       })
     }
-    // Emit all entity transitions for monitor queries.
-    Transition.drain(this.#transition, this.graph, "stage")
+    // Handle all entity transitions.
+    Transition.drain(
+      this.#transition,
+      this.graph,
+      (batch, prevNode, nextNode) => {
+        SparseSet.each(batch, entity => {
+          if (prevNode) Graph.removeEntity(prevNode, entity)
+          if (nextNode) Graph.insertEntity(nextNode, entity)
+        })
+      },
+    )
     // Drop all nodes marked for deletion.
     let node: Graph.Node
     while ((node = this.#nodesToDelete.pop()!)) {
@@ -715,10 +700,7 @@ export class World {
       let relationship = node.type.relationships[i]
       let relationshipComponentId = Entity.parseHi(relationship.id)
       if (relationshipComponentId === component.id) {
-        return EntityRegistry.hydrate(
-          this.#entityRegistry,
-          Entity.parseLo(relationship.id),
-        )
+        return Entities.hydrate(this.#entities, Entity.parseLo(relationship.id))
       }
     }
     throw new Error("Unexpected")
@@ -726,7 +708,7 @@ export class World {
 
   isAlive(entity: Entity.T) {
     try {
-      EntityRegistry.check(this.#entityRegistry, entity)
+      Entities.check(this.#entities, entity)
       return true
     } catch {
       return false
@@ -734,7 +716,7 @@ export class World {
   }
 
   hydrate(entityId: number) {
-    return EntityRegistry.hydrate(this.#entityRegistry, entityId)
+    return Entities.hydrate(this.#entities, entityId)
   }
 
   store(componentId: number) {

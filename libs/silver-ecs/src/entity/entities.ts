@@ -1,7 +1,7 @@
 import * as Assert from "../assert"
 import * as Entity from "./entity"
 
-export class EntityRegistry {
+export class Entities {
   free
   generations
   head
@@ -12,13 +12,13 @@ export class EntityRegistry {
     this.head = head
   }
 }
-export type T = EntityRegistry
+export type T = Entities
 
 export let make = (
   head = 0,
   generations: number[] = [],
   free: number[] = [],
-): T => new EntityRegistry(head, generations, free)
+): T => new Entities(head, generations, free)
 
 export let check = (registry: T, entity: Entity.T) => {
   Entity.assertValid(entity)
@@ -75,7 +75,6 @@ export let rollback = (registry: T, entity: Entity.T) => {
   Entity.assertValid(entity)
   let entityId = Entity.parseLo(entity)
   let entityGen = Entity.parseHi(entity)
-  registry.generations[entityId] =
-    entityGen === 0 ? undefined! : entityGen - 1
+  registry.generations[entityId] = entityGen === 0 ? undefined! : entityGen - 1
   registry.free.push(entityId)
 }

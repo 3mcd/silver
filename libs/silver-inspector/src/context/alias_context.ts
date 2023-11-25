@@ -42,9 +42,9 @@ export class Aliases {
     if (isRelationship(component)) {
       let rid = parseHi(component.id)
       let eid = parseLo(component.id)
-      return `${this.aliases[Hash.word(0, rid)]}:${eid}`
+      return `${this.aliases[Hash.words([rid])]}:${eid}`
     }
-    return this.aliases[Hash.word(0, component.id)]
+    return this.aliases[Hash.words([component.id])]
   }
 }
 

@@ -8,7 +8,7 @@ import * as Transition from "./transition"
 
 type NodeIteratee = (node: Node) => boolean | void
 
-let nextNodeId = 0
+let nextNodeId = 1
 let makeNodeId = () => nextNodeId++
 
 export class Node {
@@ -26,8 +26,8 @@ export class Node {
   constructor(type: Type.T = Type.make()) {
     this.$changed = Signal.make()
     this.$created = Signal.make<Node>()
-    this.$excluded = Signal.make<Transition.Event>()
-    this.$included = Signal.make<Transition.Event>()
+    this.$excluded = Signal.make<Transition.Batch>()
+    this.$included = Signal.make<Transition.Batch>()
     this.$removed = Signal.make<Node>()
     this.edgesLeft = new Map<number, Node>()
     this.edgesRight = new Map<number, Node>()
@@ -180,14 +180,11 @@ export let moveEntitiesLeft = (
   traverse(node, function moveEntitiesLeftTraverse(nextNode) {
     let prevType = Type.withoutComponent(nextNode.type, component)
     let prevNode = resolve(graph, prevType)
-    SparseSet.each(
-      nextNode.entities,
-      function moveEntitiesLeftInner(entity) {
-        removeEntity(nextNode, entity)
-        insertEntity(prevNode, entity)
-        iteratee(entity, prevNode)
-      },
-    )
+    SparseSet.each(nextNode.entities, function moveEntitiesLeftInner(entity) {
+      removeEntity(nextNode, entity)
+      insertEntity(prevNode, entity)
+      iteratee(entity, prevNode)
+    })
   })
 }
 

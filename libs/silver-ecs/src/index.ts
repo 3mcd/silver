@@ -8,6 +8,7 @@ export type {
   T as Component,
 } from "./data/component"
 export {
+  isValue,
   isRelation,
   isRelationship,
   isTag,

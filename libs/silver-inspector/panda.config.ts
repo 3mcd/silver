@@ -20,7 +20,10 @@ export default defineConfig({
         colors: {
           bg: {
             default: {
-              value: {base: "#f9f9f990", _dark: "#19191990"},
+              value: {base: "#f9f9f98a", _dark: "#1919198a"},
+            },
+            solid: {
+              value: {base: "#f9f9f9", _dark: "#191919"},
             },
           },
         },

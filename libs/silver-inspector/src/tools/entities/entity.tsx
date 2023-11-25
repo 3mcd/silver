@@ -1,10 +1,8 @@
 import {ListMinus, ListPlus, MoreHorizontal, Trash} from "lucide-react"
 import {Fragment, useCallback, useEffect} from "react"
 import * as ecs from "silver-ecs"
-import {isValue} from "silver-ecs/src/data/component"
 import {DebugHighlighted, DebugSelected, Name} from "silver-lib"
 import {HStack, Stack} from "../../../styled-system/jsx"
-import {Button} from "../../components/button"
 import {Heading} from "../../components/heading"
 import {IconButton} from "../../components/icon_button"
 import {Menu} from "../../components/menu"
@@ -42,8 +40,6 @@ export let Inner = (props: Props & {type: ecs.Type}) => {
     return () => {
       if (world.isAlive(props.entity)) {
         world.remove(props.entity, DebugHighlighted)
-      } else {
-        console.log("Not alive", props.entity)
       }
     }
   }, [world, props.entity])
@@ -71,7 +67,7 @@ export let Inner = (props: Props & {type: ecs.Type}) => {
               </IconButton>
             </Menu.Trigger>
             <Menu.Positioner>
-              <Menu.Content>
+              <Menu.Content backgroundColor="bg.solid">
                 <Menu.ItemGroup id="group-1">
                   <Menu.Item id="despawn" onClick={onDespawn}>
                     <HStack gap="2">
@@ -88,7 +84,7 @@ export let Inner = (props: Props & {type: ecs.Type}) => {
       <TypeHeader type={props.type} onEntitySelected={props.onEntitySelected} />
       <Stack paddingX="4">
         {props.type.components.map(component =>
-          isValue(component) && component !== ecs.componentAt(Name, 0) ? (
+          ecs.isValue(component) && component !== ecs.componentAt(Name, 0) ? (
             <Fragment key={component.id}>
               <Heading as="h3">{aliases.getComponentAlias(component)}</Heading>
               <Value entity={props.entity} component={component} />

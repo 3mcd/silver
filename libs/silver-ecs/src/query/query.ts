@@ -11,6 +11,7 @@ import * as Transition from "../world/transition"
 import * as World from "../world/world"
 import * as Changed from "./changed"
 import * as Filter from "./filter"
+import * as Assert from "../assert"
 
 type EachIteratee<U extends Component.T[]> = (
   entity: Entity.T,
@@ -98,10 +99,10 @@ let makeStoreDeclarations = (type: Type.T) => {
 }
 
 let makeRelationMatchesDeclarations = (type: Type.T) => {
-  let s = `let h=0;`
+  let s = `let h=0x811c9dc5|0;`
   for (let i = 0; i < type.componentSpec.length; i++) {
     if (Component.isRelation(type.componentSpec[i])) {
-      s += `h=Math.imul((h<<4)^(r${i}|0),0x9e3779b9);`
+      s += `h=Math.imul(h^r${i},0x01000193|0);`
     }
   }
   s += "let M=R[h];"
@@ -358,14 +359,20 @@ let initGraphListenersForMonitor = (query: Query, filters: Filter.T[]) => {
     switch (filter.kind) {
       case Filter.Kind.In:
       case Filter.Kind.Out: {
-        let onTransitionEvent = (event: Transition.Event) => {
-          rememberNode(query, event.node, event.entities)
+        let onBatch = (batch: Transition.Batch) => {
+          rememberNode(
+            query,
+            Assert.exists(
+              filter.kind === Filter.Kind.In ? batch.nextNode : batch.prevNode,
+            ),
+            SparseSet.values(batch.entities),
+          )
         }
         Signal.subscribe(
           filter.kind === Filter.Kind.In
             ? query.node.$included
             : query.node.$excluded,
-          onTransitionEvent,
+          onBatch,
         )
         if (filter.kind === Filter.Kind.In) {
           Graph.traverse(query.node, node => {

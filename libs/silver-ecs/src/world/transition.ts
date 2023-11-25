@@ -4,7 +4,8 @@ import * as Signal from "../signal"
 import * as Type from "../data/type"
 import * as SparseMap from "../sparse/sparse_map"
 import * as SparseSet from "../sparse/sparse_set"
-import {exists} from "../assert"
+import * as Assert from "../assert"
+import * as Hash from "../hash"
 
 export type Iteratee = (
   batch: SparseSet.T<Entity.T>,
@@ -12,178 +13,161 @@ export type Iteratee = (
   nextNode?: Graph.Node,
 ) => void
 
-let makeBatchKey = (prevNodeId: number, nextNodeId: number) =>
-  (BigInt(nextNodeId) << 32n) | BigInt(prevNodeId)
+let makeBatchKey = (prevNodeId: number, nextNodeId: number) => {
+  let hash = Hash.make()
+  hash = Hash.word(hash, prevNodeId)
+  hash = Hash.word(hash, nextNodeId)
+  return hash >>> 0
+}
 
-let decomposeBatchKeyNext = (key: bigint) =>
-  Number((key & 0xffffffff00000000n) >> 32n)
-
-let decomposeBatchKeyPrev = (key: bigint) => Number(key & 0xffffffffn)
-
-export class Event {
-  phase
+export class Batch {
   entities
-  node
+  prevNode
+  nextNode
 
-  constructor(phase: string, entities: Entity.T[], node: Graph.Node) {
-    this.phase = phase
-    this.entities = entities
-    this.node = node
+  constructor(prevNode?: Graph.Node, nextNode?: Graph.Node) {
+    this.entities = SparseSet.make<Entity.T>()
+    this.prevNode = prevNode
+    this.nextNode = nextNode
   }
 }
 
-let makeMoveEvent = (
-  phase: string,
-  entities: SparseSet.T<Entity.T>,
-  node: Graph.Node,
-): Event => {
-  return new Event(phase, SparseSet.values(entities), node)
-}
-
-let emitSpawnedEntities = (
-  phase: string,
-  batch: SparseSet.T<Entity.T>,
-  nextNode: Graph.Node,
-) => {
-  let event = makeMoveEvent(phase, batch, nextNode)
-  Graph.traverseLeft(nextNode, function emitSpawnedEntities(node: Graph.Node) {
-    Signal.emit(node.$included, event)
-  })
-}
-
-let emitIncludedEntities = (
-  phase: string,
-  entities: SparseSet.T<Entity.T>,
-  prevNode: Graph.Node,
-  nextNode: Graph.Node,
-) => {
-  let event = makeMoveEvent(phase, entities, nextNode)
-  Graph.traverseLeft(nextNode, function emitIncludedEntities(node: Graph.Node) {
-    if (node !== prevNode && !Type.isSuperset(prevNode.type, node.type)) {
-      Signal.emit(node.$included, event)
-    }
-  })
-}
-
-let emitExcludedEntities = (
-  phase: string,
-  entities: SparseSet.T<Entity.T>,
-  prevNode: Graph.Node,
-  nextNode: Graph.Node,
-) => {
-  let event = makeMoveEvent(phase, entities, prevNode)
-  Graph.traverseLeft(prevNode, function emitExcludedEntities(node: Graph.Node) {
-    if (node !== nextNode && !Type.isSuperset(nextNode.type, node.type)) {
-      Signal.emit(node.$excluded, event)
-    }
-  })
-}
-
-let emitDespawnedEntities = (
-  phase: string,
-  entities: SparseSet.T<Entity.T>,
-  prevNode: Graph.Node,
-) => {
-  let event = makeMoveEvent(phase, entities, prevNode)
+let emitSpawnedEntities = (batch: Batch) => {
   Graph.traverseLeft(
-    prevNode,
-    function emitDespawnedEntities(node: Graph.Node) {
-      Signal.emit(node.$excluded, event)
+    Assert.exists(batch.nextNode),
+    function emitSpawnedEntities(visit: Graph.Node) {
+      Signal.emit(visit.$included, batch)
     },
   )
 }
 
-let emitMovedEntities = (
-  phase: string,
-  entities: SparseSet.T<Entity.T>,
-  prevNode: Graph.Node,
-  nextNode: Graph.Node,
-) => {
-  let included = makeMoveEvent(phase, entities, nextNode)
-  let excluded = makeMoveEvent(phase, entities, prevNode)
-  Graph.traverseLeft(nextNode, function emitIncludedEntities(node: Graph.Node) {
-    Signal.emit(node.$included, included)
-  })
-  Graph.traverseLeft(prevNode, function emitExcludedEntities(node: Graph.Node) {
-    Signal.emit(node.$excluded, excluded)
-  })
+let emitIncludedEntities = (batch: Batch) => {
+  let prevNode = Assert.exists(batch.prevNode)
+  Graph.traverseLeft(
+    Assert.exists(batch.nextNode),
+    function emitIncludedEntities(visit: Graph.Node) {
+      if (visit !== prevNode && !Type.isSuperset(prevNode.type, visit.type)) {
+        Signal.emit(visit.$included, batch)
+      }
+    },
+  )
+}
+
+let emitExcludedEntities = (batch: Batch) => {
+  let nextNode = Assert.exists(batch.nextNode)
+  Graph.traverseLeft(
+    Assert.exists(batch.prevNode),
+    function emitExcludedEntities(visit: Graph.Node) {
+      if (visit !== nextNode && !Type.isSuperset(nextNode.type, visit.type)) {
+        Signal.emit(visit.$excluded, batch)
+      }
+    },
+  )
+}
+
+let emitDespawnedEntities = (batch: Batch) => {
+  Graph.traverseLeft(
+    Assert.exists(batch.prevNode),
+    function emitDespawnedEntities(visit: Graph.Node) {
+      Signal.emit(visit.$excluded, batch)
+    },
+  )
+}
+
+let emitMovedEntities = (batch: Batch) => {
+  Graph.traverseLeft(
+    Assert.exists(batch.nextNode),
+    function emitIncludedEntities(node: Graph.Node) {
+      Signal.emit(node.$included, batch)
+    },
+  )
+  Graph.traverseLeft(
+    Assert.exists(batch.prevNode),
+    function emitExcludedEntities(node: Graph.Node) {
+      Signal.emit(node.$excluded, batch)
+    },
+  )
 }
 
 class Transition {
-  entityIndex
-  entityBatches
+  index
+  batchKeys
+  batches
 
   constructor() {
-    this.entityIndex = SparseMap.make<bigint>()
-    this.entityBatches = new Map<bigint, SparseSet.T<Entity.T>>()
+    this.index = SparseMap.make<Graph.Node>()
+    this.batchKeys = SparseMap.make<number>()
+    this.batches = SparseMap.make<Batch>()
   }
 }
 export type T = Transition
 
-export let drain = (
-  transition: T,
-  graph: Graph.T,
-  phase: string,
-  iteratee?: Iteratee,
-) => {
-  if (transition.entityBatches.size === 0) {
-    return
-  }
-  let emitEntities = (entities: SparseSet.T<Entity.T>, batchKey: bigint) => {
-    let prevNodeId = decomposeBatchKeyPrev(batchKey)
-    let nextNodeId = decomposeBatchKeyNext(batchKey)
-    let prevNode = Graph.findById(graph, prevNodeId)
-    let nextNode = Graph.findById(graph, nextNodeId)
+export let drain = (transition: T, graph: Graph.T, iteratee?: Iteratee) => {
+  let emitEntityBatch = (batch: Batch) => {
+    let {entities, prevNode, nextNode} = batch
+    // Invoke the iteratee for this batch.
     iteratee?.(entities, prevNode, nextNode)
-    if (prevNode && prevNode !== graph.root) {
-      if (nextNodeId === graph.root.id) {
-        emitDespawnedEntities(phase, entities, prevNode)
-      } else {
-        let nextNode = exists(Graph.findById(graph, nextNodeId))
-        if (Type.isSuperset(nextNode.type, prevNode.type)) {
-          emitIncludedEntities(phase, entities, prevNode, nextNode)
-        } else if (Type.isSuperset(prevNode.type, nextNode.type)) {
-          emitExcludedEntities(phase, entities, prevNode, nextNode)
-        } else {
-          emitMovedEntities(phase, entities, prevNode, nextNode)
-        }
-      }
+    // If the next node is undefined, the batch contains entities that were
+    // despawned.
+    if (nextNode === undefined) {
+      emitDespawnedEntities(batch)
+      // Remove the entities from the entity index.
+      SparseSet.each(entities, function drainEntities(entity) {
+        SparseMap.delete(transition.index, entity)
+      })
+      return
+    }
+    // Otherwise, the batch contains entities that were spawned or moved. So
+    // update their locations in the entity index.
+    SparseSet.each(entities, function drainEntities(entity) {
+      SparseMap.set(transition.index, entity, nextNode)
+    })
+    if (prevNode === undefined) {
+      emitSpawnedEntities(batch)
+    } else if (Type.isSuperset(nextNode.type, prevNode.type)) {
+      emitIncludedEntities(batch)
+    } else if (Type.isSuperset(prevNode.type, nextNode.type)) {
+      emitExcludedEntities(batch)
     } else {
-      emitSpawnedEntities(phase, entities, exists(nextNode))
+      emitMovedEntities(batch)
     }
   }
-  transition.entityBatches.forEach(emitEntities)
-  transition.entityBatches.clear()
-  SparseMap.clear(transition.entityIndex)
+  SparseMap.eachValue(transition.batches, emitEntityBatch)
+  SparseMap.clear(transition.batches)
+  SparseMap.clear(transition.batchKeys)
 }
 
-export let locate = (transition: T, entity: Entity.T): number | undefined => {
-  let currBatchKey = SparseMap.get(transition.entityIndex, entity)
-  if (currBatchKey === undefined) {
+export let locate = (transition: T, entity: Entity.T): Graph.Node | undefined =>
+  SparseMap.get(transition.index, entity)
+
+export let move = (transition: T, entity: Entity.T, nextNode: Graph.Node) => {
+  let prevBatchKey = SparseMap.get(transition.batchKeys, entity)
+  // If the entity was already moved since the last drain,
+  if (prevBatchKey !== undefined) {
+    // Remove it from its previous batch.
+    let prevBatch = Assert.exists(
+      SparseMap.get(transition.batches, prevBatchKey),
+    )
+    SparseSet.delete(prevBatch.entities, entity)
+  }
+  // If the entity is being moved to the same node it was already in,
+  // do nothing.
+  let prevNode = locate(transition, entity)
+  if (prevNode === nextNode) {
     return
   }
-  return decomposeBatchKeyNext(currBatchKey)
-}
-
-export let move = (
-  transition: T,
-  entity: Entity.T,
-  prevNode: Graph.Node,
-  nextNode: Graph.Node,
-) => {
-  // let prevBatchKey = SparseMap.get(transition.entityIndex, entity) ?? 0n
-  // let prevBatch = transition.entityBatches.get(prevBatchKey)
-  // if (prevBatch !== undefined) {
-  //   SparseSet.delete(prevBatch, entity)
-  // }
-  let batchKey = makeBatchKey(prevNode.id, nextNode.id)
-  let batch = transition.entityBatches.get(batchKey)
-  if (batch === undefined) {
-    batch = SparseSet.make()
-    transition.entityBatches.set(batchKey, batch)
+  // Construct the next batch key using the previous node id, or `0`, which
+  // represents the void.
+  let nextBatchKey = makeBatchKey(prevNode?.id ?? 0, nextNode.id)
+  // Get or create the next batch.
+  let nextBatch = SparseMap.get(transition.batches, nextBatchKey)
+  if (nextBatch === undefined) {
+    nextBatch = new Batch(prevNode, nextNode)
+    SparseMap.set(transition.batches, nextBatchKey, nextBatch)
   }
-  SparseSet.add(batch, entity)
-  SparseMap.set(transition.entityIndex, entity, batchKey)
+  // Add the entity to the next batch and store its key.
+  SparseSet.add(nextBatch.entities, entity)
+  SparseMap.set(transition.batchKeys, entity, nextBatchKey)
 }
 
 export let make = (): T => new Transition()

@@ -62,7 +62,7 @@ export let EntityRow = memo((props: EntityRowProps) => {
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      backgroundColor={props.selected ? "grass.7" : undefined}
+      backgroundColor={props.selected ? "sky.7" : undefined}
       color={props.selected ? "accent.fg" : undefined}
       _hover={entityRowHover}
     >

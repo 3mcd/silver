@@ -35,7 +35,7 @@ export let TypeHeader = memo((props: Props) => {
                 variant="solid"
                 background={
                   tag === DebugSelected.components[0]
-                    ? "grass.7"
+                    ? "sky.7"
                     : "accent.default"
                 }
               >
