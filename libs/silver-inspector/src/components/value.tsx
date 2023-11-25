@@ -4,6 +4,7 @@ import {
   Express,
   Schema,
   isTag,
+  parseHi,
   parseLo,
   storesValue,
 } from "silver-ecs"
@@ -67,7 +68,7 @@ export let Value = (props: Props) => {
   if (storesValue(component)) {
     let value = world.stores[component.id][parseLo(props.entity)]
     if (isValueRelationship(component)) {
-      component = getRelation(component.id)!
+      component = getRelation(parseHi(component.id))!
     }
     return (
       <Code

@@ -150,7 +150,7 @@ let dropNode = (graph: Graph, node: Node): void => {
     unlinkNodes(node, prevNode, xor)
   })
   graph.nodesByComponentsHash.delete(node.type.hash)
-  SparseMap.set(graph.nodesById, node.id, undefined!)
+  SparseMap.delete(graph.nodesById, node.id)
   Signal.dispose(node.$removed)
   Signal.dispose(node.$created)
 }

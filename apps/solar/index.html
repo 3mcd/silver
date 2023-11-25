@@ -16,8 +16,6 @@
         position: fixed;
         top: 0;
         left: 0;
-        border-top: 1px solid #fff;
-        background-color: #fff;
         height: 100vh;
         overflow: auto;
       }
@@ -30,6 +28,17 @@
   <body>
     <div id="inspector"></div>
     <canvas></canvas>
+    <script>
+      if (window.matchMedia) {
+        const mode = window.matchMedia("(prefers-color-scheme: dark)")
+        const onChange = event =>
+          document.documentElement.classList.add(
+            event.matches ? "dark" : "light",
+          )
+        onChange(mode)
+        mode.addEventListener("change", onChange)
+      }
+    </script>
     <script src="./index.ts" type="module"></script>
   </body>
 </html>
