@@ -140,7 +140,7 @@ export let drain = (transition: T, graph: Graph.T, iteratee?: Iteratee) => {
 export let locate = (transition: T, entity: Entity.T): Graph.Node | undefined =>
   SparseMap.get(transition.index, entity)
 
-export let move = (transition: T, entity: Entity.T, nextNode: Graph.Node) => {
+export let move = (transition: T, entity: Entity.T, nextNode?: Graph.Node) => {
   let prevBatchKey = SparseMap.get(transition.batchKeys, entity)
   // If the entity was already moved since the last drain,
   if (prevBatchKey !== undefined) {
@@ -158,7 +158,7 @@ export let move = (transition: T, entity: Entity.T, nextNode: Graph.Node) => {
   }
   // Construct the next batch key using the previous node id, or `0`, which
   // represents the void.
-  let nextBatchKey = makeBatchKey(prevNode?.id ?? 0, nextNode.id)
+  let nextBatchKey = makeBatchKey(prevNode?.id ?? 0, nextNode?.id ?? 0)
   // Get or create the next batch.
   let nextBatch = SparseMap.get(transition.batches, nextBatchKey)
   if (nextBatch === undefined) {

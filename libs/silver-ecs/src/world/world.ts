@@ -162,7 +162,7 @@ export class World {
     // and record the move for monitor queries.
     Graph.removeEntity(node, entity)
     Entities.release(this.#entities, entity)
-    Transition.move(this.#transition, entity, this.graph.root)
+    Transition.move(this.#transition, entity)
   }
 
   /**
