@@ -136,11 +136,8 @@ export class World {
   #applySpawn(command: Commands.Spawn) {
     let {entity, type, init} = command
     let node = Graph.resolve(this.graph, type)
-    // Insert the entity into the graph, write initial component values and
-    // and remember its new node.
-    Graph.insertEntity(node, entity)
-    Transition.move(this.#transition, entity, node)
     this.#writeMany(entity, type, init)
+    Transition.move(this.#transition, entity, node)
   }
 
   /**
@@ -151,16 +148,10 @@ export class World {
     this.#despawn(command.entity)
   }
 
-  #despawn(entity: Entity.T) {
+  #despawn = (entity: Entity.T) => {
     let node = this.locate(entity)
-    // Release all component values.
     this.#clearMany(entity, node.type)
-    // Release all relationship nodes associated with this entity and move the
-    // previously related entities to the left in the graph.
     this.#clearEntityRelationships(entity)
-    // Remove the entity from the graph, forget its node, release the entity id
-    // and record the move for monitor queries.
-    Graph.removeEntity(node, entity)
     Entities.release(this.#entities, entity)
     Transition.move(this.#transition, entity)
   }
@@ -173,11 +164,8 @@ export class World {
     let prevNode = this.locate(entity)
     let nextType = Type.with(prevNode.type, type)
     let nextNode = Graph.resolve(this.graph, nextType)
-    // If the entity does not have one or more of the components in the added
-    // type, move the entity to its new node.
-    Transition.move(this.#transition, entity, nextNode)
-    // Store added and updated component values.
     this.#writeMany(entity, type, init)
+    Transition.move(this.#transition, entity, nextNode)
   }
 
   /**
@@ -188,10 +176,8 @@ export class World {
     let prevNode = this.locate(entity)
     let nextType = Type.without(prevNode.type, type)
     let nextNode = Graph.resolve(this.graph, nextType)
-    // Move the entity to its new node (to the left) and release removed
-    // component values.
-    Transition.move(this.#transition, entity, nextNode)
     this.#clearMany(entity, type)
+    Transition.move(this.#transition, entity, nextNode)
   }
 
   /**
@@ -209,16 +195,16 @@ export class World {
       )
       // Get or create the list of relationship nodes for the relationship
       // entity.
-      let entityRelationshipRoots = (this.#entityRelationshipRoots[
+      let relationshipRoots = (this.#entityRelationshipRoots[
         relationshipEntity
       ] ??= [])
+      let relationshipRoot = Graph.resolve(this.graph, Type.make(relationship))
       // Get or create the root relationship node and insert it into the
       // entity's list of relationship nodes.
-      // TODO: This results in duplicate nodes in the array when more specific
-      // nodes are created to the right of already-tracked nodes.
-      entityRelationshipRoots.push(
-        Graph.resolve(this.graph, Type.make(relationship)),
-      )
+      // TODO: Use a Set or something faster than Array.prototype.includes.
+      if (!relationshipRoots.includes(relationshipRoot)) {
+        relationshipRoots.push(relationshipRoot)
+      }
     }
   }
 
@@ -661,17 +647,15 @@ export class World {
     for (let i = 0; i < this.#nodesToDelete.length; i++) {
       let node = this.#nodesToDelete[i]
       Graph.traverse(node, node => {
-        SparseSet.each(node.entities, entity => {
-          this.#despawn(entity)
-        })
+        SparseSet.each(node.entities, this.#despawn)
       })
     }
     // Handle all entity transitions.
     Transition.drain(
       this.#transition,
       this.graph,
-      (batch, prevNode, nextNode) => {
-        SparseSet.each(batch, entity => {
+      function moveEntityBatchInGraph(batch, prevNode, nextNode) {
+        SparseSet.each(batch, function moveEntityInGraph(entity) {
           if (prevNode) Graph.removeEntity(prevNode, entity)
           if (nextNode) Graph.insertEntity(nextNode, entity)
         })
