@@ -97,18 +97,27 @@ export const spawnSystem: System = world => {
   sun.multiplyScalar(100)
   sky.material.uniforms.sunPosition.value.copy(sun)
   world
+    .with(Name, "sky")
     .with(Mesh, sky.geometry, sky.material)
     .with(Scale, Scale.make(450_000))
     .spawn()
 
   // sunlight
-  world.with(ThreeLight, sunlight).with(Transform, sun, Rotation.make()).spawn()
+  world
+    .with(ThreeLight, sunlight)
+    .with(Name, "sunlight")
+    .with(Transform, sun, Rotation.make())
+    .spawn()
 
   // ambient light
-  world.with(ThreeLight, new AmbientLight(0xfdfbd3, 0.2)).spawn()
+  world
+    .with(Name, "ambient-light")
+    .with(ThreeLight, new AmbientLight(0xfdfbd3, 0.2))
+    .spawn()
 
   // camera
   world
+    .with(Name, "camera")
     .with(
       ThreeCamera,
       new PerspectiveCamera(

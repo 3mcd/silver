@@ -86,7 +86,9 @@ export let Inner = (props: Props & {type: ecs.Type}) => {
         {props.type.components.map(component =>
           ecs.isValue(component) && component !== ecs.componentAt(Name, 0) ? (
             <Fragment key={component.id}>
-              <Heading as="h3">{aliases.getComponentAlias(component)}</Heading>
+              <Heading as="h3" fontWeight="medium" fontSize="md">
+                {aliases.getComponentAlias(component)}
+              </Heading>
               <Value entity={props.entity} component={component} />
             </Fragment>
           ) : null,
