@@ -45,7 +45,7 @@ const onWheel = (e: WheelEvent) => {
   translate(-tx, -ty)
 }
 
-canvas.addEventListener("wheel", onWheel)
+canvas.addEventListener("wheel", onWheel, {passive: true})
 canvas.addEventListener("mousedown", onMousedown)
 canvas.addEventListener("mousemove", onMousemove)
 canvas.addEventListener("mouseup", onMouseup)

@@ -1,10 +1,10 @@
 import * as ecs from "silver-ecs"
+import {Name} from "silver-lib"
 import json from "./data.json"
 
 type Orbit = {radius: number; period: number}
 type Position = {x: number; y: number}
 
-export const Name = ecs.value<string>("string")
 export const Color = ecs.value<string>("string")
 export const Radius = ecs.value<number>("f32")
 export const Orbits = ecs.valueRelation<Orbit>(

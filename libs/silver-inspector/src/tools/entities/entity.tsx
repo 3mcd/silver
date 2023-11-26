@@ -108,8 +108,9 @@ export let Entity = (props: Props) => {
   if (world.isAlive(props.entity)) {
     return <Inner {...props} type={node.type} />
   } else {
+    let name = world.get(props.entity, Name)
     return (
-      <Page title={`Entity ${props.entity}`} onBack={props.onBack}>
+      <Page title={name ?? `Entity ${props.entity}`} onBack={props.onBack}>
         <Text padding={4}>This entity was despawned and no longer exists.</Text>
       </Page>
     )

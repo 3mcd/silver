@@ -1,3 +1,4 @@
+import * as Hash from "../hash"
 import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
@@ -196,6 +197,13 @@ export let resolve = (graph: Graph, type: Type.T): Node => {
 
 export let findById = (graph: Graph, nodeId: number): Node | undefined => {
   return SparseMap.get(graph.nodesById, nodeId)
+}
+
+export let resolveComponent = (graph: Graph, component: Component.T): Node => {
+  let node =
+    graph.nodesByComponentsHash.get(Hash.word(undefined, component.id)) ??
+    insertNode(graph, Type.make(component))
+  return node
 }
 
 export class Graph {

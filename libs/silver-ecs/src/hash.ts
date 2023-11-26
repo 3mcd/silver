@@ -3,7 +3,7 @@ export const HASH_ENTROPY = 0x01000193 | 0
 
 export let make = (): number => HASH_BASE
 
-export let word = (hash: number, term: number): number =>
+export let word = (hash: number = HASH_BASE, term: number): number =>
   Math.imul(hash ^ term, HASH_ENTROPY)
 
 export let words = (words: number[]): number => {

@@ -40,9 +40,9 @@ export class Aliases {
 
   getComponentAlias(component: Component) {
     if (isRelationship(component)) {
-      let rid = parseHi(component.id)
-      let eid = parseLo(component.id)
-      return `${this.aliases[Hash.words([rid])]}:${eid}`
+      let relationId = parseHi(component.id)
+      let entityId = parseLo(component.id)
+      return `${this.aliases[Hash.words([relationId])]}:${entityId}`
     }
     return this.aliases[Hash.words([component.id])]
   }

@@ -282,10 +282,10 @@ export let cameraSystem: System = world => {
 }
 
 export let debugSystem: System = world => {
-  let highlightedTimer: NodeJS.Timeout | number | undefined
-  let highlightedIn = query(world, type(Position, DebugHighlighted), In())
+  let highlighted = query(world, type(Position, DebugHighlighted))
+  let highlightedIn = query(world, DebugHighlighted, In())
   let highlightedOut = query(world, DebugHighlighted, Out())
-  let selectedIn = query(world, type(Position, DebugSelected), In())
+  let selectedIn = query(world, DebugSelected, In())
   let selectedOut = query(world, DebugSelected, Out())
   return () => {
     highlightedOut.each(entity => {
@@ -297,24 +297,7 @@ export let debugSystem: System = world => {
         mesh.children.find(child => child.name === "silver_debug_highlighted")!,
       )
     })
-    highlightedIn.each((entity, position) => {
-      if (highlightedTimer !== undefined) {
-        clearTimeout(highlightedTimer as NodeJS.Timeout)
-      }
-      highlightedTimer = setTimeout(() => {
-        if (world.has(entity, DebugHighlighted)) {
-          cameraControls?.setLookAt(
-            camera.position.x,
-            camera.position.y,
-            camera.position.z,
-            position.x,
-            position.y,
-            position.z,
-            true,
-          )
-        }
-        highlightedTimer = undefined
-      }, 1000)
+    highlightedIn.each(entity => {
       let mesh = SparseMap.get(objectsByEntity, entity)
       if (!mesh) {
         return
@@ -325,17 +308,11 @@ export let debugSystem: System = world => {
       highlighted.layers.set(1)
       mesh.add(highlighted)
     })
-    selectedIn.each((entity, position) => {
+    highlighted.each((_, position) => {
+      cameraControls?.setTarget(position.x, position.y, position.z, true)
+    })
+    selectedIn.each(entity => {
       let mesh = SparseMap.get(objectsByEntity, entity)
-      cameraControls?.setLookAt(
-        camera.position.x,
-        camera.position.y,
-        camera.position.z,
-        position.x,
-        position.y,
-        position.z,
-        true,
-      )
       if (!mesh) {
         return
       }

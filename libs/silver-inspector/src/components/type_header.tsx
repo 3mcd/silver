@@ -7,7 +7,7 @@ import {Text} from "../components/text"
 import * as ecs from "silver-ecs"
 import {useAliases} from "../hooks/use_aliases"
 import {useWorld} from "../hooks/use_world"
-import {DebugHighlighted, DebugSelected} from "silver-lib"
+import {DebugHighlighted, DebugSelected, Name} from "silver-lib"
 import {memo} from "react"
 
 type Props = {
@@ -55,6 +55,8 @@ export let TypeHeader = memo((props: Props) => {
               let [relationAlias, relative] = aliases
                 .getComponentAlias(relationship)
                 .split(":")
+              let relativeEntity = world.hydrate(Number(relative))
+              relative = world.get(relativeEntity, Name) ?? relative
               return (
                 <li key={relationship.id}>
                   <Text as="span" marginRight="1">
@@ -62,10 +64,7 @@ export let TypeHeader = memo((props: Props) => {
                   </Text>
                   <Link
                     onClick={() =>
-                      props.onEntitySelected(
-                        world.hydrate(Number(relative)),
-                        false,
-                      )
+                      props.onEntitySelected(relativeEntity, false)
                     }
                   >
                     {relative}

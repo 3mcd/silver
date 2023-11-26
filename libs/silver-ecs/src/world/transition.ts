@@ -14,10 +14,7 @@ export type Iteratee = (
 ) => void
 
 let makeBatchKey = (prevNodeId: number, nextNodeId: number) => {
-  let hash = Hash.make()
-  hash = Hash.word(hash, prevNodeId)
-  hash = Hash.word(hash, nextNodeId)
-  return hash >>> 0
+  return Hash.word(Hash.word(undefined, prevNodeId), nextNodeId) >>> 0
 }
 
 export class Batch {

@@ -198,7 +198,7 @@ export class World {
       let relationshipRoots = (this.#entityRelationshipRoots[
         relationshipEntity
       ] ??= [])
-      let relationshipRoot = Graph.resolve(this.graph, Type.make(relationship))
+      let relationshipRoot = Graph.resolveComponent(this.graph, relationship)
       // Get or create the root relationship node and insert it into the
       // entity's list of relationship nodes.
       // TODO: Use a Set or something faster than Array.prototype.includes.

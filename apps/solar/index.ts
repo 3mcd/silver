@@ -10,7 +10,8 @@ import {
   rect,
   transform,
 } from "./canvas"
-import {Body, Color, Name, Orbits, Position, Radius, seed} from "./data"
+import {Name} from "silver-lib"
+import {Body, Color, Orbits, Position, Radius, seed} from "./data"
 import {makeDebugAliases, mount} from "silver-inspector"
 import {DebugHighlighted, DebugSelected} from "silver-lib"
 
@@ -94,29 +95,21 @@ const clearCanvasSystem: System = () => {
 }
 
 const debugSystem: System = world => {
-  const spawned = query(world, type(), In())
-  const despawned = query(world, type(), Out())
   const highlighted = query(world, type(Position, Radius, DebugHighlighted))
   const selected = query(world, type(Position, Radius, DebugSelected))
   return function debug() {
-    spawned.each(function logSpawnedEntity(entity) {
-      console.log("spawned", entity)
-    })
-    despawned.each(function logDespawnedEntity(entity) {
-      console.log("despawned", entity)
-    })
     context.save()
     context.translate(canvas.width / 2, canvas.height / 2)
     highlighted.each(function highlightEntity(entity, position, radius) {
       context.save()
       context.translate(position.x - radius, position.y - radius)
-      rect("#ffffff", radius * 2, radius * 2, 2)
+      rect("#ffffff", radius * 2, radius * 2, 1)
       context.restore()
     })
     selected.each(function selectEntity(entity, position, radius) {
       context.save()
       context.translate(position.x - radius, position.y - radius)
-      rect("#00ff00", radius * 2, radius * 2, 2)
+      rect("#00ff00", radius * 2, radius * 2, 1)
       context.restore()
     })
     context.restore()

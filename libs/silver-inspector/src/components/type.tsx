@@ -1,10 +1,12 @@
 import {Portal} from "@ark-ui/react"
+import {Fragment, memo} from "react"
 import * as ecs from "silver-ecs"
 import {useAliases} from "../hooks/use_aliases"
 import {Code} from "./code"
 import {Text} from "./text"
 import {Tooltip} from "./tooltip"
-import {Fragment, memo} from "react"
+import {useWorld} from "../hooks/use_world"
+import {Name} from "silver-lib"
 
 type Props = {
   type: ecs.Type
@@ -14,9 +16,16 @@ type ComponentProps = {
   component: ecs.Component
 }
 
-export let Component = (props: ComponentProps) => {
+export let Component = memo((props: ComponentProps) => {
+  let world = useWorld()
   let aliases = useAliases()
   let alias = aliases.getComponentAlias(props.component) ?? props.component.id
+  if (ecs.isRelationship(props.component)) {
+    let [relationAlias, relative] = alias.split(":")
+    let relativeEntity = world.hydrate(Number(relative))
+    relative = world.get(relativeEntity, Name) ?? relative
+    alias = `${relationAlias}: ${relative}`
+  }
   let schema = "schema" in props.component ? props.component.schema : undefined
   if (schema === undefined) {
     return <Text as="span">{alias}</Text>
@@ -48,7 +57,7 @@ export let Component = (props: ComponentProps) => {
       </Portal>
     </Tooltip.Root>
   )
-}
+})
 
 export let Type = memo((props: Props) => {
   return (

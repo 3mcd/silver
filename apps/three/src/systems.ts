@@ -65,6 +65,7 @@ export const spawnSystem: System = world => {
 
   // box instanced mesh
   const instanced = world
+    .with(Name, "box-instanced")
     .with(Mesh, boxGeometry, boxMaterial)
     .with(InstanceCount, boxCount)
     .with(CastsShadow)
@@ -75,6 +76,7 @@ export const spawnSystem: System = world => {
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       world
+        .with(Name, `box-${i}-${j}`)
         .with(Instance, instanced)
         .with(Transform, Position.make(j * 2 - n, i * 2, 0), Rotation.make())
         .with(Collider, boxColliderDesc)
