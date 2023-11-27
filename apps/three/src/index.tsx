@@ -57,12 +57,8 @@ ReactDOM.createRoot(document.getElementById("inspector")!).render(
     queries={{
       Lights: query(world, ThreeLight),
       Cameras: query(world, ThreeCamera),
-      Dynamic: query(world, type(Transform, Collider, Kinetic)),
-      "Dynamic non-instance": query(
-        world,
-        type(Transform, Collider, Kinetic),
-        Not(InstanceOf),
-      ),
+      Boxes: query(world, IsInstance),
+      Balls: query(world, type(Transform, Collider, Kinetic), Not(InstanceOf)),
       Static: query(world, type(Transform, Collider), Not(Kinetic)),
     }}
   />,

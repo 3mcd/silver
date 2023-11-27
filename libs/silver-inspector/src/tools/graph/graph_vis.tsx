@@ -158,7 +158,8 @@ export let GraphVis = (props: Props) => {
             }
             sprite = new SpriteText(text || "root", 2, "white")
             sprite.fontFace = "monospace"
-            sprite.backgroundColor = node.color
+            sprite.backgroundColor =
+              ecs.SparseSet.size(node.node.entities) === 0 ? "#000" : node.color
             sprite.borderRadius = 2
             sprite.padding = 1
             ecs.SparseMap.set(spriteCache, node.id as number, sprite)
