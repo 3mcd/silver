@@ -1,39 +1,30 @@
 import {ChevronLeftIcon, ChevronRightIcon} from "lucide-react"
 import React, {memo, useCallback, useState} from "react"
-import {
-  Entity,
-  Type,
-  isRelation,
-  isTag,
-  isTagRelationship,
-  storesValue,
-} from "silver-ecs"
+import * as S from "silver-ecs"
 import {DebugSelected} from "silver-lib"
-import {Stack, styled} from "../../styled-system/jsx"
-import {Button} from "./button"
-import {IconButton} from "./icon_button"
-import {PageHeading} from "./page_heading"
-import {Pagination} from "./pagination"
-import {Table} from "./table"
-import {TypeHeader} from "./type_header"
-import {Value} from "./value"
+import {styled} from "../../styled-system/jsx"
 import {useAliases} from "../hooks/use_aliases"
 import {useWorld} from "../hooks/use_world"
+import {Button} from "./button"
+import {IconButton} from "./icon_button"
+import {Pagination} from "./pagination"
+import {Table} from "./table"
+import {Value} from "./value"
 
 type Props = {
-  type: Type
-  entities: Entity[]
-  onEntitySelected(entity: Entity, select: boolean): void
-  onEntityHoverIn(entity: Entity): void
-  onEntityHoverOut(entity: Entity): void
+  type: S.Type
+  entities: S.Entity[]
+  onEntitySelected(entity: S.Entity, select: boolean): void
+  onEntityHoverIn(entity: S.Entity): void
+  onEntityHoverOut(entity: S.Entity): void
 }
 
 type EntityRowProps = {
-  entity: Entity
-  type: Type
-  onClick(entity: Entity, ctrlKey: boolean): void
-  onMouseEnter(entity: Entity): void
-  onMouseLeave(entity: Entity): void
+  entity: S.Entity
+  type: S.Type
+  onClick(entity: S.Entity, ctrlKey: boolean): void
+  onMouseEnter(entity: S.Entity): void
+  onMouseLeave(entity: S.Entity): void
   selected: boolean
 }
 
@@ -67,8 +58,8 @@ export let EntityRow = memo((props: EntityRowProps) => {
       _hover={entityRowHover}
     >
       <Table.Cell>{props.entity}</Table.Cell>
-      {props.type.components.filter(storesValue).map(component =>
-        isRelation(component) ? null : (
+      {props.type.components.filter(S.storesValue).map(component =>
+        S.isRelation(component) ? null : (
           <Table.Cell key={component.id}>
             <Value entity={props.entity} component={component} />
           </Table.Cell>
@@ -79,7 +70,7 @@ export let EntityRow = memo((props: EntityRowProps) => {
 })
 
 type EntityListHeaderProps = {
-  type: Type
+  type: S.Type
 }
 
 export let EntityListHeader = memo((props: EntityListHeaderProps) => {
@@ -90,10 +81,10 @@ export let EntityListHeader = memo((props: EntityListHeaderProps) => {
         <Table.Head>ID</Table.Head>
         {props.type.components
           .filter(
-            component => !isTag(component) && !isTagRelationship(component),
+            component => !S.isTag(component) && !S.isTagRelationship(component),
           )
           .map(component =>
-            isRelation(component) ? null : (
+            S.isRelation(component) ? null : (
               <Table.Head key={component.id}>
                 {aliases.getComponentAlias(component)}
               </Table.Head>

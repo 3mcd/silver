@@ -4,15 +4,15 @@ import {Heading} from "../components/heading"
 import {Link} from "../components/link"
 import {Text} from "../components/text"
 
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {useAliases} from "../hooks/use_aliases"
 import {useWorld} from "../hooks/use_world"
 import {DebugHighlighted, DebugSelected, Name} from "silver-lib"
 import {memo} from "react"
 
 type Props = {
-  type: ecs.Type
-  onEntitySelected(entity: ecs.Entity, select: boolean): void
+  type: S.Type
+  onEntitySelected(entity: S.Entity, select: boolean): void
 }
 
 export let TypeHeader = memo((props: Props) => {
@@ -20,7 +20,7 @@ export let TypeHeader = memo((props: Props) => {
   let aliases = useAliases()
   let tags = props.type.components.filter(
     component =>
-      ecs.isTag(component) && component !== DebugHighlighted.components[0],
+      S.isTag(component) && component !== DebugHighlighted.components[0],
   )
   return tags.length + props.type.relationships.length > 0 ? (
     <HStack paddingX="2" fontSize="sm" gap="2" paddingBottom="4">

@@ -7,16 +7,16 @@ An inspector for silver-ecs worlds.
 ### Usage
 
 ```ts
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {mount, makeDebugAliases} from "silver-inspector"
 
-const world = ecs.makeWorld()
+const world = S.makeWorld()
 const element = document.getElementById("inspector")
 // Name your components.
 const aliases = makeDebugAliases().set(Vehicle, "Vehicle")
 // Add queries to the inspector.
 const queries = {
-  vehicles: ecs.query(world, Vehicle),
+  vehicles: S.query(world, Vehicle),
 }
 // Add the inspector to the DOM.
 mount(world, element, aliases, queries)

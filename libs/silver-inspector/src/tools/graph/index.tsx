@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from "react"
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {Assert} from "silver-lib"
 import {useWorld} from "../../hooks/use_world"
 import {Entity} from "../entities/entity"
@@ -8,8 +8,8 @@ import {GraphVis} from "./graph_vis"
 
 type State =
   | {mode: "graph"}
-  | {mode: "node"; node: ecs.Graph.Node}
-  | {mode: "entity"; node: ecs.Graph.Node; entity: ecs.Entity}
+  | {mode: "node"; node: S.Graph.Node}
+  | {mode: "entity"; node: S.Graph.Node; entity: S.Entity}
 
 export let Graph = () => {
   const [state, setState] = useState<State>({mode: "graph"})
@@ -22,18 +22,18 @@ export let Graph = () => {
         return setState({mode: "node", node: state.node})
     }
   }, [state])
-  let onNodeSelected = useCallback((node: ecs.Graph.Node) => {
+  let onNodeSelected = useCallback((node: S.Graph.Node) => {
     setState({mode: "node", node})
   }, [])
   let onEntitySelected = useCallback(
-    (entity: ecs.Entity, select: boolean) => {
+    (entity: S.Entity, select: boolean) => {
       Assert.ok(state.mode !== "graph")
       setState({mode: "entity", entity, node: state.node})
     },
     [state],
   )
-  let onEntityHoverIn = useCallback((entity: ecs.Entity) => {}, [world])
-  let onEntityHoverOut = useCallback((entity: ecs.Entity) => {}, [world])
+  let onEntityHoverIn = useCallback((entity: S.Entity) => {}, [world])
+  let onEntityHoverOut = useCallback((entity: S.Entity) => {}, [world])
   switch (state.mode) {
     case "graph":
       return <GraphVis onNodeSelected={onNodeSelected} />

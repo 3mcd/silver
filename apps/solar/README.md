@@ -10,4 +10,4 @@ Run `pnpm start` and visit http://localhost:5173.
 
 Zoom and pan using a mouse or touchpad. Click and drag to move the camera. Use the scroll wheel to zoom in and out.
 
-Clicking an astronomical object will delete it. Satellites will be deleted along with the body they orbit because they are related through a hierarchical relationship ([`ecs.Topology.Hierarchical`](./src/data.ts#L10)).
+Clicking an astronomical object will delete it. Satellites will be deleted along with the body they orbit because they are related through a hierarchical relationship ([`S.Topology.Hierarchical`](./src/data.ts#L10)).

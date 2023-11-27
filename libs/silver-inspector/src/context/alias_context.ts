@@ -1,12 +1,5 @@
 import {createContext} from "react"
-import {
-  Component,
-  Hash,
-  Type,
-  isRelationship,
-  parseHi,
-  parseLo,
-} from "silver-ecs"
+import * as S from "silver-ecs"
 import {
   AngularVelocity,
   DebugHighlighted,
@@ -33,18 +26,18 @@ export class Aliases {
       .set(DebugSelected, "DebugSelected")
   }
 
-  set(type: Type, alias: string) {
+  set(type: S.Type, alias: string) {
     this.aliases[type.hash] = alias
     return this
   }
 
-  getComponentAlias(component: Component) {
-    if (isRelationship(component)) {
-      let relationId = parseHi(component.id)
-      let entityId = parseLo(component.id)
-      return `${this.aliases[Hash.words([relationId])]}:${entityId}`
+  getComponentAlias(component: S.Component) {
+    if (S.isRelationship(component)) {
+      let relationId = S.parseHi(component.id)
+      let entityId = S.parseLo(component.id)
+      return `${this.aliases[S.Hash.words([relationId])]}:${entityId}`
     }
-    return this.aliases[Hash.words([component.id])]
+    return this.aliases[S.Hash.words([component.id])]
   }
 }
 

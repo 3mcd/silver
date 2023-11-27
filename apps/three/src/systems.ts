@@ -1,24 +1,15 @@
 import {ColliderDesc} from "@dimforge/rapier3d"
-import {Entity, System} from "silver-ecs"
-import {
-  AngularVelocity,
-  Kinetic,
-  LinearVelocity,
-  Name,
-  Position,
-  Rotation,
-  Scale,
-  Transform,
-} from "silver-lib"
+import * as S from "silver-ecs"
+import {Kinetic, Name, Position, Scale, Transform} from "silver-lib"
 import {Collider} from "silver-rapier"
 import {
-  ThreeCamera,
   CastsShadow,
   Instance,
   InstanceCount,
-  ThreeLight,
   Mesh,
   ReceivesShadow,
+  ThreeCamera,
+  ThreeLight,
 } from "silver-three"
 import {
   AmbientLight,
@@ -58,7 +49,7 @@ sunlight.shadow.camera.right = 100
 sunlight.shadow.mapSize.width = 2048
 sunlight.shadow.mapSize.height = 2048
 
-export const spawnSystem: System = world => {
+export const spawnSystem: S.System = world => {
   // terrain
   world
     .with(Name, "terrain")
@@ -131,7 +122,7 @@ export const spawnSystem: System = world => {
     .with(Transform, Position.make({z: -50}))
     .spawn()
 
-  const balls: Entity[] = []
+  const balls: S.Entity[] = []
   for (let i = 0; i < 5; i++) {
     for (let j = 0; j < 5; j++) {
       const ball = world

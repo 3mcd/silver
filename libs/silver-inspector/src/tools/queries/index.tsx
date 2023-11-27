@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from "react"
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {DebugHighlighted, DebugSelected} from "silver-lib"
 import {QueryDef} from "../../context/query_context"
 import {useWorld} from "../../hooks/use_world"
@@ -11,7 +11,7 @@ import {Assert} from "silver-lib"
 type State =
   | {mode: "queries"}
   | {mode: "query"; query: QueryDef}
-  | {mode: "entity"; query: QueryDef; entity: ecs.Entity}
+  | {mode: "entity"; query: QueryDef; entity: S.Entity}
 
 export let Queries = () => {
   const [state, setState] = useState<State>({mode: "queries"})
@@ -20,7 +20,7 @@ export let Queries = () => {
     setState({mode: "query", query})
   }, [])
   let onEntitySelected = useCallback(
-    (entity: ecs.Entity, select: boolean) => {
+    (entity: S.Entity, select: boolean) => {
       if (select) {
         if (world.has(entity, DebugSelected)) {
           world.remove(entity, DebugSelected)
@@ -38,7 +38,7 @@ export let Queries = () => {
     [world, state],
   )
   let onEntityHoverIn = useCallback(
-    (entity: ecs.Entity) => {
+    (entity: S.Entity) => {
       if (!world.has(entity, DebugHighlighted)) {
         world.add(entity, DebugHighlighted)
       }
@@ -46,7 +46,7 @@ export let Queries = () => {
     [world],
   )
   let onEntityHoverOut = useCallback(
-    (entity: ecs.Entity) => {
+    (entity: S.Entity) => {
       if (world.has(entity, DebugHighlighted)) {
         world.remove(entity, DebugHighlighted)
       }

@@ -1,8 +1,8 @@
 import {PropsWithChildren, createContext} from "react"
-import {World} from "silver-ecs"
+import * as S from "silver-ecs"
 
-export let worldContext = createContext<World>(null!)
+export let worldContext = createContext<S.World>(null!)
 
 export type WorldProviderProps = PropsWithChildren<{
-  world: World
+  world: S.World
 }>

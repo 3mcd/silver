@@ -6,7 +6,7 @@ import ForceGraph3D, {
   LinkObject,
   NodeObject,
 } from "react-force-graph-3d"
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import SpriteText from "three-spritetext"
 import {Box, Stack} from "../../../styled-system/jsx"
 import {PageHeading} from "../../components/page_heading"
@@ -34,14 +34,14 @@ let makeNodeColor = ({size}: NodeObject<{size: number}>) => {
   return "#ede0d9"
 }
 
-type NodeData = {size: number; node: ecs.Graph.Node}
+type NodeData = {size: number; node: S.Graph.Node}
 type Node = NodeObject<NodeData>
 type Link = LinkObject<NodeData>
 
-let spriteCache = ecs.SparseMap.make<SpriteText>()
+let spriteCache = S.SparseMap.make<SpriteText>()
 
 type Props = {
-  onNodeSelected(node: ecs.Graph.Node): void
+  onNodeSelected(node: S.Graph.Node): void
 }
 
 const GROUPS = 12
@@ -143,7 +143,7 @@ export let GraphVis = (props: Props) => {
           GROUPS
         }
         nodeThreeObject={node => {
-          let sprite = ecs.SparseMap.get(spriteCache, node.id as number)
+          let sprite = S.SparseMap.get(spriteCache, node.id as number)
           if (!sprite) {
             let text = node.node.type.components
               .slice(0, 6)
@@ -159,10 +159,10 @@ export let GraphVis = (props: Props) => {
             sprite = new SpriteText(text || "root", 2, "white")
             sprite.fontFace = "monospace"
             sprite.backgroundColor =
-              ecs.SparseSet.size(node.node.entities) === 0 ? "#000" : node.color
+              S.SparseSet.size(node.node.entities) === 0 ? "#000" : node.color
             sprite.borderRadius = 2
             sprite.padding = 1
-            ecs.SparseMap.set(spriteCache, node.id as number, sprite)
+            S.SparseMap.set(spriteCache, node.id as number, sprite)
           }
           return sprite
         }}

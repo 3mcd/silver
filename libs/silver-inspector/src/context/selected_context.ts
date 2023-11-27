@@ -1,4 +1,4 @@
 import {createContext} from "react"
-import {Entity} from "silver-ecs"
+import * as S from "silver-ecs"
 
-export let selectedContext = createContext<Entity[]>([])
+export let selectedContext = createContext<S.Entity[]>([])

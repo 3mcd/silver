@@ -1,10 +1,10 @@
 import {useMemo} from "react"
 import {QueryDefs, queryContext} from "./query_context"
-import {Query} from "silver-ecs"
+import * as S from "silver-ecs"
 
 type Props = React.PropsWithChildren<{
   queries?: {
-    [key: string]: Query
+    [key: string]: S.Query
   }
 }>
 

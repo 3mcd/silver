@@ -1,4 +1,4 @@
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {QueryDef} from "../../context/query_context"
 import {useQuery} from "../../hooks/use_queries"
 import {EntityList} from "../../components/entity_list"
@@ -15,9 +15,9 @@ import {Kbd} from "../../components/kbd"
 type Props = {
   query: QueryDef
   onBack(): void
-  onEntitySelected(entity: ecs.Entity, ctrlKey: boolean): void
-  onEntityHoverIn(entity: ecs.Entity): void
-  onEntityHoverOut(entity: ecs.Entity): void
+  onEntitySelected(entity: S.Entity, ctrlKey: boolean): void
+  onEntityHoverIn(entity: S.Entity): void
+  onEntityHoverOut(entity: S.Entity): void
 }
 
 export let Query = (props: Props) => {

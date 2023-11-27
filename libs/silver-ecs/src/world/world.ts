@@ -281,8 +281,8 @@ export class World {
    * @example
    * <caption>Create an container entity.</caption>
    * ```ts
-   * let InContainer = ecs.relation(ecs.Topology.Exclusive)
-   * let Item = ecs.type(InContainer)
+   * let InContainer = S.relation(S.Topology.Exclusive)
+   * let Item = S.type(InContainer)
    * let bag = world.spawn()
    * let item = world.spawn(Item, bag)
    * ```
@@ -293,15 +293,15 @@ export class World {
    * @example
    * <caption>Create an entity with a position and velocity.</caption>
    * ```ts
-   * let Position = ecs.value()
-   * let Velocity = ecs.value()
-   * let entity = world.spawn(ecs.type(Position, Velocity), {x: 0, y: 0}, {x: 1, y: 1})
+   * let Position = S.value()
+   * let Velocity = S.value()
+   * let entity = world.spawn(S.type(Position, Velocity), {x: 0, y: 0}, {x: 1, y: 1})
    * ```
    * @example
    * <caption>Create an entity with a rotation and a spectating relationship.</caption>
    * ```ts
-   * let Spectating = ecs.relation()
-   * let Spectator = ecs.type(Rotation, Spectating)
+   * let Spectating = S.relation()
+   * let Spectator = S.type(Rotation, Spectating)
    * let entity = world.spawn(Spectator, [Quaternion.from(playerRotation), player])
    * ```
    */
@@ -341,8 +341,8 @@ export class World {
    * @example
    * <caption>Delete an entity with relationships.</caption>
    * ```ts
-   * let Orbits = ecs.relation()
-   * let DockedTo = ecs.relation(ecs.Topology.Exclusive)
+   * let Orbits = S.relation()
+   * let DockedTo = S.relation(S.Topology.Exclusive)
    * let planet = world.spawn()
    * let station = world.spawn(Orbits, planet)
    * let spaceship = world.spawn(DockedTo, station)
@@ -361,7 +361,7 @@ export class World {
    * @example
    * <caption>Add a tag to an entity.</caption>
    * ```ts
-   * let Consumable = ecs.tag()
+   * let Consumable = S.tag()
    * let entity = world.spawn()
    * world.add(entity, Consumable)
    * world.step()
@@ -370,14 +370,14 @@ export class World {
    * @example
    * <caption>Add a value to an entity.</caption>
    * ```ts
-   * let Position = ecs.value()
+   * let Position = S.value()
    * let entity = world.spawn()
    * world.add(entity, Position, {x: 0, y: 0})
    * ```
    * @example
    * <caption>Add a relationship to an entity.</caption>
    * ```ts
-   * let Orbits = ecs.relation()
+   * let Orbits = S.relation()
    * let star = world.spawn()
    * let planet = world.spawn()
    * world.add(planet, Orbits, star)
@@ -408,7 +408,7 @@ export class World {
    * @example
    * <caption>Remove a tag from an entity.</caption>
    * ```ts
-   * let Consumable = ecs.tag()
+   * let Consumable = S.tag()
    * let entity = world.spawn(Consumable)
    * world.remove(entity, Consumable)
    * world.step()
@@ -417,7 +417,7 @@ export class World {
    * @example
    * <caption>Remove a value from an entity.</caption>
    * ```ts
-   * let Position = ecs.value()
+   * let Position = S.value()
    * let entity = world.spawn(Position, {x: 0, y: 0})
    * world.remove(entity, Position)
    * ```
@@ -429,7 +429,7 @@ export class World {
    * @example
    * <caption>Remove a relationship from an entity.</caption>
    * ```ts
-   * let Orbits = ecs.relation()
+   * let Orbits = S.relation()
    * let star = world.spawn()
    * let planet = world.spawn(Orbits, star)
    * world.remove(planet, Orbits, star)
@@ -463,7 +463,7 @@ export class World {
    * @example
    * <caption>Change the value of a component.</caption>
    * ```ts
-   * let Position = ecs.value()
+   * let Position = S.value()
    * let entity = world.spawn(Position, {x: 0, y: 0})
    * world.change(entity, Position, {x: 1, y: 1})
    * world.get(entity, Position) // {x: 1, y: 1}
@@ -471,16 +471,16 @@ export class World {
    * @example
    * <caption>Trigger changed filters in queries.</caption>
    * ```ts
-   * let systemA: ecs.System = world => {
-   *   let changed = ecs.query(world, ecs.type(Position), ecs.Changed(Position))
+   * let systemA: S.System = world => {
+   *   let changed = S.query(world, S.type(Position), S.Changed(Position))
    *   return () => {
    *     changed.each((entity, position) => {
    *      console.log("entity position changed", entity, position)
    *     })
    *   }
    * }
-   * let systemB: ecs.System = world => {
-   *   let kinetic = ecs.query(world, ecs.type(Position, Velocity))
+   * let systemB: S.System = world => {
+   *   let kinetic = S.query(world, S.type(Position, Velocity))
    *   return () => {
    *    kinetic.each((entity, position, velocity) => {
    *     position.x += velocity.x
@@ -514,7 +514,7 @@ export class World {
    * @example
    * <caption>Check if an entity has a component.</caption>
    * ```ts
-   * let Position = ecs.value()
+   * let Position = S.value()
    * let entity = world.spawn(Position, {x: 0, y: 0})
    * world.step()
    * world.has(entity, Position) // true
@@ -533,7 +533,7 @@ export class World {
    * @example
    * <caption>Check if an entity is related to another entity.</caption>
    * ```ts
-   * let Orbits = ecs.relation()
+   * let Orbits = S.relation()
    * let star = world.spawn()
    * let planet = world.spawn(Orbits, star)
    * world.step()
@@ -560,7 +560,7 @@ export class World {
    * @example
    * <caption>Get the value of a component.</caption>
    * ```ts
-   * let Position = ecs.value()
+   * let Position = S.value()
    * let entity = world.spawn(Position, {x: 0, y: 0})
    * world.step()
    * world.get(entity, Position) // {x: 0, y: 0}
@@ -575,7 +575,7 @@ export class World {
    * @example
    * <caption>Get the value of a relationship component.</caption>
    * ```ts
-   * let Orbits = ecs.valueRelation()
+   * let Orbits = S.valueRelation()
    * let star = world.spawn()
    * let planet = world.spawn(Orbits, [star, {distance: 1, period: 1}])
    * world.step()
@@ -607,17 +607,17 @@ export class World {
    * @example
    * <caption>Check if an entity matches a type.</caption>
    * ```ts
-   * let Position = ecs.value()
-   * let Velocity = ecs.value()
-   * let entity = world.spawn(ecs.type(Position, Velocity), {x: 0, y: 0}, {x: 1, y: 1})
+   * let Position = S.value()
+   * let Velocity = S.value()
+   * let entity = world.spawn(S.type(Position, Velocity), {x: 0, y: 0}, {x: 1, y: 1})
    * world.step()
-   * world.matches(entity, ecs.type(Position, Velocity)) // true
+   * world.matches(entity, S.type(Position, Velocity)) // true
    * ```
    * @example
    * <caption>Check if an entity matches a type with relationships.</caption>
    * ```ts
-   * let Spectating = ecs.relation()
-   * let Spectator = ecs.type(Rotation, Spectating)
+   * let Spectating = S.relation()
+   * let Spectator = S.type(Rotation, Spectating)
    * let entity = world.spawn(Spectator, [Quaternion.from(playerRotation), player])
    * world.step()
    * world.matches(entity, Spectator, player) // true

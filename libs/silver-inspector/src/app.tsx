@@ -1,8 +1,10 @@
-import {List, ListX, Trash, Trash2, X} from "lucide-react"
-import {Query, World} from "silver-ecs"
+import {List, ListX, Trash, X} from "lucide-react"
+import * as S from "silver-ecs"
 import {HStack, Stack} from "../styled-system/jsx"
 import {IconButton} from "./components/icon_button"
+import {Menu} from "./components/menu"
 import {Tabs} from "./components/tabs"
+import {Text} from "./components/text"
 import {Aliases} from "./context/alias_context"
 import {AliasProvider} from "./context/alias_provider"
 import {QueryProvider} from "./context/query_provider"
@@ -13,14 +15,12 @@ import "./index.css"
 import {Entities} from "./tools/entities"
 import {Graph} from "./tools/graph"
 import {Queries} from "./tools/queries"
-import {Text} from "./components/text"
-import {Menu} from "./components/menu"
 
 export type AppProps = {
-  world: World
+  world: S.World
   aliases?: Aliases
   queries?: {
-    [key: string]: Query
+    [key: string]: S.Query
   }
   onClose?(): void
 }

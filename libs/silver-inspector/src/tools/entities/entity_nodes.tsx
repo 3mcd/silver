@@ -1,6 +1,6 @@
 import {Globe} from "lucide-react"
 import {memo, useCallback, useMemo} from "react"
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {DebugSelected} from "silver-lib"
 import {Page} from "../../components/page"
 import {Table} from "../../components/table"
@@ -8,7 +8,7 @@ import {Type} from "../../components/type"
 import {useGraph, useNode} from "../../hooks/use_graph"
 
 type Props = {
-  onNodeSelected: (node: ecs.Graph.Node) => void
+  onNodeSelected: (node: S.Graph.Node) => void
 }
 
 let entityRowHover = {
@@ -18,15 +18,15 @@ let entityRowHover = {
 }
 
 type EntityNodeRowProps = {
-  node: ecs.Graph.Node
-  onClick(node: ecs.Graph.Node): void
+  node: S.Graph.Node
+  onClick(node: S.Graph.Node): void
 }
 
 let EntityNodeRow = memo((props: EntityNodeRowProps) => {
-  let size = ecs.SparseSet.size(props.node.entities)
+  let size = S.SparseSet.size(props.node.entities)
   let color = useMemo(
     () =>
-      ecs.hasComponent(props.node.type, DebugSelected) ? "sky.7" : undefined,
+      S.hasComponent(props.node.type, DebugSelected) ? "sky.7" : undefined,
     [props.node.type],
   )
   let onClick = useCallback(() => {
@@ -72,7 +72,7 @@ export let EntityNodes = (props: Props) => {
             <Table.Cell>Total Entities</Table.Cell>
             <Table.Cell textAlign="right">
               {nodes.reduce(
-                (a, node) => a + ecs.SparseSet.size(node.entities),
+                (a, node) => a + S.SparseSet.size(node.entities),
                 0,
               )}
             </Table.Cell>

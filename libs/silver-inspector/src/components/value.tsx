@@ -1,29 +1,19 @@
-import {
-  Component,
-  Entity,
-  Express,
-  Schema,
-  isTag,
-  parseHi,
-  parseLo,
-  storesValue,
-} from "silver-ecs"
-import {getRelation, isValueRelationship} from "silver-ecs/src/data/component"
+import * as S from "silver-ecs"
 import {useWorld} from "../hooks/use_world"
 import {Code} from "./code"
 import {Text} from "./text"
 
 type Props = {
-  entity: Entity
-  component: Component
+  entity: S.Entity
+  component: S.Component
 }
 
-type ValueInnerProps<U extends Schema.T> = {
+type ValueInnerProps<U extends S.Schema.T> = {
   schema: U
-  value: Express<U>
+  value: S.Express<U>
 }
 
-export let ValueInner = <U extends Schema.T>(props: ValueInnerProps<U>) => {
+export let ValueInner = <U extends S.Schema.T>(props: ValueInnerProps<U>) => {
   if (typeof props.schema === "object") {
     let keys = Object.keys(props.schema) as Exclude<keyof U, symbol>[]
     let children = keys.map((key, i) => {
@@ -65,10 +55,10 @@ export let ValueInner = <U extends Schema.T>(props: ValueInnerProps<U>) => {
 export let Value = (props: Props) => {
   let world = useWorld()
   let component = props.component
-  if (storesValue(component)) {
-    let value = world.stores[component.id][parseLo(props.entity)]
-    if (isValueRelationship(component)) {
-      component = getRelation(parseHi(component.id))!
+  if (S.storesValue(component)) {
+    let value = world.stores[component.id][S.parseLo(props.entity)]
+    if (S.isValueRelationship(component)) {
+      component = S.getRelation(S.parseHi(component.id))!
     }
     return (
       <Code
@@ -82,7 +72,7 @@ export let Value = (props: Props) => {
         {"schema" in component && component.schema !== undefined ? (
           <ValueInner
             schema={component.schema}
-            value={value as Express<Schema.T>}
+            value={value as S.Express<S.Schema.T>}
           />
         ) : (
           "?"
@@ -90,6 +80,6 @@ export let Value = (props: Props) => {
       </Code>
     )
   } else {
-    return isTag(props.component) ? "✅" : "?"
+    return S.isTag(props.component) ? "✅" : "?"
   }
 }

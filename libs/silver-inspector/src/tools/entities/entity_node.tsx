@@ -1,4 +1,4 @@
-import {Entity, Graph, SparseSet} from "silver-ecs"
+import * as S from "silver-ecs"
 import {EntityList} from "../../components/entity_list"
 import {Page} from "../../components/page"
 import {TypeHeader} from "../../components/type_header"
@@ -6,10 +6,10 @@ import {useNode} from "../../hooks/use_graph"
 import {Text} from "../../components/text"
 
 type Props = {
-  node: Graph.Node
-  onEntitySelected: (entity: Entity, select: boolean) => void
-  onEntityHoverIn: (entity: Entity) => void
-  onEntityHoverOut: (entity: Entity) => void
+  node: S.Graph.Node
+  onEntitySelected: (entity: S.Entity, select: boolean) => void
+  onEntityHoverIn: (entity: S.Entity) => void
+  onEntityHoverOut: (entity: S.Entity) => void
   onBack(): void
 }
 
@@ -26,7 +26,7 @@ export let EntityNode = (props: Props) => {
             onEntitySelected={props.onEntitySelected}
           />
           <EntityList
-            entities={SparseSet.values(props.node.entities)}
+            entities={S.SparseSet.values(props.node.entities)}
             type={props.node.type}
             onEntitySelected={props.onEntitySelected}
             onEntityHoverIn={props.onEntityHoverIn}

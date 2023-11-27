@@ -1,5 +1,5 @@
 import {PropsWithChildren, useMemo} from "react"
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {DebugSelected} from "silver-lib"
 import {useQuery} from "../hooks/use_queries"
 import {useWorld} from "../hooks/use_world"
@@ -9,7 +9,7 @@ type Props = PropsWithChildren
 
 export let SelectedProvider = (props: Props) => {
   let world = useWorld()
-  let query = useMemo(() => ecs.query(world, DebugSelected), [world])
+  let query = useMemo(() => S.query(world, DebugSelected), [world])
   let queryResults = useQuery(query)
   return (
     <selectedContext.Provider value={queryResults}>

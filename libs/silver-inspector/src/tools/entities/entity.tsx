@@ -1,6 +1,6 @@
 import {ListMinus, ListPlus, MoreHorizontal, Trash} from "lucide-react"
 import {Fragment, useCallback, useEffect} from "react"
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {DebugHighlighted, DebugSelected, Name} from "silver-lib"
 import {HStack, Stack} from "../../../styled-system/jsx"
 import {Heading} from "../../components/heading"
@@ -15,12 +15,12 @@ import {useNode} from "../../hooks/use_graph"
 import {useWorld} from "../../hooks/use_world"
 
 type Props = {
-  entity: ecs.Entity
+  entity: S.Entity
   onBack(): void
-  onEntitySelected(entity: ecs.Entity, select: boolean): void
+  onEntitySelected(entity: S.Entity, select: boolean): void
 }
 
-export let Inner = (props: Props & {type: ecs.Type}) => {
+export let Inner = (props: Props & {type: S.Type}) => {
   let aliases = useAliases()
   let world = useWorld()
   let name = world.get(props.entity, Name)
@@ -84,7 +84,7 @@ export let Inner = (props: Props & {type: ecs.Type}) => {
       <TypeHeader type={props.type} onEntitySelected={props.onEntitySelected} />
       <Stack paddingX="4">
         {props.type.components.map(component =>
-          ecs.isValue(component) && component !== ecs.componentAt(Name, 0) ? (
+          S.isValue(component) && component !== S.componentAt(Name, 0) ? (
             <Fragment key={component.id}>
               <Heading as="h3" fontWeight="medium" fontSize="md">
                 {aliases.getComponentAlias(component)}

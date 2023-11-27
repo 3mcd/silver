@@ -1,4 +1,4 @@
-import {Not, make, query, run, type} from "silver-ecs"
+import * as S from "silver-ecs"
 import {makeDebugAliases} from "silver-inspector"
 import {Kinetic, Transform} from "silver-lib"
 import {Collider, rapier3dSystem} from "silver-rapier"
@@ -16,13 +16,13 @@ import {
 } from "silver-three"
 import {spawnSystem} from "./systems"
 
-const world = make()
+const world = S.make()
 const loop = () => {
   requestAnimationFrame(loop)
   world.step()
-  run(world, spawnSystem)
-  run(world, rapier3dSystem)
-  run(world, threeSystem)
+  S.run(world, spawnSystem)
+  S.run(world, rapier3dSystem)
+  S.run(world, threeSystem)
 }
 
 requestAnimationFrame(loop)
@@ -55,11 +55,15 @@ ReactDOM.createRoot(document.getElementById("inspector")!).render(
     world={world}
     aliases={aliases}
     queries={{
-      Lights: query(world, ThreeLight),
-      Cameras: query(world, ThreeCamera),
-      Boxes: query(world, IsInstance),
-      Balls: query(world, type(Transform, Collider, Kinetic), Not(InstanceOf)),
-      Static: query(world, type(Transform, Collider), Not(Kinetic)),
+      Lights: S.query(world, ThreeLight),
+      Cameras: S.query(world, ThreeCamera),
+      Boxes: S.query(world, IsInstance),
+      Balls: S.query(
+        world,
+        S.type(Transform, Collider, Kinetic),
+        S.Not(InstanceOf),
+      ),
+      Static: S.query(world, S.type(Transform, Collider), S.Not(Kinetic)),
     }}
   />,
 )

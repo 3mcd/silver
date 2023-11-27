@@ -216,7 +216,7 @@ type RecursivePartial<T> = {
  * auto-initialization.
  *
  * @example <caption>Define a component with a schema and add it to an entity.</caption>
- * let Position = ecs.value({x: "f32", y: "f32"})
+ * let Position = S.value({x: "f32", y: "f32"})
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U extends Schema.T>(
@@ -235,7 +235,7 @@ export function value<U extends Schema.T>(
  *   x: number,
  *   y: number,
  * }
- * let Position = ecs.value<Position>({x: "f32", y: "f32"}) // Value<Position>
+ * let Position = S.value<Position>({x: "f32", y: "f32"}) // Value<Position>
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U>(
@@ -248,7 +248,7 @@ export function value<U>(
  * The component is not eligible for serialization and auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
- * let Position = ecs.value<Position>()
+ * let Position = S.value<Position>()
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U>(): Type.Type<[Value<U>]>
@@ -260,7 +260,7 @@ export function value<U>(): Type.Type<[Value<U>]>
  * auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
- * let Anything = ecs.value() // Value<unknown>
+ * let Anything = S.value() // Value<unknown>
  * let entity = world.spawn(Anything, [[[]]])
  */
 export function value(): Type.Type<[Value<unknown>]>
@@ -281,7 +281,7 @@ export function value(
  * Define a tag. Tags are components with no data.
  *
  * @example <caption>Define a tag and add it to an entity.</caption>
- * let RedTeam = ecs.tag()
+ * let RedTeam = S.tag()
  * let entity = world.spawn(RedTeam)
  */
 export let tag = (): Type.Type<[Tag]> =>
@@ -296,7 +296,7 @@ export let tag = (): Type.Type<[Tag]> =>
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with a schema and add it to an entity.</caption>
- * let Orbits = ecs.relation({distance: "f32", period: "f32"})
+ * let Orbits = S.relation({distance: "f32", period: "f32"})
  * let entity = world.spawn(Orbits, [sun, {distance: 10, period: 0.5}])
  */
 export function valueRelation<U extends Schema.T>(
@@ -313,7 +313,7 @@ export function valueRelation<U extends Schema.T>(
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with a type-constrained schema and add it to an entity.</caption>
- * let Owes = ecs.relation<number>("f32")
+ * let Owes = S.relation<number>("f32")
  * let entity = world.spawn(Owes, [bank, 1_000])
  */
 export function valueRelation<U>(
@@ -329,7 +329,7 @@ export function valueRelation<U>(
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a typed but schemaless relation and add it to an entity.</caption>
- * let Owes = ecs.relation<number>()
+ * let Owes = S.relation<number>()
  * let entity = world.spawn(Owes, [bank, 1_000])
  */
 export function valueRelation<U>(
@@ -346,7 +346,7 @@ export function valueRelation<U>(
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define an untyped relation and add it to an entity.</caption>
- * let OwesAnything = ecs.relation()
+ * let OwesAnything = S.relation()
  * let entity = world.spawn(OwesAnything, [[[]]])
  */
 export function valueRelation(
@@ -373,7 +373,7 @@ export function valueRelation(
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with no data and add it to an entity.</caption>
- * let ChildOf = ecs.tagRelation()
+ * let ChildOf = S.tagRelation()
  * let entity = world.spawn(ChildOf, [relative])
  */
 export let relation = (

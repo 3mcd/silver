@@ -1,6 +1,6 @@
 import {Portal} from "@ark-ui/react"
 import {Fragment, memo} from "react"
-import * as ecs from "silver-ecs"
+import * as S from "silver-ecs"
 import {useAliases} from "../hooks/use_aliases"
 import {Code} from "./code"
 import {Text} from "./text"
@@ -9,18 +9,18 @@ import {useWorld} from "../hooks/use_world"
 import {Name} from "silver-lib"
 
 type Props = {
-  type: ecs.Type
+  type: S.Type
 }
 
 type ComponentProps = {
-  component: ecs.Component
+  component: S.Component
 }
 
 export let Component = memo((props: ComponentProps) => {
   let world = useWorld()
   let aliases = useAliases()
   let alias = aliases.getComponentAlias(props.component) ?? props.component.id
-  if (ecs.isRelationship(props.component)) {
+  if (S.isRelationship(props.component)) {
     let [relationAlias, relative] = alias.split(":")
     let relativeEntity = world.hydrate(Number(relative))
     relative = world.get(relativeEntity, Name) ?? relative
@@ -63,7 +63,7 @@ export let Type = memo((props: Props) => {
   return (
     <Text>
       {props.type.components.map((component, i) =>
-        ecs.isRelation(component) ? null : (
+        S.isRelation(component) ? null : (
           <Fragment key={component.id}>
             <Component component={component} />
             {i < props.type.components.length - 1 && ", "}

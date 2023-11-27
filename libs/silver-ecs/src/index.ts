@@ -13,6 +13,8 @@ export {
   isRelationship,
   isTag,
   isTagRelationship,
+  isValueRelation,
+  isValueRelationship,
   storesValue,
   getRelation,
 } from "./data/component"

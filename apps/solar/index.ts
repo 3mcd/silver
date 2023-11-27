@@ -1,4 +1,4 @@
-import {In, Out, System, make, query, run, type} from "silver-ecs"
+import * as S from "silver-ecs"
 import {
   Click,
   arc,
@@ -15,14 +15,14 @@ import {Body, Color, Orbits, Position, Radius, seed} from "./data"
 import {makeDebugAliases, mount} from "silver-inspector"
 import {DebugHighlighted, DebugSelected} from "silver-lib"
 
-const world = make()
+const world = S.make()
 seed(world)
 
 const FONT_SIZE = 12 * window.devicePixelRatio
 
-const moveBodiesSystem: System = world => {
-  const bodies = query(world, Position)
-  const satellites = query(world, type(Position, Orbits))
+const moveBodiesSystem: S.System = world => {
+  const bodies = S.query(world, Position)
+  const satellites = S.query(world, S.type(Position, Orbits))
   return function moveBodies() {
     bodies.each(function moveBodySatellites(body, bodyPos) {
       satellites.each(body, function moveBodySatellite(_, satellitePos, orbit) {
@@ -36,8 +36,8 @@ const moveBodiesSystem: System = world => {
   }
 }
 
-const drawBodiesSystem: System = world => {
-  const bodies = query(world, Body)
+const drawBodiesSystem: S.System = world => {
+  const bodies = S.query(world, Body)
   return function drawBodies() {
     context.save()
     context.font = `${FONT_SIZE * transform.scale}px monospace`
@@ -54,9 +54,9 @@ const drawBodiesSystem: System = world => {
   }
 }
 
-const drawOrbitsSystem: System = world => {
-  const bodies = query(world, Position)
-  const satellites = query(world, Orbits)
+const drawOrbitsSystem: S.System = world => {
+  const bodies = S.query(world, Position)
+  const satellites = S.query(world, Orbits)
   return function drawBodiesOrbits() {
     context.save()
     context.translate(canvas.width / 2, canvas.height / 2)
@@ -72,15 +72,15 @@ const drawOrbitsSystem: System = world => {
   }
 }
 
-const clearCanvasSystem: System = () => {
+const clearCanvasSystem: S.System = () => {
   return function clearCanvas() {
     clear()
   }
 }
 
-const debugSystem: System = world => {
-  const highlighted = query(world, type(Position, Radius, DebugHighlighted))
-  const selected = query(world, type(Position, Radius, DebugSelected))
+const debugSystem: S.System = world => {
+  const highlighted = S.query(world, S.type(Position, Radius, DebugHighlighted))
+  const selected = S.query(world, S.type(Position, Radius, DebugSelected))
   return function debug() {
     context.save()
     context.translate(canvas.width / 2, canvas.height / 2)
@@ -102,11 +102,11 @@ const debugSystem: System = world => {
 
 const loop = () => {
   world.step()
-  run(world, moveBodiesSystem)
-  run(world, clearCanvasSystem)
-  run(world, drawOrbitsSystem)
-  run(world, drawBodiesSystem)
-  run(world, debugSystem)
+  S.run(world, moveBodiesSystem)
+  S.run(world, clearCanvasSystem)
+  S.run(world, drawOrbitsSystem)
+  S.run(world, drawBodiesSystem)
+  S.run(world, debugSystem)
   requestAnimationFrame(loop)
 }
 
@@ -123,6 +123,6 @@ mount(
     .set(Radius, "Radius")
     .set(Body, "Body"),
   {
-    bodies: query(world, Body),
+    bodies: S.query(world, Body),
   },
 )
