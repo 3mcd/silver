@@ -1,6 +1,8 @@
 import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
+import * as Schema from "../data/schema"
+import * as Assert from "../assert"
 
 export type InitTagRelation = Entity.T
 export type InitValueRelation<U = unknown> = [relative: Entity.T, value: U]
@@ -28,11 +30,45 @@ export type Init<
         Head extends Component.T
           ? InitSingle<Head> extends never
             ? Out
-            : [...Out, InitSingle<Head>]
+            : [...Out, InitSingle<Head> | void]
           : never
       >
     : never
-  : never
+  : unknown[]
+
+export let init = <U extends Component.T[]>(
+  type: Type.T<U>,
+  values: Init<U>,
+): Init<U> => {
+  let j = 0
+  for (let i = 0; i < type.componentSpec.length; i++) {
+    let component = type.componentSpec[i]
+    if (
+      component.kind === Component.Kind.Value ||
+      component.kind === Component.Kind.ValueRelation
+    ) {
+      let value = values[j]
+      if (
+        Component.isValueRelation(component) &&
+        (value as InitValueRelation)[1] === undefined
+      ) {
+        Assert.ok(
+          component.initializer !== undefined && component.schema !== undefined,
+        )
+        ;(value as InitValueRelation)[1] = component.initializer(
+          Schema.initialize(component.schema),
+        )
+      } else if (value === undefined) {
+        Assert.ok(
+          component.initializer !== undefined && component.schema !== undefined,
+        )
+        value = component.initializer(Schema.initialize(component.schema))
+      }
+      values[j++] = value
+    }
+  }
+  return values
+}
 
 export type Spawn<U extends Component.T[] = Component.T[]> = {
   kind: "spawn"

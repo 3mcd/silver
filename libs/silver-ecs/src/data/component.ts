@@ -1,4 +1,4 @@
-import * as Data from "./schema"
+import * as Schema from "./schema"
 import * as Type from "./type"
 import {Brand} from "../types"
 import * as Entity from "../entity/entity"
@@ -11,6 +11,8 @@ export enum Kind {
   ValueRelation,
   ValueRelationship,
 }
+
+type Initializer<U = unknown> = (value: U) => U
 
 export let Inclusive = "inclusive"
 export let Exclusive = "exclusive"
@@ -85,7 +87,8 @@ export interface Tag extends Base<void> {
  */
 export interface Value<U = unknown> extends Base<U> {
   kind: Kind.Value
-  schema?: Data.SchemaOf<U>
+  schema?: Schema.SchemaOf<U>
+  initializer?: Initializer<any>
 }
 
 /**
@@ -93,8 +96,9 @@ export interface Value<U = unknown> extends Base<U> {
  */
 export interface ValueRelation<U = unknown> extends Base<U> {
   kind: Kind.ValueRelation
-  schema?: Data.SchemaOf<U>
+  schema?: Schema.SchemaOf<U>
   topology: Topology
+  initializer?: Initializer<any>
 }
 
 /**
@@ -136,12 +140,24 @@ class Component {
   kind
   schema?
   topology
+  initializer?
 
-  constructor(id: number, kind: Kind, topology?: Topology, schema?: Data.T) {
+  constructor(
+    id: number,
+    kind: Kind,
+    topology?: Topology,
+    schema?: Schema.T,
+    initializer?: Initializer,
+  ) {
     this.id = id
     this.kind = kind
     this.schema = schema
     this.topology = topology
+    if (initializer) {
+      this.initializer = initializer
+    } else if (kind === Kind.Value && schema) {
+      this.initializer = Schema.initialize.bind(schema)
+    }
   }
 }
 
@@ -160,21 +176,29 @@ function make(
   id: number,
   kind: Kind.Value,
   topology?: Topology,
-  schema?: Data.T,
+  schema?: Schema.T,
+  initializer?: Initializer,
 ): Value
 function make(
   id: number,
   kind: Kind.ValueRelation,
   topology?: Topology,
-  schema?: Data.T,
+  schema?: Schema.T,
+  initializer?: Initializer,
 ): ValueRelation
 function make(
   id: number,
   kind: Kind.ValueRelationship,
   topology?: Topology,
 ): ValueRelationship
-function make(id: number, kind: Kind, topology?: Topology, schema?: Data.T): T {
-  return new Component(id, kind, topology, schema) as T
+function make(
+  id: number,
+  kind: Kind,
+  topology?: Topology,
+  schema?: Schema.T,
+  initializer?: Initializer,
+): T {
+  return new Component(id, kind, topology, schema, initializer) as T
 }
 
 type RecursivePartial<T> = {
@@ -195,9 +219,10 @@ type RecursivePartial<T> = {
  * let Position = ecs.value({x: "f32", y: "f32"})
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function value<U extends Data.T>(
+export function value<U extends Schema.T>(
   schema: U,
-): Type.Type<[Value<Data.Express<U>>]>
+  initializer?: Initializer<Schema.Express<U>>,
+): Type.Type<[Value<Schema.Express<U>>]>
 /**
  * Define a component using a generic type and schema. The schema must satisfy
  * the type provided to the generic parameter.
@@ -214,7 +239,8 @@ export function value<U extends Data.T>(
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function value<U>(
-  schema: Data.SchemaOf<RecursivePartial<U>>,
+  schema: Schema.SchemaOf<RecursivePartial<U>>,
+  initializer?: Initializer<U>,
 ): Type.Type<[Value<U>]>
 /**
  * Define a schemaless component with a statically-typed shape.
@@ -238,8 +264,17 @@ export function value<U>(): Type.Type<[Value<U>]>
  * let entity = world.spawn(Anything, [[[]]])
  */
 export function value(): Type.Type<[Value<unknown>]>
-export function value(schema?: Data.T) {
-  return Type.make(make(makeComponentId(), Kind.Value, undefined, schema))
+export function value(
+  schema?: Schema.T | Initializer,
+  initializer?: Initializer,
+) {
+  if (typeof schema === "function") {
+    initializer = schema
+    schema = undefined
+  }
+  return Type.make(
+    make(makeComponentId(), Kind.Value, undefined, schema, initializer),
+  )
 }
 
 /**
@@ -264,10 +299,10 @@ export let tag = (): Type.Type<[Tag]> =>
  * let Orbits = ecs.relation({distance: "f32", period: "f32"})
  * let entity = world.spawn(Orbits, [sun, {distance: 10, period: 0.5}])
  */
-export function valueRelation<U extends Data.T>(
+export function valueRelation<U extends Schema.T>(
   schema: U,
   topology?: Topology,
-): Type.Type<[ValueRelation<Data.Express<U>>]>
+): Type.Type<[ValueRelation<Schema.Express<U>>]>
 /**
  * Define a relation using the given generic type and schema. The schema must satisfy
  * the type provided to the generic parameter.
@@ -282,7 +317,7 @@ export function valueRelation<U extends Data.T>(
  * let entity = world.spawn(Owes, [bank, 1_000])
  */
 export function valueRelation<U>(
-  schema: Data.SchemaOf<U>,
+  schema: Schema.SchemaOf<U>,
   topology?: Topology,
 ): Type.Type<[ValueRelation<U>]>
 /**
@@ -317,7 +352,10 @@ export function valueRelation<U>(
 export function valueRelation(
   topology?: Topology,
 ): Type.Type<[ValueRelation<unknown>]>
-export function valueRelation(schema?: Data.T | Topology, topology?: Topology) {
+export function valueRelation(
+  schema?: Schema.T | Topology,
+  topology?: Topology,
+) {
   let componentId = makeComponentId()
   let component = make(
     componentId,

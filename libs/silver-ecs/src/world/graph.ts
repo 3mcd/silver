@@ -22,6 +22,7 @@ export class Node {
   edgesRight
   entities
   id
+  isDropped
   type
 
   constructor(type: Type.T = Type.make()) {
@@ -34,6 +35,7 @@ export class Node {
     this.edgesRight = new Map<number, Node>()
     this.entities = SparseSet.make<Entity.T>()
     this.id = makeNodeId()
+    this.isDropped = false
     this.type = type
   }
 }
@@ -154,6 +156,7 @@ let dropNode = (graph: Graph, node: Node): void => {
   SparseMap.delete(graph.nodesById, node.id)
   Signal.dispose(node.$removed)
   Signal.dispose(node.$created)
+  node.isDropped = true
 }
 
 export let deleteNode = (graph: Graph, node: Node): void => {

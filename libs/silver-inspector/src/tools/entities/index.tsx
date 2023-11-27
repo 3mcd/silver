@@ -26,7 +26,7 @@ export let Entities = () => {
     setState({mode: "node", node})
   }, [])
   let onEntitySelected = useCallback(
-    (entity: ecs.Entity, select: boolean) => {
+    (entity: ecs.Entity) => {
       Assert.ok(state.mode !== "nodes")
       setState({mode: "entity", entity, node: state.node})
     },

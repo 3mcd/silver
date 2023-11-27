@@ -18,8 +18,9 @@ type Props = {
 export let TypeHeader = memo((props: Props) => {
   let world = useWorld()
   let aliases = useAliases()
-  let tags = props.type.tags.filter(
-    tag => tag !== DebugHighlighted.components[0],
+  let tags = props.type.components.filter(
+    component =>
+      ecs.isTag(component) && component !== DebugHighlighted.components[0],
   )
   return tags.length + props.type.relationships.length > 0 ? (
     <HStack paddingX="2" fontSize="sm" gap="2" paddingBottom="4">

@@ -18,9 +18,10 @@ export class EntityBuilder<U extends Component.T[] = Component.T[]> {
 
   with<V extends Component.T[]>(
     type: Type.T<V>,
-    ...init: Commands.Init<V>
+    ...values: Commands.Init<V>
   ): EntityBuilder<[...U, ...V]> {
     this.#type = Type.make(this.#type, type)
+    let init = Commands.init(type, values)
     for (let i = 0; i < init.length; i++) {
       this.#init.push(init[i])
     }

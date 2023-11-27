@@ -37,5 +37,5 @@ export let useNode = (node: Graph.Node) => {
     () => Signal.subscribe(node.$changed, () => setVersion(v => v + 1)),
     [node],
   )
-  return version
+  return node.isDropped ? -1 : version
 }

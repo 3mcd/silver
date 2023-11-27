@@ -63,11 +63,12 @@ export let release = (registry: T, entity: Entity.T) => {
   Entity.assertValid(entity)
   let entityId = Entity.parseLo(entity)
   let entityGen = Entity.parseHi(entity)
-  Assert.ok(checkGeneration(registry, entityId, entityGen))
-  // Recycle the entity id if the entity can be invalidated.
-  if (entityGen < Entity.HI) {
-    registry.free.push(entityId)
-    registry.generations[entityId] = entityGen + 1
+  if (checkGeneration(registry, entityId, entityGen)) {
+    // Recycle the entity id if the entity can be invalidated.
+    if (entityGen < Entity.HI) {
+      registry.free.push(entityId)
+      registry.generations[entityId] = entityGen + 1
+    }
   }
 }
 

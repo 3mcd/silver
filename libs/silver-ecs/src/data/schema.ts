@@ -79,3 +79,17 @@ export type SchemaOf<U> = U extends object
   : U extends string
   ? String
   : T
+
+export let initialize = (schema: T): Express<T> => {
+  if (typeof schema === "object") {
+    let object = {} as any
+    for (let key in schema) {
+      object[key] = initialize(schema[key])
+    }
+    return object as Express<T>
+  } else if (schema === "string") {
+    return ""
+  } else {
+    return 0
+  }
+}

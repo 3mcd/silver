@@ -1,3 +1,4 @@
+import * as Schema from "../data/schema"
 import * as Assert from "../assert"
 import * as Component from "../data/component"
 import * as Type from "../data/type"
@@ -310,13 +311,14 @@ export class World {
   ): Entity.T
   spawn(type?: Type.T, ...values: Commands.Init): Entity.T {
     let entity = Entities.retain(this.#entities)
+
     Stage.insert(
       this.#stage,
       this.#tick,
       Commands.spawn(
         type ? Type.withRelationships(type, values) : Type.make(),
         entity,
-        values,
+        type ? Commands.init(type, values) : values,
       ),
     )
     return entity
@@ -395,7 +397,7 @@ export class World {
           ? (Type.withRelationships(type, values) as Type.T<U>)
           : type,
         entity,
-        values,
+        Commands.init(type, values),
       ),
     )
   }

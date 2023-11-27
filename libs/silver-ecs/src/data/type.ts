@@ -2,6 +2,7 @@ import * as Hash from "../hash"
 import {ExcludeFromTuple} from "../types"
 import * as Commands from "../world/commands"
 import * as Component from "./component"
+import * as Schema from "./schema"
 
 export type Spec<
   U extends (Type | Component.T)[],
@@ -215,7 +216,6 @@ export class Type<U extends Component.T[] = Component.T[]> {
   relationsSpec
   relationships
   sparse
-  tags
 
   constructor(componentSpec: U) {
     let components = sortSpec(componentSpec.slice())
@@ -227,7 +227,6 @@ export class Type<U extends Component.T[] = Component.T[]> {
     this.relationsSpec = componentSpec.filter(Component.isRelation)
     this.relationships = components.filter(Component.isRelationship)
     this.sparse = []
-    this.tags = components.filter(Component.isTag)
     for (let i = 0; i < components.length; i++) {
       let component = components[i]
       if (Component.isRelation(component) && hasComponent(this, component)) {
@@ -241,8 +240,26 @@ export class Type<U extends Component.T[] = Component.T[]> {
     }
   }
 
-  toString() {
-    return `Type(${this.componentIds.join(",")})`
+  make(
+    value?: U[0] extends Component.Value<infer V> ? Partial<V> : never,
+  ): U[0] extends Component.Value<infer V> ? V : never {
+    let component = this.componentSpec[0]
+    if (Component.isValue(component) && component.schema !== undefined) {
+      let valueInit = Schema.initialize(
+        component.schema,
+      ) as U[0] extends Component.Value<infer V> ? V : never
+      if (component.initializer === undefined) {
+        return valueInit
+      }
+      return component.initializer(
+        typeof component.schema === "object"
+          ? Object.assign(valueInit as {}, value)
+          : valueInit,
+      )
+    }
+    throw new Error(
+      `Failed to initialize component value: component is missing schema`,
+    )
   }
 }
 

@@ -40,6 +40,13 @@ const boxMaterial = new MeshStandardMaterial({
 })
 const boxColliderDesc = ColliderDesc.cuboid(0.5, 0.5, 0.5).setRestitution(0.6)
 
+const sun = new Vector3()
+sun.setFromSphericalCoords(
+  1,
+  MathUtils.degToRad(90 - 2),
+  MathUtils.degToRad(180),
+)
+sun.multiplyScalar(100)
 const sunlight = new DirectionalLight(0xfdfbd3, 5)
 sunlight.castShadow = true
 sunlight.shadow.camera.near = 0.1
@@ -52,61 +59,55 @@ sunlight.shadow.mapSize.width = 2048
 sunlight.shadow.mapSize.height = 2048
 
 export const spawnSystem: System = world => {
-  const n = 20
-  const boxCount = Math.pow(n, 2)
-
   // terrain
   world
+    .with(Name, "terrain")
     .with(Mesh, new BoxGeometry(100, 1, 100), new MeshStandardMaterial())
-    .with(Transform, Position.make(0, -10, 0), Rotation.make())
+    .with(Transform, Position.make({y: -10}))
     .with(Collider, ColliderDesc.cuboid(50, 0.5, 50))
     .with(ReceivesShadow)
     .spawn()
 
   // box instanced mesh
+  const nBoxesPerRow = 20
+  const nBoxes = Math.pow(nBoxesPerRow, 2)
   const instanced = world
     .with(Name, "box-instanced")
     .with(Mesh, boxGeometry, boxMaterial)
-    .with(InstanceCount, boxCount)
+    .with(InstanceCount, nBoxes)
     .with(CastsShadow)
     .with(ReceivesShadow)
     .spawn()
 
   // box instances
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
+  for (let i = 0; i < nBoxesPerRow; i++) {
+    for (let j = 0; j < nBoxesPerRow; j++) {
+      const scale = ((i + 1) * (j + 1)) / nBoxes
       world
         .with(Name, `box-${i}-${j}`)
         .with(Instance, instanced)
-        .with(Transform, Position.make(j * 2 - n, i * 2, 0), Rotation.make())
+        .with(Transform, Position.make({x: j * 2 - nBoxesPerRow, y: i * 2}))
         .with(Collider, boxColliderDesc)
-        .with(Kinetic, LinearVelocity.make(), AngularVelocity.make())
-        .with(Scale, Scale.make(((i + 1) * (j + 1)) / boxCount))
+        .with(Kinetic)
+        .with(Scale, Scale.make({x: scale, y: scale, z: scale}))
         .spawn()
     }
   }
 
   // sky
-  const sky = new Sky()
-  const sun = new Vector3()
-  sun.setFromSphericalCoords(
-    1,
-    MathUtils.degToRad(90 - 2),
-    MathUtils.degToRad(180),
-  )
-  sun.multiplyScalar(100)
-  sky.material.uniforms.sunPosition.value.copy(sun)
+  const {geometry: skyGeometry, material: skyMaterial} = new Sky()
+  skyMaterial.uniforms.sunPosition.value.copy(sun)
   world
     .with(Name, "sky")
-    .with(Mesh, sky.geometry, sky.material)
-    .with(Scale, Scale.make(450_000))
+    .with(Mesh, skyGeometry, skyMaterial)
+    .with(Scale, Scale.make({x: 450_000, y: 450_000, z: 450_000}))
     .spawn()
 
   // sunlight
   world
     .with(ThreeLight, sunlight)
     .with(Name, "sunlight")
-    .with(Transform, sun, Rotation.make())
+    .with(Transform, sun)
     .spawn()
 
   // ambient light
@@ -127,26 +128,21 @@ export const spawnSystem: System = world => {
         2_000_000,
       ),
     )
-    .with(Transform, Position.make(0, 0, -50), Rotation.make())
+    .with(Transform, Position.make({z: -50}))
     .spawn()
 
-  let balls: Entity[] = []
-
+  const balls: Entity[] = []
   for (let i = 0; i < 5; i++) {
     for (let j = 0; j < 5; j++) {
-      let ball = world
+      const ball = world
+        .with(Name, `ball-${i}-${j}`)
         .with(
           Mesh,
           new SphereGeometry(0.5, 32, 32),
           new MeshStandardMaterial({color: 0xffffff}),
         )
-        .with(
-          Transform,
-          Position.make(i * 2 - 5, j * 2 - 5, 0),
-          Rotation.make(),
-        )
+        .with(Transform, Position.make({x: i * 2 - 5, y: j * 2 - 5, z: 0}))
         .with(Collider, ColliderDesc.ball(0.5))
-        .with(Name, `ball-${i}-${j}`)
         .with(CastsShadow)
         .with(ReceivesShadow)
         .spawn()
@@ -155,14 +151,10 @@ export const spawnSystem: System = world => {
   }
 
   return () => {
+    // Add physics to balls after 500 steps.
     if (world.tick === 500) {
       for (let i = 0; i < balls.length; i++) {
-        world.add(
-          balls[i],
-          Kinetic,
-          LinearVelocity.make(),
-          AngularVelocity.make(),
-        )
+        world.add(balls[i], Kinetic)
       }
     }
   }

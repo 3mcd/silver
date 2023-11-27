@@ -33,7 +33,7 @@ export let Inner = (props: Props & {type: ecs.Type}) => {
   }, [world, props.entity])
   let onDespawn = useCallback(() => {
     world.despawn(props.entity)
-  }, [world, props.entity, props.onBack])
+  }, [world, props.entity])
 
   useEffect(() => {
     world.add(props.entity, DebugHighlighted)
@@ -110,10 +110,9 @@ export let Entity = (props: Props) => {
   if (world.isAlive(props.entity)) {
     return <Inner {...props} type={node.type} />
   } else {
-    let name = world.get(props.entity, Name)
     return (
-      <Page title={name ?? `Entity ${props.entity}`} onBack={props.onBack}>
-        <Text padding={4}>This entity was despawned and no longer exists.</Text>
+      <Page title={`Entity ${props.entity}`} onBack={props.onBack}>
+        <Text padding="4">This entity was despawned and no longer exists.</Text>
       </Page>
     )
   }

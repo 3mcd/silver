@@ -72,22 +72,6 @@ const drawOrbitsSystem: System = world => {
   }
 }
 
-const processInputsSystem: System = world => {
-  const bodies = query(world, type(Position, Radius))
-  return function processInputs() {
-    let click: Click | undefined
-    while ((click = clicks.pop())) {
-      bodies.each(function maybeDespawnBody(body, position, radius) {
-        const dx = click!.x - position.x
-        const dy = click!.y - position.y
-        if (Math.sqrt(dx * dx + dy * dy) < radius) {
-          world.despawn(body)
-        }
-      })
-    }
-  }
-}
-
 const clearCanvasSystem: System = () => {
   return function clearCanvas() {
     clear()
@@ -118,7 +102,6 @@ const debugSystem: System = world => {
 
 const loop = () => {
   world.step()
-  run(world, processInputsSystem)
   run(world, moveBodiesSystem)
   run(world, clearCanvasSystem)
   run(world, drawOrbitsSystem)
