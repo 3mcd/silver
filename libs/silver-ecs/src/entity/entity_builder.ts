@@ -8,7 +8,7 @@ export class EntityBuilder<U extends Component.T[] = Component.T[]> {
   #type: Type.T<U>
   #init: Commands.Init<U> = [] as Commands.Init<U>
 
-  constructor(world: World.T, type: Type.T<U>, ...init: Commands.Init<U>) {
+  constructor(world: World.T, type: Type.T<U>, init: Commands.Init<U>) {
     this.#world = world
     this.#type = type
     for (let i = 0; i < init.length; i++) {

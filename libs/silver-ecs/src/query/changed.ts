@@ -46,8 +46,8 @@ export let compilePredicate = (
   let update = (key: number, version: number) =>
     SparseMap.set(state.stage, key, version)
   let body = "return function changed(e){"
-  for (let i = 0; i < type.components.length; i++) {
-    let component = type.components[i]
+  for (let i = 0; i < type.ordered.length; i++) {
+    let component = type.ordered[i]
     body += makeComponentChangedPredicate(component)
   }
   body += "return true}"

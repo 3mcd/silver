@@ -37,7 +37,7 @@ export class Aliases {
       let entityId = S.parseLo(component.id)
       return `${this.aliases[S.Hash.words([relationId])]}:${entityId}`
     }
-    return this.aliases[S.Hash.words([component.id])]
+    return this.aliases[S.Hash.words([component.id])] ?? component.id.toString()
   }
 }
 

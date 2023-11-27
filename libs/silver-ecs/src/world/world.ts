@@ -7,39 +7,46 @@ import {EntityBuilder} from "../entity/entity_builder"
 import * as Entities from "../entity/entities"
 import * as Signal from "../signal"
 import * as SparseSet from "../sparse/sparse_set"
+import * as SparseMap from "../sparse/sparse_map"
 import * as Stage from "../stage"
 import * as Changes from "./changes"
 import * as Commands from "./commands"
 import * as Graph from "./graph"
-import * as Transition from "./transition"
+import * as Transaction from "./transition"
 
 export class World {
   #entities
-  #entityRelationshipRoots
+  #entityPairRoots
   #nodesToDelete
+  #clearStoresOut
+  #clearStoresOutAt
   #stage
   #tick
-  #transition
+  #transaction
 
+  readonly changes
   readonly graph
   readonly stores
-  readonly changes
+  storesOut
 
   constructor(tick = 0) {
     this.#entities = Entities.make()
-    this.#entityRelationshipRoots = [] as Graph.Node[][]
+    this.#entityPairRoots = [] as Graph.Node[][]
     this.#nodesToDelete = [] as Graph.Node[]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
-    this.#transition = Transition.make()
+    this.#transaction = Transaction.make()
+    this.#clearStoresOut = false
+    this.#clearStoresOutAt = undefined as number | undefined
     this.changes = Changes.make()
     this.graph = Graph.make()
     this.stores = [] as unknown[][]
+    this.storesOut = SparseMap.make<SparseMap.T>()
     Signal.subscribe(this.graph.root.$created, this.#recordRelationNode)
   }
 
   locate(entity: Entity.T) {
-    let node = Transition.locate(this.#transition, entity)
+    let node = Transaction.locate(this.#transaction, entity)
     Assert.ok(node !== undefined)
     return node
   }
@@ -65,69 +72,85 @@ export class World {
   #write<U extends Component.T>(
     entity: Entity.T,
     component: U,
-    init: Commands.InitSingle<U>,
+    value: Commands.InitSingle<U>,
   ) {
-    this.store(component.id)[entity] = init
+    this.store(component.id)[entity] = value
     this.#bump(entity, component)
+  }
+
+  /**
+   * Update the data of a value pair for a given entity.
+   */
+  #writePair<U extends Component.ValueRelation>(
+    entity: Entity.T,
+    component: U,
+    relative: Entity.T,
+    value: unknown,
+  ) {
+    // Compute the virtual component id for the pair. This id is unique to the
+    // pair between the component and the relative. All entities associated to
+    // with the relative through this component will store their values in the
+    // same component array.
+    let pairId = Entity.make(Entity.parseLo(relative), component.id)
+    this.store(pairId)[entity] = value
+    this.#bump(entity, component)
+  }
+
+  #writeOut<U extends Component.T>(
+    entity: Entity.T,
+    component: U,
+    value: Commands.InitSingle<U>,
+  ) {
+    let store = SparseMap.get(this.storesOut, component.id)
+    if (store === undefined) {
+      store = SparseMap.make()
+      SparseMap.set(this.storesOut, component.id, store)
+    }
+    SparseMap.set(store, entity, value)
+    this.#clearStoresOut = true
   }
 
   /**
    * Update an entity's component values.
    */
-  #writeMany(entity: Entity.T, type: Type.T, init: unknown[]) {
-    let initIndex = 0
-    for (let i = 0; i < type.componentSpec.length; i++) {
-      let component = type.componentSpec[i]
+  #writeMany(entity: Entity.T, type: Type.T, values: unknown[]) {
+    let j = 0
+    for (let i = 0; i < type.components.length; i++) {
+      let component = type.components[i]
       if (Component.isValueRelation(component)) {
         // Relation components are initialized with a tuple of [entity, value].
-        // Iterate each pair and write the value into the relationship's
-        // component array.
-        let value = init[initIndex] as Commands.InitValueRelation
-        this.#writeRelationship(entity, component, value[0], value[1])
-        initIndex++
+        // Iterate each pair and write the value into the pair's component
+        // array.
+        let value = values[j] as Commands.InitValuePair
+        this.#writePair(entity, component, value[0], value[1])
+        j++
       } else if (Component.isTagRelation(component)) {
-        // Skip over tag relations because their entity is stored solely in
-        // the relationship id.
-        initIndex++
+        // Skip over tag relations because their entity is stored solely in the
+        // pair id.
+        j++
       } else if (Component.isValue(component)) {
-        let value = init[initIndex]
+        let value = values[j]
         this.#write(entity, component, value)
-        initIndex++
+        j++
       }
     }
+  }
+
+  #clear(entity: Entity.T, component: Component.T) {
+    this.#writeOut(entity, component, this.#read(entity, component))
+    this.#write(entity, component, undefined)
   }
 
   /**
    * Clear an entity's component values for a given type.
    */
   #clearMany(entity: Entity.T, type: Type.T) {
-    for (let i = 0; i < type.components.length; i++) {
-      let component = type.components[i]
+    for (let i = 0; i < type.ordered.length; i++) {
+      let component = type.ordered[i]
       if (Component.storesValue(component)) {
-        this.#write(entity, component, undefined)
+        this.#clear(entity, component)
       }
     }
-  }
-
-  /**
-   * Update the data of a value relationship for a given entity.
-   */
-  #writeRelationship<U extends Component.ValueRelation>(
-    entity: Entity.T,
-    component: U,
-    relative: Entity.T,
-    value: unknown,
-  ) {
-    // Compute the virtual component id for the relationship. This id is unique
-    // to the relationship between the component and the relative. All entities
-    // associated to the relative through this component will store their
-    // values in the same component array.
-    let relationshipComponentId = Entity.make(
-      Entity.parseLo(relative),
-      component.id,
-    )
-    this.store(relationshipComponentId)[entity] = value
-    this.#bump(entity, component)
   }
 
   /**
@@ -138,12 +161,12 @@ export class World {
     let {entity, type, init} = command
     let node = Graph.resolve(this.graph, type)
     this.#writeMany(entity, type, init)
-    Transition.move(this.#transition, entity, node)
+    Transaction.move(this.#transaction, entity, node)
   }
 
   /**
    * Remove an entity from the entity graph and clear all component values and
-   * relationships.
+   * pairs.
    */
   #applyDespawn(command: Commands.Despawn) {
     this.#despawn(command.entity)
@@ -152,9 +175,9 @@ export class World {
   #despawn = (entity: Entity.T) => {
     let node = this.locate(entity)
     this.#clearMany(entity, node.type)
-    this.#clearEntityRelationships(entity)
+    this.#clearEntityPairs(entity)
     Entities.release(this.#entities, entity)
-    Transition.move(this.#transition, entity)
+    Transaction.move(this.#transaction, entity)
   }
 
   /**
@@ -166,7 +189,7 @@ export class World {
     let nextType = Type.with(prevNode.type, type)
     let nextNode = Graph.resolve(this.graph, nextType)
     this.#writeMany(entity, type, init)
-    Transition.move(this.#transition, entity, nextNode)
+    Transaction.move(this.#transaction, entity, nextNode)
   }
 
   /**
@@ -178,74 +201,58 @@ export class World {
     let nextType = Type.without(prevNode.type, type)
     let nextNode = Graph.resolve(this.graph, nextType)
     this.#clearMany(entity, type)
-    Transition.move(this.#transition, entity, nextNode)
+    Transaction.move(this.#transaction, entity, nextNode)
   }
 
   /**
-   * Marshal relationship nodes into a map indexed by the relationship's entity
-   * id. This map is used to dispose an entity's relationship nodes when the
-   * entity is despawned.
+   * Marshal pair nodes into a map indexed by the pair's entity id. This map is
+   * used to dispose an entity's pair nodes when the entity is despawned.
    */
   #recordRelationNode = (node: Graph.Node) => {
-    for (let i = 0; i < node.type.relationships.length; i++) {
-      let relationship = node.type.relationships[i]
-      let relationshipEntityId = Entity.parseLo(relationship.id)
-      let relationshipEntity = Entities.hydrate(
-        this.#entities,
-        relationshipEntityId,
-      )
-      // Get or create the list of relationship nodes for the relationship
-      // entity.
-      let relationshipRoots = (this.#entityRelationshipRoots[
-        relationshipEntity
-      ] ??= [])
-      let relationshipRoot = Graph.resolveComponent(this.graph, relationship)
-      // Get or create the root relationship node and insert it into the
-      // entity's list of relationship nodes.
+    for (let i = 0; i < node.type.pairs.length; i++) {
+      let pair = node.type.pairs[i]
+      let pairEntityId = Entity.parseLo(pair.id)
+      let pairEntity = Entities.hydrate(this.#entities, pairEntityId)
+      // Get or create the list of pair nodes for the pair entity.
+      let pairRoots = (this.#entityPairRoots[pairEntity] ??= [])
+      let pairRoot = Graph.resolveComponent(this.graph, pair)
+      // Get or create the root pair node and insert it into the entity's list
+      // of pair nodes.
       // TODO: Use a Set or something faster than Array.prototype.includes.
-      if (!relationshipRoots.includes(relationshipRoot)) {
-        relationshipRoots.push(relationshipRoot)
+      if (!pairRoots.includes(pairRoot)) {
+        pairRoots.push(pairRoot)
       }
     }
   }
 
   /**
-   * Remove all relationship nodes associated with an entity and move related
-   * entities to the left in the graph.
+   * Remove all pair nodes associated with an entity and move related entities
+   * to the left in the graph.
    */
-  #clearEntityRelationships(entity: Entity.T) {
+  #clearEntityPairs(entity: Entity.T) {
     // Look up nodes that lead to the entity's relatives.
-    let entityRelationshipRoots = this.#entityRelationshipRoots[entity]
-    if (entityRelationshipRoots === undefined) {
+    let entityPairRoots = this.#entityPairRoots[entity]
+    if (entityPairRoots === undefined) {
       return
     }
-    for (let i = 0; i < entityRelationshipRoots.length; i++) {
-      let relationshipRoot = entityRelationshipRoots[i]
-      let relationshipRelation = Type.componentAt(
-        relationshipRoot.type,
-        0,
-      ) as Component.TRelationship
-      let relationshipStore = this.store(relationshipRelation.id)
-      let relationId = Entity.parseHi(relationshipRelation.id)
-      let relation = Assert.exists(Component.getRelation(relationId))
-      // If the relationship is inclusive (i.e. not hierarchical), remove the
-      // relationship from all related entities.
-      if (relation.topology === Component.Topology.Inclusive) {
-        Graph.moveEntitiesLeft(
-          this.graph,
-          relationshipRoot,
-          relationshipRelation,
-          (entity, node) => {
-            Transition.move(this.#transition, entity, node)
-            relationshipStore[entity] = undefined!
-          },
-        )
+    for (let i = 0; i < entityPairRoots.length; i++) {
+      let pairRoot = entityPairRoots[i]
+      let pair = Type.componentAt(pairRoot.type, 0) as Component.TPair
+      let pairComponentId = Entity.parseHi(pair.id)
+      let pairComponent = Assert.exists(Component.getRelation(pairComponentId))
+      // If the pair is inclusive (i.e. not hierarchical), remove the pair from
+      // all related entities.
+      if (pairComponent.topology === Component.Topology.Inclusive) {
+        Graph.moveEntitiesLeft(this.graph, pairRoot, pair, (entity, node) => {
+          Transaction.move(this.#transaction, entity, node)
+          this.#write(entity, pair, undefined)
+        })
       }
-      // Delete the root relationship node, which will also delete all
-      // relationship nodes that lead to the entity's relatives.
-      this.#nodesToDelete.push(relationshipRoot)
+      // Delete the root pair node, which will also delete all pair nodes that
+      // lead to the entity's relatives.
+      this.#nodesToDelete.push(pairRoot)
     }
-    this.#entityRelationshipRoots[entity] = undefined!
+    this.#entityPairRoots[entity] = undefined!
   }
 
   /**
@@ -316,7 +323,7 @@ export class World {
       this.#stage,
       this.#tick,
       Commands.spawn(
-        type ? Type.withRelationships(type, values) : Type.make(),
+        type ? Type.pair(type, values) : Type.make(),
         entity,
         type ? Commands.init(type, values) : values,
       ),
@@ -393,9 +400,7 @@ export class World {
       this.#stage,
       this.#tick,
       Commands.add(
-        Type.hasRelations(type)
-          ? (Type.withRelationships(type, values) as Type.T<U>)
-          : type,
+        type.kind ? (Type.pair(type, values) as Type.T<U>) : type,
         entity,
         Commands.init(type, values),
       ),
@@ -445,12 +450,7 @@ export class World {
     Stage.insert(
       this.#stage,
       this.#tick,
-      Commands.remove(
-        Type.hasRelations(type)
-          ? Type.withRelationships(type, relatives!)
-          : type,
-        entity,
-      ),
+      Commands.remove(type.kind ? Type.pair(type, relatives!) : type, entity),
     )
   }
 
@@ -498,10 +498,10 @@ export class World {
     this.locate(entity)
     let component = Type.componentAt(type, 0)
     if (Component.isValueRelation(component)) {
-      let value = init as Commands.InitValueRelation<
+      let value = init as Commands.InitValuePair<
         U extends Component.ValueRelation<infer V> ? V : never
       >
-      this.#writeRelationship(entity, component, value[0], value[1])
+      this.#writePair(entity, component, value[0], value[1])
     } else {
       this.#write(entity, component, init)
     }
@@ -549,8 +549,8 @@ export class World {
     let node = this.locate(entity)
     let component = Type.componentAt(type, 0)
     if (Component.isRelation(component)) {
-      let relationship = Entity.make(Assert.exists(relative), component.id)
-      return Type.hasId(node.type, relationship)
+      let pair = Entity.make(Assert.exists(relative), component.id)
+      return Type.hasId(node.type, pair)
     }
     return Type.has(node.type, type)
   }
@@ -595,8 +595,8 @@ export class World {
     this.locate(entity)
     let component = Type.componentAt(type, 0)
     if (Component.isRelation(component)) {
-      let relationship = Entity.make(Assert.exists(relative), component.id)
-      return this.store(relationship)[entity]
+      let pair = Entity.make(Assert.exists(relative), component.id)
+      return this.store(pair)[entity]
     }
     return this.#read(entity, component)
   }
@@ -629,10 +629,7 @@ export class World {
     ...relatives: Component.Relatives<U>
   ): boolean {
     let node = this.locate(entity)
-    return Type.has(
-      node.type,
-      Type.hasRelations(type) ? Type.withRelationships(type, relatives) : type,
-    )
+    return Type.has(node.type, type.kind ? Type.pair(type, relatives) : type)
   }
 
   /**
@@ -640,10 +637,23 @@ export class World {
    * world will step forward by one tick.
    */
   step(tick: number = this.#tick + 1) {
+    if (
+      this.#clearStoresOutAt !== undefined &&
+      this.#tick >= this.#clearStoresOutAt
+    ) {
+      SparseMap.each(this.storesOut, (_, map) => {
+        SparseMap.clear(map)
+      })
+      this.#clearStoresOutAt = undefined
+    }
     // Execute all commands in the stage up to the given tick.
     while (this.#tick < tick) {
       Stage.drainTo(this.#stage, tick, this.#applyCommand)
       this.#tick++
+    }
+    if (this.#clearStoresOut) {
+      this.#clearStoresOutAt = this.#tick + 0
+      this.#clearStoresOut = false
     }
     // Immediately despawn all entities whose nodes are marked for deletion.
     for (let i = 0; i < this.#nodesToDelete.length; i++) {
@@ -652,12 +662,11 @@ export class World {
         SparseSet.each(node.entities, this.#despawn)
       })
     }
-    // Handle all entity transitions.
-    Transition.drain(
-      this.#transition,
-      this.graph,
-      function moveEntityBatchInGraph(batch, prevNode, nextNode) {
-        SparseSet.each(batch, function moveEntityInGraph(entity) {
+    // Relocate entities.
+    Transaction.drain(
+      this.#transaction,
+      function relocateEntityBatch(batch, prevNode, nextNode) {
+        SparseSet.each(batch, function relocateEntity(entity) {
           if (prevNode) Graph.removeEntity(prevNode, entity)
           if (nextNode) Graph.insertEntity(nextNode, entity)
         })
@@ -675,30 +684,25 @@ export class World {
     relation: Type.Unitary<U>,
   ) {
     let node = this.locate(entity)
-    let component = relation.components[0] as Component.TRelation
+    let component = relation.ordered[0] as Component.TRelation
     if (component.topology !== Component.Topology.Exclusive) {
       throw new Error("Expected exclusive relation")
     }
     if (!Type.has(node.type, relation)) {
       throw new Error("Expected entity to have relation")
     }
-    for (let i = 0; i < node.type.relationships.length; i++) {
-      let relationship = node.type.relationships[i]
-      let relationshipComponentId = Entity.parseHi(relationship.id)
-      if (relationshipComponentId === component.id) {
-        return Entities.hydrate(this.#entities, Entity.parseLo(relationship.id))
+    for (let i = 0; i < node.type.pairs.length; i++) {
+      let pair = node.type.pairs[i]
+      let pairId = Entity.parseHi(pair.id)
+      if (pairId === component.id) {
+        return Entities.hydrate(this.#entities, Entity.parseLo(pair.id))
       }
     }
     throw new Error("Unexpected")
   }
 
   isAlive(entity: Entity.T) {
-    try {
-      Entities.check(this.#entities, entity)
-      return true
-    } catch {
-      return false
-    }
+    return Entities.checkFast(this.#entities, entity)
   }
 
   hydrate(entityId: number) {
@@ -706,11 +710,15 @@ export class World {
   }
 
   store(componentId: number) {
-    return (this.stores[componentId] ??= [])
+    let store = (this.stores[componentId] ??= [])
+    if (!SparseMap.has(this.storesOut, componentId)) {
+      SparseMap.set(this.storesOut, componentId, SparseMap.make())
+    }
+    return store
   }
 
-  with<U extends Component.T[]>(type: Type.T<U>, ...init: Commands.Init<U>) {
-    return new EntityBuilder(this, type, ...init)
+  with<U extends Component.T[]>(type: Type.T<U>, ...values: Commands.Init<U>) {
+    return new EntityBuilder(this, type, values)
   }
 }
 export type T = World

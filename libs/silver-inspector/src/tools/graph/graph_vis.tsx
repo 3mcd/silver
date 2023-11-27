@@ -61,8 +61,8 @@ export let GraphVis = (props: Props) => {
       let nodeObject = (nodeCache.current[node.id] ??= {
         id: node.id,
         node,
-        name: node.type.componentIds.join(","),
-        size: node.type.components.length,
+        name: node.type.ids.join(","),
+        size: node.type.ordered.length,
       })
       data.nodes.push(nodeObject)
       node.edgesRight.forEach(nextNode => {
@@ -136,16 +136,16 @@ export let GraphVis = (props: Props) => {
         height={rect?.height}
         backgroundColor="rgba(0,0,0,0)"
         // @ts-expect-error
-        nodeAutoColorBy={d => d.node.type.components.length % GROUPS}
+        nodeAutoColorBy={d => d.node.type.ordered.length % GROUPS}
         // @ts-expect-error
         linkAutoColorBy={d =>
-          nodeCache.current[d.source as number].node.type.components.length %
+          nodeCache.current[d.source as number].node.type.ordered.length %
           GROUPS
         }
         nodeThreeObject={node => {
           let sprite = S.SparseMap.get(spriteCache, node.id as number)
           if (!sprite) {
-            let text = node.node.type.components
+            let text = node.node.type.ordered
               .slice(0, 6)
               .map(component =>
                 aliases
@@ -153,8 +153,8 @@ export let GraphVis = (props: Props) => {
                   .replace(/(?<=[A-Z])[a-z]+/g, m => m.slice(0, 2)),
               )
               .join(",")
-            if (node.node.type.components.length > 6) {
-              text += `+${node.node.type.components.length - 6}`
+            if (node.node.type.ordered.length > 6) {
+              text += `+${node.node.type.ordered.length - 6}`
             }
             sprite = new SpriteText(text || "root", 2, "white")
             sprite.fontFace = "monospace"

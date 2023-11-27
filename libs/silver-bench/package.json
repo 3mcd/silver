@@ -20,7 +20,7 @@
   "main": "dist/silver-bench.cjs.js",
   "module": "dist/silver-bench.esm.js",
   "source": "./src/index.ts",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/silver-bench.cjs.d.ts",
   "bin": {
     "silver-bench": "./cli/dist/silver-bench-cli.esm.js"
   },

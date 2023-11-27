@@ -20,62 +20,69 @@ export let make = (
   free: number[] = [],
 ): T => new Entities(head, generations, free)
 
-export let check = (registry: T, entity: Entity.T) => {
+export let check = (entities: T, entity: Entity.T) => {
   Entity.assertValid(entity)
   let entityId = Entity.parseLo(entity)
   let entityGen = Entity.parseHi(entity)
-  Assert.ok(checkGeneration(registry, entityId, entityGen))
+  Assert.ok(checkGeneration(entities, entityId, entityGen))
   return entityId
 }
 
-export let hydrate = (registry: T, entityId: number): Entity.T => {
-  let entityGen = registry.generations[entityId] ?? 0
+export let checkFast = (entities: T, entity: Entity.T) => {
+  Entity.assertValid(entity)
+  let entityId = Entity.parseLo(entity)
+  let entityGen = Entity.parseHi(entity)
+  return checkGeneration(entities, entityId, entityGen)
+}
+
+export let hydrate = (entities: T, entityId: number): Entity.T => {
+  let entityGen = entities.generations[entityId] ?? 0
   return Entity.make(entityId, entityGen)
 }
 
 export let checkGeneration = (
-  registry: T,
+  entities: T,
   entityId: number,
   entityGen: number,
 ) => {
-  return registry.generations[entityId] === entityGen
+  return entities.generations[entityId] === entityGen
 }
 
-export let retain = (registry: T): Entity.T => {
+export let retain = (entities: T): Entity.T => {
   let entityId: number
   let entityGen: number
-  if (registry.free.length > 0) {
-    entityId = Assert.exists(registry.free.pop())
-    entityGen = registry.generations[entityId] ?? 0
+  if (entities.free.length > 0) {
+    entityId = Assert.exists(entities.free.pop())
+    entityGen = entities.generations[entityId] ?? 0
   } else {
     // Skip over reserved entity ids.
-    while (registry.generations[registry.head] !== undefined) {
-      registry.head++
+    while (entities.generations[entities.head] !== undefined) {
+      entities.head++
     }
-    Entity.assertValidId(registry.head)
-    entityId = registry.head
-    entityGen = registry.generations[entityId] = 0
+    Entity.assertValidId(entities.head)
+    entityId = entities.head
+    entityGen = entities.generations[entityId] = 0
   }
   return Entity.make(entityId, entityGen)
 }
 
-export let release = (registry: T, entity: Entity.T) => {
+export let release = (entities: T, entity: Entity.T) => {
   Entity.assertValid(entity)
   let entityId = Entity.parseLo(entity)
   let entityGen = Entity.parseHi(entity)
-  if (checkGeneration(registry, entityId, entityGen)) {
+  if (checkGeneration(entities, entityId, entityGen)) {
     // Recycle the entity id if the entity can be invalidated.
     if (entityGen < Entity.HI) {
-      registry.free.push(entityId)
-      registry.generations[entityId] = entityGen + 1
+      entities.free.push(entityId)
+      entities.generations[entityId] = entityGen + 1
     }
   }
 }
 
-export let rollback = (registry: T, entity: Entity.T) => {
+export let rollback = (entities: T, entity: Entity.T) => {
   Entity.assertValid(entity)
   let entityId = Entity.parseLo(entity)
   let entityGen = Entity.parseHi(entity)
-  registry.generations[entityId] = entityGen === 0 ? undefined! : entityGen - 1
-  registry.free.push(entityId)
+  entities.generations[entityId] = entityGen === 0 ? undefined! : entityGen - 1
+  entities.free.push(entityId)
 }

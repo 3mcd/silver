@@ -1,7 +1,7 @@
 export {run} from "./app/system"
 export {Topology, relation, tag, value, valueRelation} from "./data/component"
 export type {
-  ValueRelation as Relation,
+  ValuePair as Relation,
   Tag,
   TagRelation,
   Value,
@@ -10,7 +10,7 @@ export type {
 export {
   isValue,
   isRelation,
-  isRelationship,
+  isPair as isRelationship,
   isTag,
   isTagRelationship,
   isValueRelation,
@@ -30,7 +30,7 @@ export * as Signal from "./signal"
 export * as SparseMap from "./sparse/sparse_map"
 export * as SparseSet from "./sparse/sparse_set"
 export {traverse} from "./world/graph"
-export {makeWorld as make} from "./world/world"
+export {makeWorld} from "./world/world"
 export type {World} from "./world/world"
 import type {Type} from "./data/type"
 import type {Init} from "./world/commands"

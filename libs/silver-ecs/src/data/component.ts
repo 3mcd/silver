@@ -6,10 +6,10 @@ import * as Entity from "../entity/entity"
 export enum Kind {
   Tag,
   TagRelation,
-  TagRelationship,
+  TagPair,
   Value,
   ValueRelation,
-  ValueRelationship,
+  ValuePair,
 }
 
 type Initializer<U = unknown> = (value: U) => U
@@ -109,19 +109,19 @@ export interface TagRelation extends Base<void> {
   topology: Topology
 }
 
-export interface TagRelationship extends Base<void> {
-  kind: Kind.TagRelationship
+export interface TagPair extends Base<void> {
+  kind: Kind.TagPair
 }
 
-export interface ValueRelationship extends Base<void> {
-  kind: Kind.ValueRelationship
+export interface ValuePair extends Base<void> {
+  kind: Kind.ValuePair
 }
 
 export type TBase = Tag | Value
 export type TValue = Value | ValueRelation
 export type TRelation = TagRelation | ValueRelation
-export type TRelationship = TagRelationship | ValueRelationship
-export type T = TBase | TRelation | TRelationship
+export type TPair = TagPair | ValuePair
+export type T = TBase | TRelation | TPair
 
 let nextComponentId = 1
 export let makeComponentId = () => {
@@ -167,11 +167,7 @@ function make(
   kind: Kind.TagRelation,
   topology?: Topology,
 ): TagRelation
-function make(
-  id: number,
-  kind: Kind.TagRelationship,
-  topology?: Topology,
-): TagRelationship
+function make(id: number, kind: Kind.TagPair, topology?: Topology): TagPair
 function make(
   id: number,
   kind: Kind.Value,
@@ -186,11 +182,7 @@ function make(
   schema?: Schema.T,
   initializer?: Initializer,
 ): ValueRelation
-function make(
-  id: number,
-  kind: Kind.ValueRelationship,
-  topology?: Topology,
-): ValueRelationship
+function make(id: number, kind: Kind.ValuePair, topology?: Topology): ValuePair
 function make(
   id: number,
   kind: Kind,
@@ -385,27 +377,26 @@ export let relation = (
   return Type.make(component)
 }
 
-type RelationshipOf<U extends ValueRelation | TagRelation> =
-  U extends ValueRelation ? ValueRelationship : TagRelationship
+type PairsOf<U extends ValueRelation | TagRelation> = U extends ValueRelation
+  ? ValuePair
+  : TagPair
 
-export let makeRelationship = <U extends ValueRelation | TagRelation>(
+export let makePair = <U extends ValueRelation | TagRelation>(
   component: U,
   entity: Entity.T,
-): RelationshipOf<U> => {
+): PairsOf<U> => {
   let componentId = Entity.make(Entity.parseLo(entity), component.id)
   if (component.kind === Kind.TagRelation) {
-    return make(componentId, Kind.TagRelationship) as RelationshipOf<U>
+    return make(componentId, Kind.TagPair) as PairsOf<U>
   } else {
-    return make(componentId, Kind.ValueRelationship) as RelationshipOf<U>
+    return make(componentId, Kind.ValuePair) as PairsOf<U>
   }
 }
 
-export let storesValue = (
-  component: T,
-): component is Value | ValueRelationship => {
+export let storesValue = (component: T): component is Value | ValuePair => {
   switch (component.kind) {
     case Kind.Value:
-    case Kind.ValueRelationship:
+    case Kind.ValuePair:
       return true
     default:
       return false
@@ -437,16 +428,14 @@ export let isRelation = (
 ): component is ValueRelation | TagRelation =>
   component.kind === Kind.TagRelation || component.kind === Kind.ValueRelation
 
-export let isRelationship = (component: T): component is TRelationship =>
-  component.kind === Kind.ValueRelationship ||
-  component.kind === Kind.TagRelationship
+export let isPair = (component: T): component is TPair =>
+  component.kind === Kind.ValuePair || component.kind === Kind.TagPair
 
-export let isValueRelationship = (
-  component: T,
-): component is ValueRelationship => component.kind === Kind.ValueRelationship
+export let isValueRelationship = (component: T): component is ValuePair =>
+  component.kind === Kind.ValuePair
 
-export let isTagRelationship = (component: T): component is TagRelationship =>
-  component.kind === Kind.TagRelationship
+export let isTagRelationship = (component: T): component is TagPair =>
+  component.kind === Kind.TagPair
 
 export let isTag = (component: T): component is Tag | TagRelation =>
   component.kind === Kind.Tag || component.kind === Kind.TagRelation

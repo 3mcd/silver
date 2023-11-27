@@ -18,10 +18,10 @@ perf("calculate the xor of 2 types with 6 components each", () => {
   }
 })
 
-perf("hydrate relationships of a type with 20 components", () => {
+perf("hydrate pairs of a type with 20 components", () => {
   let type = Type.make.apply(null, components)
   let init = components.map(() => [0, 0])
   return () => {
-    Type.withRelationships(type, init)
+    Type.pair(type, init)
   }
 })

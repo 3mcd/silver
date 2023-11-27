@@ -18,11 +18,11 @@ type Props = {
 export let TypeHeader = memo((props: Props) => {
   let world = useWorld()
   let aliases = useAliases()
-  let tags = props.type.components.filter(
+  let tags = props.type.ordered.filter(
     component =>
-      S.isTag(component) && component !== DebugHighlighted.components[0],
+      S.isTag(component) && component !== DebugHighlighted.ordered[0],
   )
-  return tags.length + props.type.relationships.length > 0 ? (
+  return tags.length + props.type.pairs.length > 0 ? (
     <HStack paddingX="2" fontSize="sm" gap="2" paddingBottom="4">
       {tags.length > 0 && (
         <Box flex="1">
@@ -35,9 +35,7 @@ export let TypeHeader = memo((props: Props) => {
                 key={tag.id}
                 variant="solid"
                 background={
-                  tag === DebugSelected.components[0]
-                    ? "sky.7"
-                    : "accent.default"
+                  tag === DebugSelected.ordered[0] ? "sky.7" : "accent.default"
                 }
               >
                 {aliases.getComponentAlias(tag)}
@@ -46,20 +44,20 @@ export let TypeHeader = memo((props: Props) => {
           </HStack>
         </Box>
       )}
-      {props.type.relationships.length > 0 && (
+      {props.type.pairs.length > 0 && (
         <Box flex="1">
           <Heading as="h3" fontWeight="medium" fontSize="sm">
             Relationships
           </Heading>
           <styled.ul>
-            {props.type.relationships.map(relationship => {
+            {props.type.pairs.map(pair => {
               let [relationAlias, relative] = aliases
-                .getComponentAlias(relationship)
+                .getComponentAlias(pair)
                 .split(":")
               let relativeEntity = world.hydrate(Number(relative))
               relative = world.get(relativeEntity, Name) ?? relative
               return (
-                <li key={relationship.id}>
+                <li key={pair.id}>
                   <Text as="span" marginRight="1">
                     {relationAlias}:
                   </Text>

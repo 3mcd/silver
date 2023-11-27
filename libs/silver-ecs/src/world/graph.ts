@@ -129,8 +129,8 @@ let emitNodeTraverse = (node: Node): void => {
 
 let insertNode = (graph: Graph, type: Type.T): Node => {
   let node: Node = graph.root
-  for (let i = 0; i < type.components.length; i++) {
-    let nextType = Type.withComponent(node.type, type.components[i])
+  for (let i = 0; i < type.ordered.length; i++) {
+    let nextType = Type.withComponent(node.type, type.ordered[i])
     let nextNode = graph.nodesByComponentsHash.get(nextType.hash)
     if (nextNode === undefined) {
       nextNode = new Node(nextType)

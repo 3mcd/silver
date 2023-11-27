@@ -86,7 +86,7 @@ let emitMovedEntities = (batch: Batch) => {
   )
 }
 
-class Transition {
+class Transaction {
   index
   batchKeys
   batches
@@ -97,9 +97,9 @@ class Transition {
     this.batches = SparseMap.make<Batch>()
   }
 }
-export type T = Transition
+export type T = Transaction
 
-export let drain = (transition: T, graph: Graph.T, iteratee?: Iteratee) => {
+export let drain = (transaction: T, iteratee?: Iteratee) => {
   let emitEntityBatch = (batch: Batch) => {
     let {entities, prevNode, nextNode} = batch
     // Invoke the iteratee for this batch.
@@ -110,14 +110,14 @@ export let drain = (transition: T, graph: Graph.T, iteratee?: Iteratee) => {
       emitDespawnedEntities(batch)
       // Remove the entities from the entity index.
       SparseSet.each(entities, function drainEntities(entity) {
-        SparseMap.delete(transition.index, entity)
+        SparseMap.delete(transaction.index, entity)
       })
       return
     }
     // Otherwise, the batch contains entities that were spawned or moved. So
     // update their locations in the entity index.
     SparseSet.each(entities, function drainEntities(entity) {
-      SparseMap.set(transition.index, entity, nextNode)
+      SparseMap.set(transaction.index, entity, nextNode)
     })
     if (prevNode === undefined) {
       emitSpawnedEntities(batch)
@@ -129,27 +129,29 @@ export let drain = (transition: T, graph: Graph.T, iteratee?: Iteratee) => {
       emitMovedEntities(batch)
     }
   }
-  SparseMap.eachValue(transition.batches, emitEntityBatch)
-  SparseMap.clear(transition.batches)
-  SparseMap.clear(transition.batchKeys)
+  SparseMap.eachValue(transaction.batches, emitEntityBatch)
+  SparseMap.clear(transaction.batches)
+  SparseMap.clear(transaction.batchKeys)
 }
 
-export let locate = (transition: T, entity: Entity.T): Graph.Node | undefined =>
-  SparseMap.get(transition.index, entity)
+export let locate = (
+  transaction: T,
+  entity: Entity.T,
+): Graph.Node | undefined => SparseMap.get(transaction.index, entity)
 
-export let move = (transition: T, entity: Entity.T, nextNode?: Graph.Node) => {
-  let prevBatchKey = SparseMap.get(transition.batchKeys, entity)
+export let move = (transaction: T, entity: Entity.T, nextNode?: Graph.Node) => {
+  let prevBatchKey = SparseMap.get(transaction.batchKeys, entity)
   // If the entity was already moved since the last drain,
   if (prevBatchKey !== undefined) {
     // Remove it from its previous batch.
     let prevBatch = Assert.exists(
-      SparseMap.get(transition.batches, prevBatchKey),
+      SparseMap.get(transaction.batches, prevBatchKey),
     )
     SparseSet.delete(prevBatch.entities, entity)
   }
   // If the entity is being moved to the same node it was already in,
   // do nothing.
-  let prevNode = locate(transition, entity)
+  let prevNode = locate(transaction, entity)
   if (prevNode === nextNode) {
     return
   }
@@ -157,14 +159,14 @@ export let move = (transition: T, entity: Entity.T, nextNode?: Graph.Node) => {
   // represents the void.
   let nextBatchKey = makeBatchKey(prevNode?.id ?? 0, nextNode?.id ?? 0)
   // Get or create the next batch.
-  let nextBatch = SparseMap.get(transition.batches, nextBatchKey)
+  let nextBatch = SparseMap.get(transaction.batches, nextBatchKey)
   if (nextBatch === undefined) {
     nextBatch = new Batch(prevNode, nextNode)
-    SparseMap.set(transition.batches, nextBatchKey, nextBatch)
+    SparseMap.set(transaction.batches, nextBatchKey, nextBatch)
   }
   // Add the entity to the next batch and store its key.
   SparseSet.add(nextBatch.entities, entity)
-  SparseMap.set(transition.batchKeys, entity, nextBatchKey)
+  SparseMap.set(transaction.batchKeys, entity, nextBatchKey)
 }
 
-export let make = (): T => new Transition()
+export let make = (): T => new Transaction()

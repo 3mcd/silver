@@ -83,7 +83,7 @@ export let Inner = (props: Props & {type: S.Type}) => {
     >
       <TypeHeader type={props.type} onEntitySelected={props.onEntitySelected} />
       <Stack paddingX="4">
-        {props.type.components.map(component =>
+        {props.type.ordered.map(component =>
           S.isValue(component) && component !== S.componentAt(Name, 0) ? (
             <Fragment key={component.id}>
               <Heading as="h3" fontWeight="medium" fontSize="md">

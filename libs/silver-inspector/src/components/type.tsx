@@ -62,11 +62,11 @@ export let Component = memo((props: ComponentProps) => {
 export let Type = memo((props: Props) => {
   return (
     <Text>
-      {props.type.components.map((component, i) =>
+      {props.type.ordered.map((component, i) =>
         S.isRelation(component) ? null : (
           <Fragment key={component.id}>
             <Component component={component} />
-            {i < props.type.components.length - 1 && ", "}
+            {i < props.type.ordered.length - 1 && ", "}
           </Fragment>
         ),
       )}

@@ -3,7 +3,7 @@ import * as S from "silver-ecs"
 import {worldContext} from "../context/world_context"
 
 let compareNodes = (a: S.Graph.Node, b: S.Graph.Node) => {
-  return a.type.componentIds.length - b.type.componentIds.length
+  return a.type.ids.length - b.type.ids.length
 }
 
 export let useGraph = () => {

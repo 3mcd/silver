@@ -58,7 +58,7 @@ export let EntityRow = memo((props: EntityRowProps) => {
       _hover={entityRowHover}
     >
       <Table.Cell>{props.entity}</Table.Cell>
-      {props.type.components.filter(S.storesValue).map(component =>
+      {props.type.ordered.filter(S.storesValue).map(component =>
         S.isRelation(component) ? null : (
           <Table.Cell key={component.id}>
             <Value entity={props.entity} component={component} />
@@ -79,7 +79,7 @@ export let EntityListHeader = memo((props: EntityListHeaderProps) => {
     <Table.Header position="sticky" top="0" background="bg.default">
       <Table.Row>
         <Table.Head>ID</Table.Head>
-        {props.type.components
+        {props.type.ordered
           .filter(
             component => !S.isTag(component) && !S.isTagRelationship(component),
           )

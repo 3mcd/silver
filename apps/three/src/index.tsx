@@ -16,7 +16,7 @@ import {
 } from "silver-three"
 import {spawnSystem} from "./systems"
 
-const world = S.make()
+const world = S.makeWorld()
 const loop = () => {
   requestAnimationFrame(loop)
   world.step()

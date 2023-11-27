@@ -15,7 +15,7 @@ import {Body, Color, Orbits, Position, Radius, seed} from "./data"
 import {makeDebugAliases, mount} from "silver-inspector"
 import {DebugHighlighted, DebugSelected} from "silver-lib"
 
-const world = S.make()
+const world = S.makeWorld()
 seed(world)
 
 const FONT_SIZE = 12 * window.devicePixelRatio
@@ -100,13 +100,25 @@ const debugSystem: S.System = world => {
   }
 }
 
+const testThingSystem: S.System = world => {
+  const bodiesOut = S.query(world, S.type(Position, Radius), S.Out(Position))
+  return () => {
+    bodiesOut.each(function testThing(body, position, radius) {
+      console.log(body, position, radius)
+    })
+  }
+}
+
 const loop = () => {
+  S.run(world, testThingSystem)
   world.step()
+
   S.run(world, moveBodiesSystem)
   S.run(world, clearCanvasSystem)
   S.run(world, drawOrbitsSystem)
   S.run(world, drawBodiesSystem)
   S.run(world, debugSystem)
+
   requestAnimationFrame(loop)
 }
 
