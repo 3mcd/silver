@@ -280,6 +280,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
       SparseMap.each(stage, (key, version) => {
         Changes.setAtKey(a, key, version)
       })
+      SparseMap.clear(stage)
     }
     // If the query is a monitor, release the array of matched entities.
     if (this.isMonitor && SparseMap.size(this.matches) > 0) {
