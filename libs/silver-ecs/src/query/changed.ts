@@ -1,26 +1,12 @@
 import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
+import * as EntityVersions from "../entity/entity_versions"
 import * as SparseMap from "../sparse/sparse_map"
-import * as Changes from "../world/changes"
-
-export class FilterState {
-  changes
-  stage
-
-  constructor() {
-    this.changes = Changes.make()
-    this.stage = SparseMap.make<number>()
-  }
-}
 
 export type Predicate = (entity: Entity.T) => boolean
 
-export let makeFilterState = (): FilterState => {
-  return new FilterState()
-}
-
-export let makeComponentChangedPredicate = (component: Component.T) => {
+let makeComponentChangedPredicate = (component: Component.T) => {
   let componentId = component.id
   // make the component+entity key
   let s = `let k${componentId}=((${componentId}&${Entity.HI})<<${Entity.LO_EXTENT})|(e&${Entity.LO});`
@@ -40,17 +26,34 @@ export let makeComponentChangedPredicate = (component: Component.T) => {
 
 export let compilePredicate = (
   type: Type.T,
-  changes: Changes.T,
-  state: FilterState,
+  local: EntityVersions.T,
+  remote: EntityVersions.T,
+  stage: SparseMap.T<number>,
 ): Predicate => {
   let update = (key: number, version: number) =>
-    SparseMap.set(state.stage, key, version)
+    SparseMap.set(stage, key, version)
   let body = "return function changed(e){"
   for (let i = 0; i < type.ordered.length; i++) {
     let component = type.ordered[i]
     body += makeComponentChangedPredicate(component)
   }
   body += "return true}"
-  let closure = Function("A", "B", "$", body)
-  return closure(state.changes, changes, update)
+  return Function("A", "B", "$", body)(local, remote, update)
 }
+
+export class Changed {
+  a
+  b
+  stage
+  predicate
+
+  constructor(type: Type.T, b: EntityVersions.T) {
+    this.a = EntityVersions.make()
+    this.b = b
+    this.stage = SparseMap.make<number>()
+    this.predicate = compilePredicate(type, this.a, this.b, this.stage)
+  }
+}
+export type T = Changed
+
+export let make = (type: Type.T, b: EntityVersions.T) => new Changed(type, b)

@@ -1,4 +1,5 @@
 import {product} from "../array"
+import * as Assert from "../assert"
 import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
@@ -6,12 +7,12 @@ import * as Hash from "../hash"
 import * as Signal from "../signal"
 import * as SparseMap from "../sparse/sparse_map"
 import * as SparseSet from "../sparse/sparse_set"
+import * as Changes from "../entity/entity_versions"
 import * as Graph from "../world/graph"
 import * as Transition from "../world/transition"
 import * as World from "../world/world"
 import * as Changed from "./changed"
 import * as Filter from "./filter"
-import * as Assert from "../assert"
 
 type EachIteratee<U extends Component.T[]> = (
   entity: Entity.T,
@@ -24,20 +25,19 @@ type EachArgs<U extends Component.T[]> = [
 ]
 type Each<U extends Component.T[]> = (...params: EachArgs<U>) => void
 
-class QueryChanged {
-  state
-  predicate
+// P = predicates, p = predicate
+// S = value stores, s = value store
+// R = relation matches, r = relative
+// M = entity matches
+// e = entity
+// c = callback
+// T = temp value stores, t = temp value store
+// h = hash (used to look up matches for provided relatives)
 
-  constructor(state: Changed.FilterState, predicate: Changed.Predicate) {
-    this.state = state
-    this.predicate = predicate
-  }
-}
-
-let makeEachIteratorFilterExp = (changed: QueryChanged[]) => {
+let makeEachIteratorFilterExp = (filters: QueryFilters) => {
   let s = ""
-  for (let i = 0; i < changed.length; i++) {
-    s += `c${i}(e)===false||`
+  for (let i = 0; i < filters.changed.length; i++) {
+    s += `p${i}(e)===false||`
   }
   return s.slice(0, s.length - 2)
 }
@@ -49,18 +49,19 @@ let makeEachIteratorFetchExp = (type: Type.T, out: Type.T) => {
     if (component.kind === Component.Kind.Value) {
       s +=
         out.components.length === 0
-          ? `s0${i}[e],`
+          ? `s${i}[e],`
           : Type.hasComponent(out, component)
-          ? `s1${i}.dense[s1${i}.sparse[e]],`
-          : `s0${i}[e]??s1${i}.dense[s1${i}.sparse[e]],`
+          ? `t${i}.dense[t${i}.sparse[e]],`
+          : `s${i}[e]??t${i}.dense[t${i}.sparse[e]],`
     } else if (component.kind === Component.Kind.ValueRelation) {
       let pair = `${(component.id & Entity.HI) << Entity.LO_EXTENT}|r${i}`
       s +=
         out.components.length === 0
-          ? `S0[${pair}][e],`
+          ? `S[${pair}][e],`
           : Type.hasComponent(out, component)
-          ? `S1[${pair}][e],`
-          : `S0[${pair}][e]??S1[${pair}][e],`
+          ? // TODO: This is broken.
+            `T[${pair}][e],`
+          : `S[${pair}][e]??T[${pair}][e],`
     }
   }
   return s.slice(0, s.length - 1)
@@ -76,7 +77,7 @@ let makeEachIteratorParamsExp = (type: Type.T) => {
   return s
 }
 
-let makeEachIteratorBody = (fetchExp: string, filter: string) => {
+let makeEachIteratorBody = (fetch: string, filter: string) => {
   let s = ""
   s += "for(let i=0;i<M.length;i++){"
   s += "let m=M[i];"
@@ -85,15 +86,15 @@ let makeEachIteratorBody = (fetchExp: string, filter: string) => {
   if (filter) {
     s += `if(${filter})continue;`
   }
-  s += `$(e,${fetchExp})`
+  s += `c(e,${fetch})`
   s += "}}"
   return s
 }
 
-let makeChangedDeclarations = (changed: QueryChanged[]) => {
+let makePredicateDeclarations = (filters: QueryFilters) => {
   let s = ""
-  for (let i = 0; i < changed.length; i++) {
-    s += `let c${i}=C[${i}];`
+  for (let i = 0; i < filters.changed.length; i++) {
+    s += `let p${i}=P[${i}];`
   }
   return s
 }
@@ -103,9 +104,9 @@ let makeStoreDeclarations = (type: Type.T, out: Type.T) => {
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
     if (component.kind === Component.Kind.Value) {
-      s += `let s0${i}=S0[${component.id}];`
+      s += `let s${i}=S[${component.id}];`
       if (out.components.length > 0) {
-        s += `let s1${i}=S1.dense[S1.sparse[${component.id}]];`
+        s += `let t${i}=T.dense[T.sparse[${component.id}]];`
       }
     }
   }
@@ -116,7 +117,7 @@ let makeRelationMatchesDeclarations = (type: Type.T) => {
   let s = `let h=0x811c9dc5|0;`
   for (let i = 0; i < type.components.length; i++) {
     if (Component.isRelation(type.components[i])) {
-      s += `h=Math.imul(h^r${i},0x01000193|0);`
+      s += `h=Math.imul(h^r${i},${Hash.HASH_ENTROPY});`
     }
   }
   s += "let M=R[h];"
@@ -125,49 +126,57 @@ let makeRelationMatchesDeclarations = (type: Type.T) => {
 
 let makeCommonExps = (type: Type.T, filters: QueryFilters) => {
   let fetch = makeEachIteratorFetchExp(type, filters.out)
-  let filter = makeEachIteratorFilterExp(filters.changed)
+  let filter = makeEachIteratorFilterExp(filters)
   let params = makeEachIteratorParamsExp(type)
   let body =
     makeStoreDeclarations(type, filters.out) +
-    makeChangedDeclarations(filters.changed)
+    makePredicateDeclarations(filters)
   return {fetch, filter, params, body}
 }
 
 let compileEachIteratorWithRelations = <U extends Component.T[]>(
   query: Query<U>,
 ): Each<U> => {
-  let {world, type, relativeMatches: matches, filters} = query
-  let exps = makeCommonExps(type, filters)
+  let exps = makeCommonExps(query.type, query.filters)
   let body = exps.body
-  body += `return function eachIterator(${exps.params}$){`
-  body += makeRelationMatchesDeclarations(type)
-  body += "if(M===undefined)return;"
+  body += `return(${exps.params}c)=>{`
+  body += makeRelationMatchesDeclarations(query.type)
+  body += "if(M===void 0)return;"
   body += makeEachIteratorBody(exps.fetch, exps.filter)
   body += "}"
-  let closure = Function("S0", "S1", "C", "R", body)
-  return closure(
-    world.stores,
-    world.storesOut,
-    filters.changed.map(changed => changed.predicate),
-    matches, // R->M based on relatives passed to iterator
+  return Function(
+    "S",
+    "T",
+    "P",
+    "R",
+    body,
+  )(
+    query.world.stores,
+    query.world.tempValues,
+    query.filters.changed.map(changed => changed.predicate),
+    query.relativeMatches,
   )
 }
 
 let compileEachIterator = <U extends Component.T[]>(
   query: Query<U>,
 ): Each<U> => {
-  let {world, type, matches, filters} = query
-  let exps = makeCommonExps(type, filters)
+  let exps = makeCommonExps(query.type, query.filters)
   let body = exps.body
-  body += `return function eachIterator(${exps.params}$){`
+  body += `return(${exps.params}c)=>{`
   body += makeEachIteratorBody(exps.fetch, exps.filter)
   body += "}"
-  let closure = Function("S0", "S1", "C", "M", body)
-  return closure(
-    world.stores,
-    world.storesOut,
-    filters.changed.map(changed => changed.predicate),
-    SparseMap.values(matches),
+  return Function(
+    "S",
+    "T",
+    "P",
+    "M",
+    body,
+  )(
+    query.world.stores,
+    query.world.tempValues,
+    query.filters.changed.map(changed => changed.predicate),
+    SparseMap.values(query.matches),
   )
 }
 
@@ -206,7 +215,7 @@ class QueryFilters {
   out
 
   constructor(
-    changed: QueryChanged[],
+    changed: Changed.T[],
     is: Filter.T[],
     not: Filter.T[],
     out: Filter.T[],
@@ -267,9 +276,9 @@ export class Query<U extends Component.T[] = Component.T[]> {
     this.#iterator.apply(null, arguments as unknown as Parameters<Each<U>>)
     // Update entity component versions for change detection.
     for (let i = 0; i < this.filters.changed.length; i++) {
-      let {state} = this.filters.changed[i]
-      SparseMap.each(state.stage, (key, version) => {
-        state.changes[key] = version
+      let {a, stage} = this.filters.changed[i]
+      SparseMap.each(stage, (key, version) => {
+        Changes.setAtKey(a, key, version)
       })
     }
     // If the query is a monitor, release the array of matched entities.
@@ -336,7 +345,7 @@ let forgetNode = (query: Query, node: Graph.Node) => {
 }
 
 let initializeFilters = (filters: Filter.T[], world: World.T) => {
-  let changed: QueryChanged[] = []
+  let changed: Changed.T[] = []
   let is: Filter.T[] = []
   let not: Filter.T[] = []
   let out: Filter.T[] = []
@@ -350,13 +359,7 @@ let initializeFilters = (filters: Filter.T[], world: World.T) => {
         not.push(filter)
         break
       case Filter.Kind.Changed: {
-        let changedState = Changed.makeFilterState()
-        let changedPredicate = Changed.compilePredicate(
-          filter.type,
-          world.changes,
-          changedState,
-        )
-        changed.push(new QueryChanged(changedState, changedPredicate))
+        changed.push(Changed.make(filter.type, world.entityChanges))
         break
       }
       case Filter.Kind.In:

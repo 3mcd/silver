@@ -2,7 +2,7 @@ import {perf} from "silver-bench"
 import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
-import * as Changes from "../world/changes"
+import * as Changes from "../entity/entity_versions"
 import * as Changed from "./changed"
 
 let A = Component.tag()

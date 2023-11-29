@@ -32,3 +32,10 @@ export class EntityBuilder<U extends Component.T[] = Component.T[]> {
     return this.#world.spawn(this.#type, ...this.#init)
   }
 }
+export type T = EntityBuilder
+
+export let make = <U extends Component.T[]>(
+  world: World.T,
+  type: Type.T<U>,
+  values: Commands.Init<U>,
+) => new EntityBuilder(world, type, Commands.init(type, values))

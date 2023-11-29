@@ -1,47 +1,46 @@
-import * as Schema from "../data/schema"
 import * as Assert from "../assert"
 import * as Component from "../data/component"
 import * as Type from "../data/type"
 import * as Entity from "../entity/entity"
-import {EntityBuilder} from "../entity/entity_builder"
-import * as Entities from "../entity/entities"
+import * as EntityBuilder from "../entity/entity_builder"
+import * as Entities from "../entity/entity_registry"
 import * as Signal from "../signal"
 import * as SparseSet from "../sparse/sparse_set"
 import * as SparseMap from "../sparse/sparse_map"
 import * as Stage from "../stage"
-import * as Changes from "./changes"
+import * as EntityVersions from "../entity/entity_versions"
 import * as Commands from "./commands"
 import * as Graph from "./graph"
 import * as Transaction from "./transition"
 
 export class World {
-  #entities
+  #entityRegistry
   #entityPairRoots
   #nodesToDelete
-  #clearStoresOut
-  #clearStoresOutAt
+  #releaseTempValues
+  #releaseTempValuesAt
   #stage
   #tick
   #transaction
 
-  readonly changes
+  readonly entityChanges
   readonly graph
   readonly stores
-  storesOut
+  readonly tempValues
 
   constructor(tick = 0) {
-    this.#entities = Entities.make()
+    this.#entityRegistry = Entities.make()
     this.#entityPairRoots = [] as Graph.Node[][]
     this.#nodesToDelete = [] as Graph.Node[]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
     this.#transaction = Transaction.make()
-    this.#clearStoresOut = false
-    this.#clearStoresOutAt = undefined as number | undefined
-    this.changes = Changes.make()
+    this.#releaseTempValues = false
+    this.#releaseTempValuesAt = undefined as number | undefined
+    this.entityChanges = EntityVersions.make()
     this.graph = Graph.make()
     this.stores = [] as unknown[][]
-    this.storesOut = SparseMap.make<SparseMap.T>()
+    this.tempValues = SparseMap.make<SparseMap.T>()
     Signal.subscribe(this.graph.root.$created, this.#recordRelationNode)
   }
 
@@ -55,7 +54,7 @@ export class World {
    * Increment the version of a component for a given entity.
    */
   #bump(entity: Entity.T, component: Component.T) {
-    Changes.bump(this.changes, entity, component.id)
+    EntityVersions.bump(this.entityChanges, entity, component.id)
   }
 
   /**
@@ -101,13 +100,13 @@ export class World {
     component: U,
     value: Commands.InitSingle<U>,
   ) {
-    let store = SparseMap.get(this.storesOut, component.id)
+    let store = SparseMap.get(this.tempValues, component.id)
     if (store === undefined) {
       store = SparseMap.make()
-      SparseMap.set(this.storesOut, component.id, store)
+      SparseMap.set(this.tempValues, component.id, store)
     }
     SparseMap.set(store, entity, value)
-    this.#clearStoresOut = true
+    this.#releaseTempValues = true
   }
 
   /**
@@ -176,7 +175,7 @@ export class World {
     let node = this.locate(entity)
     this.#clearMany(entity, node.type)
     this.#clearEntityPairs(entity)
-    Entities.release(this.#entities, entity)
+    Entities.release(this.#entityRegistry, entity)
     Transaction.move(this.#transaction, entity)
   }
 
@@ -212,7 +211,7 @@ export class World {
     for (let i = 0; i < node.type.pairs.length; i++) {
       let pair = node.type.pairs[i]
       let pairEntityId = Entity.parseLo(pair.id)
-      let pairEntity = Entities.hydrate(this.#entities, pairEntityId)
+      let pairEntity = Entities.hydrate(this.#entityRegistry, pairEntityId)
       // Get or create the list of pair nodes for the pair entity.
       let pairRoots = (this.#entityPairRoots[pairEntity] ??= [])
       let pairRoot = Graph.resolveComponent(this.graph, pair)
@@ -317,8 +316,7 @@ export class World {
     ...values: Commands.Init<U>
   ): Entity.T
   spawn(type?: Type.T, ...values: Commands.Init): Entity.T {
-    let entity = Entities.retain(this.#entities)
-
+    let entity = Entities.retain(this.#entityRegistry)
     Stage.insert(
       this.#stage,
       this.#tick,
@@ -358,7 +356,7 @@ export class World {
    * ```
    */
   despawn(entity: Entity.T) {
-    Entities.check(this.#entities, entity)
+    Entities.check(this.#entityRegistry, entity)
     Stage.insert(this.#stage, this.#tick, Commands.despawn(entity))
   }
 
@@ -395,7 +393,7 @@ export class World {
     type: Type.Type<U>,
     ...values: Commands.Init<U>
   ) {
-    Entities.check(this.#entities, entity)
+    Entities.check(this.#entityRegistry, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
@@ -446,7 +444,7 @@ export class World {
     ...relatives: Component.Relatives<U>
   ): void
   remove(entity: Entity.T, type: Type.T, relatives?: Entity.T[]) {
-    Entities.check(this.#entities, entity)
+    Entities.check(this.#entityRegistry, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
@@ -638,22 +636,22 @@ export class World {
    */
   step(tick: number = this.#tick + 1) {
     if (
-      this.#clearStoresOutAt !== undefined &&
-      this.#tick >= this.#clearStoresOutAt
+      this.#releaseTempValuesAt !== undefined &&
+      this.#tick >= this.#releaseTempValuesAt
     ) {
-      SparseMap.each(this.storesOut, (_, map) => {
+      SparseMap.each(this.tempValues, (_, map) => {
         SparseMap.clear(map)
       })
-      this.#clearStoresOutAt = undefined
+      this.#releaseTempValuesAt = undefined
     }
     // Execute all commands in the stage up to the given tick.
     while (this.#tick < tick) {
       Stage.drainTo(this.#stage, tick, this.#applyCommand)
       this.#tick++
     }
-    if (this.#clearStoresOut) {
-      this.#clearStoresOutAt = this.#tick + 0
-      this.#clearStoresOut = false
+    if (this.#releaseTempValues) {
+      this.#releaseTempValuesAt = this.#tick + 0
+      this.#releaseTempValues = false
     }
     // Immediately despawn all entities whose nodes are marked for deletion.
     for (let i = 0; i < this.#nodesToDelete.length; i++) {
@@ -695,30 +693,30 @@ export class World {
       let pair = node.type.pairs[i]
       let pairId = Entity.parseHi(pair.id)
       if (pairId === component.id) {
-        return Entities.hydrate(this.#entities, Entity.parseLo(pair.id))
+        return Entities.hydrate(this.#entityRegistry, Entity.parseLo(pair.id))
       }
     }
     throw new Error("Unexpected")
   }
 
   isAlive(entity: Entity.T) {
-    return Entities.checkFast(this.#entities, entity)
+    return Entities.checkFast(this.#entityRegistry, entity)
   }
 
   hydrate(entityId: number) {
-    return Entities.hydrate(this.#entities, entityId)
+    return Entities.hydrate(this.#entityRegistry, entityId)
   }
 
   store(componentId: number) {
     let store = (this.stores[componentId] ??= [])
-    if (!SparseMap.has(this.storesOut, componentId)) {
-      SparseMap.set(this.storesOut, componentId, SparseMap.make())
+    if (!SparseMap.has(this.tempValues, componentId)) {
+      SparseMap.set(this.tempValues, componentId, SparseMap.make())
     }
     return store
   }
 
   with<U extends Component.T[]>(type: Type.T<U>, ...values: Commands.Init<U>) {
-    return new EntityBuilder(this, type, values)
+    return EntityBuilder.make(this, type, values)
   }
 }
 export type T = World
