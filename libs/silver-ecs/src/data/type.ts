@@ -1,3 +1,4 @@
+import * as Entity from "../entity/entity"
 import * as Hash from "../hash"
 import {ExcludeFromTuple} from "../types"
 import * as Commands from "../world/commands"
@@ -105,8 +106,21 @@ export {with_ as with}
 export let without = <U extends Component.T[], V extends Component.T[]>(
   a: T<U>,
   b: T<V>,
-): T<[...U, ...V]> =>
-  from(a.components.filter(c => b.sparse[c.id] === undefined))
+): T<[...U, ...V]> => {
+  let components: Component.T[] = []
+  for (let i = 0; i < a.ordered.length; i++) {
+    let component = a.ordered[i]
+    if (b.sparse[component.id] === undefined) {
+      components.push(component)
+    } else if (
+      Component.isRelation(component) &&
+      b.pairCounts[component.id] < a.pairCounts[component.id]
+    ) {
+      components.push(component)
+    }
+  }
+  return from(components)
+}
 
 export let withComponent = <U extends Component.T[], V extends Component.T>(
   type: T<U>,
@@ -122,28 +136,24 @@ export let withoutComponent = <U extends Component.T[], V extends Component.T>(
 let isType = (obj: object): obj is Type => "components" in obj
 
 let normalize = <U extends (Type | Component.T)[]>(types: U): Normalized<U> => {
-  let unique = new Set<Component.T>()
+  let matched = new Set<Component.T>()
   let components = [] as Component.T[]
   for (let i = 0; i < types.length; i++) {
     let type = types[i]
     if (isType(type)) {
       for (let j = 0; j < type.components.length; j++) {
         let component = type.components[j]
-        if (!Component.isRelation(component)) {
-          if (unique.has(component)) {
-            continue
-          }
-          unique.add(component)
+        if (matched.has(component)) {
+          continue
         }
+        matched.add(component)
         components.push(component)
       }
     } else {
-      if (!Component.isRelation(type)) {
-        if (unique.has(type)) {
-          continue
-        }
-        unique.add(type)
+      if (matched.has(type)) {
+        continue
       }
+      matched.add(type)
       components.push(type)
     }
   }
@@ -206,6 +216,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
   hash
   kind
   pairs
+  pairCounts
   relations
   sparse
 
@@ -217,6 +228,7 @@ export class Type<U extends Component.T[] = Component.T[]> {
     this.components = components
     this.hash = Hash.words(this.ids)
     this.relations = components.filter(Component.isRelation)
+    this.pairCounts = [] as number[]
     this.pairs = ordered.filter(Component.isPair)
     this.kind =
       this.relations.length === 0
@@ -224,6 +236,16 @@ export class Type<U extends Component.T[] = Component.T[]> {
         : this.relations.length === this.pairs.length
         ? Kind.Paired
         : Kind.Unpaired
+    for (let i = 0; i < this.relations.length; i++) {
+      let relation = this.relations[i]
+      for (let j = 0; j < this.pairs.length; j++) {
+        let pair = this.pairs[j]
+        let pairRelationId = Entity.parseHi(pair.id)
+        if (pairRelationId === relation.id) {
+          this.pairCounts[relation.id] = (this.pairCounts[relation.id] || 0) + 1
+        }
+      }
+    }
   }
 
   make(

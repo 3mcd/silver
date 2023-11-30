@@ -105,26 +105,3 @@ export const rect = (
   context.strokeStyle = color
   context.strokeRect(0, 0, width, height)
 }
-
-const getCursorPosition = (event: MouseEvent) => {
-  const x =
-    transformX(event.clientX * dpr - canvas.offsetLeft) - canvas.width / 2
-  const y =
-    transformY(event.clientY * dpr - canvas.offsetTop) - canvas.height / 2
-  return {x, y}
-}
-
-export type Click = {x: number; y: number}
-
-export const clicks = [] as Click[]
-
-let lastMousedownTime: number
-canvas.addEventListener("mousedown", () => {
-  lastMousedownTime = performance.now()
-})
-canvas.addEventListener("mouseup", event => {
-  const mousedownDuration = performance.now() - lastMousedownTime
-  if (mousedownDuration < 200) {
-    clicks.push(getCursorPosition(event))
-  }
-})

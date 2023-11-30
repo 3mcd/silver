@@ -1,19 +1,8 @@
 import * as S from "silver-ecs"
-import {
-  Click,
-  arc,
-  canvas,
-  circle,
-  clear,
-  clicks,
-  context,
-  rect,
-  transform,
-} from "./canvas"
-import {Name} from "silver-lib"
-import {Body, Color, Orbits, Position, Radius, seed} from "./data"
 import {makeDebugAliases, mount} from "silver-inspector"
-import {DebugHighlighted, DebugSelected} from "silver-lib"
+import {DebugHighlighted, DebugSelected, Name} from "silver-lib"
+import {arc, canvas, circle, clear, context, rect, transform} from "./canvas"
+import {Body, Color, Orbits, Position, Radius, seed} from "./data"
 
 const world = S.makeWorld()
 seed(world)

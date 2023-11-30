@@ -1,7 +1,7 @@
 import {perf} from "../../../silver-bench/dist"
 import * as Entity from "../entity/entity"
 import * as Graph from "./graph"
-import * as Transition from "./transition"
+import * as Transition from "./transaction"
 import * as Type from "../data/type"
 import * as Component from "../data/component"
 

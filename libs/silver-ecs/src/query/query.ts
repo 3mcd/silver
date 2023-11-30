@@ -9,7 +9,7 @@ import * as SparseMap from "../sparse/sparse_map"
 import * as SparseSet from "../sparse/sparse_set"
 import * as Changes from "../entity/entity_versions"
 import * as Graph from "../world/graph"
-import * as Transition from "../world/transition"
+import * as Transition from "../world/transaction"
 import * as World from "../world/world"
 import * as Changed from "./changed"
 import * as Filter from "./filter"
@@ -114,13 +114,13 @@ let makeStoreDeclarations = (type: Type.T, out: Type.T) => {
 }
 
 let makeRelationMatchesDeclarations = (type: Type.T) => {
-  let s = `let h=0x811c9dc5|0;`
+  let s = `let h=${Hash.HASH_BASE};`
   for (let i = 0; i < type.components.length; i++) {
     if (Component.isRelation(type.components[i])) {
       s += `h=Math.imul(h^r${i},${Hash.HASH_ENTROPY});`
     }
   }
-  s += "let M=R[h];"
+  s += "let M=R[h>>>0];"
   return s
 }
 
@@ -152,7 +152,7 @@ let compileEachIteratorWithRelations = <U extends Component.T[]>(
     body,
   )(
     query.world.stores,
-    query.world.tempValues,
+    query.world.temp,
     query.filters.changed.map(changed => changed.predicate),
     query.relativeMatches,
   )
@@ -174,7 +174,7 @@ let compileEachIterator = <U extends Component.T[]>(
     body,
   )(
     query.world.stores,
-    query.world.tempValues,
+    query.world.temp,
     query.filters.changed.map(changed => changed.predicate),
     SparseMap.values(query.matches),
   )
@@ -203,7 +203,7 @@ let makeRelativesKeys = (query: T, nodeType: Type.T) => {
   let relativesKeys: number[] = []
   for (let i = 0; i < relativesProduct.length; i++) {
     let flat = relativesProduct[i].flat(1)
-    relativesKeys.push(Hash.words(flat))
+    relativesKeys.push(Hash.normalize(Hash.words(flat)))
   }
   return relativesKeys
 }
@@ -284,7 +284,8 @@ export class Query<U extends Component.T[] = Component.T[]> {
     }
     // If the query is a monitor, release the array of matched entities.
     if (this.isMonitor && SparseMap.size(this.matches) > 0) {
-      this.relativeMatches = []
+      // TODO: This is very slow.
+      this.relativeMatches.length = 0
       SparseMap.clear(this.matches)
     }
   }
@@ -294,12 +295,12 @@ export type T<U extends Component.T[] = Component.T[]> = Query<U>
 let rememberNode = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
   for (let i = 0; i < query.filters.not.length; i++) {
     if (Type.has(node.type, query.filters.not[i].type)) {
-      return false
+      return
     }
   }
   for (let i = 0; i < query.filters.is.length; i++) {
     if (!Type.has(node.type, query.filters.is[i].type)) {
-      return false
+      return
     }
   }
   // If this query has relations, store the node's entities at each potential
@@ -330,8 +331,6 @@ let rememberNode = (query: Query, node: Graph.Node, entities: Entity.T[]) => {
     // destroyed.
     SparseMap.set(query.matches, node.type.hash, entities)
   }
-
-  return true
 }
 
 let forgetNode = (query: Query, node: Graph.Node) => {
@@ -415,7 +414,7 @@ let initGraphListeners = (query: Query) => {
     forgetNode(query, node)
   }
   Signal.subscribe(query.node.$created, onNodeCreated)
-  Signal.subscribe(query.node.$removed, onNodeRemoved)
+  Signal.subscribe(query.node.$dropped, onNodeRemoved)
   Graph.traverse(query.node, onNodeCreated)
 }
 

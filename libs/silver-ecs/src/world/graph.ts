@@ -5,7 +5,7 @@ import * as Entity from "../entity/entity"
 import * as Signal from "../signal"
 import * as SparseMap from "../sparse/sparse_map"
 import * as SparseSet from "../sparse/sparse_set"
-import * as Transition from "./transition"
+import * as Transition from "./transaction"
 
 type NodeIteratee = (node: Node) => boolean | void
 
@@ -17,7 +17,7 @@ export class Node {
   $created
   $excluded
   $included
-  $removed
+  $dropped
   edgesLeft
   edgesRight
   entities
@@ -30,7 +30,7 @@ export class Node {
     this.$created = Signal.make<Node>()
     this.$excluded = Signal.make<Transition.Batch>()
     this.$included = Signal.make<Transition.Batch>()
-    this.$removed = Signal.make<Node>()
+    this.$dropped = Signal.make<Node>()
     this.edgesLeft = new Map<number, Node>()
     this.edgesRight = new Map<number, Node>()
     this.entities = SparseSet.make<Entity.T>()
@@ -64,29 +64,29 @@ export let removeEntity = (node: Node, entity: Entity.T): void => {
 }
 
 export let traverse = (node: Node, iteratee: NodeIteratee): void => {
-  let nodes: Node[] = [node]
+  let nodes = [node]
   let nodesVisited = new Set<Node>()
-  let cursor = 1
-  while (cursor > 0) {
-    let currNode = nodes[--cursor]
+  let i = 1
+  while (i > 0) {
+    let currNode = nodes[--i]
     if (nodesVisited.has(currNode) || iteratee(currNode) === false) continue
     nodesVisited.add(currNode)
     currNode.edgesRight.forEach(function traverseNext(nextNode) {
-      nodes[cursor++] = nextNode
+      nodes[i++] = nextNode
     })
   }
 }
 
 export let traverseLeft = (node: Node, iteratee: NodeIteratee): void => {
-  let nodes: Node[] = [node]
+  let nodes = [node]
   let nodesVisited = new Set<Node>()
-  let cursor = 1
-  while (cursor > 0) {
-    let currNode = nodes[--cursor]
+  let i = 1
+  while (i > 0) {
+    let currNode = nodes[--i]
     if (nodesVisited.has(currNode) || iteratee(currNode) === false) continue
     nodesVisited.add(currNode)
     currNode.edgesLeft.forEach(function traverseLeftInner(prevNode) {
-      nodes[cursor++] = prevNode
+      nodes[i++] = prevNode
     })
   }
 }
@@ -113,6 +113,7 @@ let linkNodesDeep = (graph: Graph, node: Node): void => {
       Type.isSuperset(node.type, visitedNode.type)
     ) {
       linkNodes(node, visitedNode)
+      return Type.supersetMayContain(node.type, visitedNode.type)
     } else if (Type.isSuperset(visitedNode.type, node.type)) {
       linkNodes(visitedNode, node)
       return false
@@ -128,20 +129,11 @@ let emitNodeTraverse = (node: Node): void => {
 }
 
 let insertNode = (graph: Graph, type: Type.T): Node => {
-  let node: Node = graph.root
-  for (let i = 0; i < type.ordered.length; i++) {
-    let nextType = Type.withComponent(node.type, type.ordered[i])
-    let nextNode = graph.nodesByComponentsHash.get(nextType.hash)
-    if (nextNode === undefined) {
-      nextNode = new Node(nextType)
-      graph.nodesByComponentsHash.set(nextType.hash, nextNode)
-      SparseMap.set(graph.nodesById, nextNode.id, nextNode)
-      linkNodes(nextNode, node, Type.xor(nextNode.type, node.type))
-      linkNodesDeep(graph, nextNode)
-      emitNodeTraverse(nextNode)
-    }
-    node = nextNode
-  }
+  let node: Node = new Node(type)
+  graph.nodesByComponentsHash.set(type.hash, node)
+  SparseMap.set(graph.nodesById, node.id, node)
+  linkNodesDeep(graph, node)
+  emitNodeTraverse(node)
   return node
 }
 
@@ -154,8 +146,12 @@ let dropNode = (graph: Graph, node: Node): void => {
   })
   graph.nodesByComponentsHash.delete(node.type.hash)
   SparseMap.delete(graph.nodesById, node.id)
-  Signal.dispose(node.$removed)
+  Signal.dispose(node.$dropped)
   Signal.dispose(node.$created)
+  Signal.dispose(node.$changed)
+  Signal.dispose(node.$included)
+  Signal.dispose(node.$excluded)
+  Signal.dispose(node.$dropped)
   node.isDropped = true
 }
 
@@ -165,7 +161,7 @@ export let deleteNode = (graph: Graph, node: Node): void => {
   traverse(node, function deleteNodeTraverse(nextNode) {
     // Notify nodes to the left that it is being dropped.
     traverseLeft(nextNode, function deleteNodeTraverseLeft(visit) {
-      Signal.emit(visit.$removed, nextNode)
+      Signal.emit(visit.$dropped, nextNode)
     })
     droppedNodes.push(nextNode)
   })
@@ -198,15 +194,18 @@ export let resolve = (graph: Graph, type: Type.T): Node => {
   return node
 }
 
-export let findById = (graph: Graph, nodeId: number): Node | undefined => {
-  return SparseMap.get(graph.nodesById, nodeId)
-}
-
-export let resolveComponent = (graph: Graph, component: Component.T): Node => {
+export let resolveByComponent = (
+  graph: Graph,
+  component: Component.T,
+): Node => {
   let node =
     graph.nodesByComponentsHash.get(Hash.word(undefined, component.id)) ??
     insertNode(graph, Type.make(component))
   return node
+}
+
+export let findById = (graph: Graph, nodeId: number): Node | undefined => {
+  return SparseMap.get(graph.nodesById, nodeId)
 }
 
 export class Graph {

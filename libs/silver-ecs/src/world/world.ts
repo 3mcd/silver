@@ -11,14 +11,14 @@ import * as Stage from "../stage"
 import * as EntityVersions from "../entity/entity_versions"
 import * as Commands from "./commands"
 import * as Graph from "./graph"
-import * as Transaction from "./transition"
+import * as Transaction from "./transaction"
 
 export class World {
   #entityRegistry
   #entityPairRoots
   #nodesToDelete
-  #releaseTempValues
-  #releaseTempValuesAt
+  #releaseTemp
+  #releaseTempAt
   #stage
   #tick
   #transaction
@@ -26,7 +26,7 @@ export class World {
   readonly entityChanges
   readonly graph
   readonly stores
-  readonly tempValues
+  readonly temp
 
   constructor(tick = 0) {
     this.#entityRegistry = Entities.make()
@@ -35,17 +35,17 @@ export class World {
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
     this.#transaction = Transaction.make()
-    this.#releaseTempValues = false
-    this.#releaseTempValuesAt = undefined as number | undefined
+    this.#releaseTemp = false
+    this.#releaseTempAt = undefined as number | undefined
     this.entityChanges = EntityVersions.make()
     this.graph = Graph.make()
     this.stores = [] as unknown[][]
-    this.tempValues = SparseMap.make<SparseMap.T>()
+    this.temp = SparseMap.make<SparseMap.T>()
     Signal.subscribe(this.graph.root.$created, this.#recordRelationNode)
   }
 
   locate(entity: Entity.T) {
-    let node = Transaction.locate(this.#transaction, entity)
+    let node = Transaction.locateNextEntityNode(this.#transaction, entity)
     Assert.ok(node !== undefined)
     return node
   }
@@ -95,18 +95,18 @@ export class World {
     this.#bump(entity, component)
   }
 
-  #writeOut<U extends Component.T>(
+  #writeTemp<U extends Component.T>(
     entity: Entity.T,
     component: U,
     value: Commands.InitSingle<U>,
   ) {
-    let store = SparseMap.get(this.tempValues, component.id)
+    let store = SparseMap.get(this.temp, component.id)
     if (store === undefined) {
       store = SparseMap.make()
-      SparseMap.set(this.tempValues, component.id, store)
+      SparseMap.set(this.temp, component.id, store)
     }
     SparseMap.set(store, entity, value)
-    this.#releaseTempValues = true
+    this.#releaseTemp = true
   }
 
   /**
@@ -136,7 +136,7 @@ export class World {
   }
 
   #clear(entity: Entity.T, component: Component.T) {
-    this.#writeOut(entity, component, this.#read(entity, component))
+    this.#writeTemp(entity, component, this.#read(entity, component))
     this.#write(entity, component, undefined)
   }
 
@@ -212,11 +212,10 @@ export class World {
       let pair = node.type.pairs[i]
       let pairEntityId = Entity.parseLo(pair.id)
       let pairEntity = Entities.hydrate(this.#entityRegistry, pairEntityId)
-      // Get or create the list of pair nodes for the pair entity.
-      let pairRoots = (this.#entityPairRoots[pairEntity] ??= [])
-      let pairRoot = Graph.resolveComponent(this.graph, pair)
       // Get or create the root pair node and insert it into the entity's list
       // of pair nodes.
+      let pairRoots = (this.#entityPairRoots[pairEntity] ??= [])
+      let pairRoot = Graph.resolveByComponent(this.graph, pair)
       // TODO: Use a Set or something faster than Array.prototype.includes.
       if (!pairRoots.includes(pairRoot)) {
         pairRoots.push(pairRoot)
@@ -398,7 +397,9 @@ export class World {
       this.#stage,
       this.#tick,
       Commands.add(
-        type.kind ? (Type.pair(type, values) as Type.T<U>) : type,
+        type.kind === Type.Kind.Unpaired
+          ? (Type.pair(type, values) as Type.T<U>)
+          : type,
         entity,
         Commands.init(type, values),
       ),
@@ -443,12 +444,15 @@ export class World {
     type: Type.T<U>,
     ...relatives: Component.Relatives<U>
   ): void
-  remove(entity: Entity.T, type: Type.T, relatives?: Entity.T[]) {
+  remove(entity: Entity.T, type: Type.T, ...relatives: Entity.T[]) {
     Entities.check(this.#entityRegistry, entity)
     Stage.insert(
       this.#stage,
       this.#tick,
-      Commands.remove(type.kind ? Type.pair(type, relatives!) : type, entity),
+      Commands.remove(
+        type.kind === Type.Kind.Unpaired ? Type.pair(type, relatives!) : type,
+        entity,
+      ),
     )
   }
 
@@ -538,7 +542,7 @@ export class World {
    * world.has(planet, Orbits, star) // true
    * ```
    */
-  has<U extends Component.ValueRelation>(
+  has<U extends Component.TRelation>(
     entity: Entity.T,
     type: Type.Unitary<U>,
     relative: Entity.T,
@@ -627,7 +631,10 @@ export class World {
     ...relatives: Component.Relatives<U>
   ): boolean {
     let node = this.locate(entity)
-    return Type.has(node.type, type.kind ? Type.pair(type, relatives) : type)
+    return Type.has(
+      node.type,
+      type.kind === Type.Kind.Unpaired ? Type.pair(type, relatives) : type,
+    )
   }
 
   /**
@@ -636,22 +643,22 @@ export class World {
    */
   step(tick: number = this.#tick + 1) {
     if (
-      this.#releaseTempValuesAt !== undefined &&
-      this.#tick >= this.#releaseTempValuesAt
+      this.#releaseTempAt !== undefined &&
+      this.#tick >= this.#releaseTempAt
     ) {
-      SparseMap.each(this.tempValues, (_, map) => {
+      SparseMap.each(this.temp, (_, map) => {
         SparseMap.clear(map)
       })
-      this.#releaseTempValuesAt = undefined
+      this.#releaseTempAt = undefined
     }
     // Execute all commands in the stage up to the given tick.
     while (this.#tick < tick) {
       Stage.drainTo(this.#stage, tick, this.#applyCommand)
       this.#tick++
     }
-    if (this.#releaseTempValues) {
-      this.#releaseTempValuesAt = this.#tick + 0
-      this.#releaseTempValues = false
+    if (this.#releaseTemp) {
+      this.#releaseTempAt = this.#tick + 0
+      this.#releaseTemp = false
     }
     // Immediately despawn all entities whose nodes are marked for deletion.
     for (let i = 0; i < this.#nodesToDelete.length; i++) {
@@ -709,8 +716,8 @@ export class World {
 
   store(componentId: number) {
     let store = (this.stores[componentId] ??= [])
-    if (!SparseMap.has(this.tempValues, componentId)) {
-      SparseMap.set(this.tempValues, componentId, SparseMap.make())
+    if (!SparseMap.has(this.temp, componentId)) {
+      SparseMap.set(this.temp, componentId, SparseMap.make())
     }
     return store
   }

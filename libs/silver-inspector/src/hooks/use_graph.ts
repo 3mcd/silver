@@ -21,7 +21,7 @@ export let useGraph = () => {
       },
     )
     let unsubscribeRemoved = S.Signal.subscribe(
-      world.graph.root.$removed,
+      world.graph.root.$dropped,
       () => {
         setNodes(
           S.SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),

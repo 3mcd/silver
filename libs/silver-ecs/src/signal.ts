@@ -17,9 +17,9 @@ export let emit = <U>(signal: Signal<U>, event: U) => {
 }
 
 export let subscribe = <U>(signal: Signal<U>, listener: SignalListener<U>) => {
-  let listenerIndex = signal.listeners.push(listener) - 1
+  let i = signal.listeners.push(listener) - 1
   return () => {
-    signal.listeners.splice(listenerIndex, 1)
+    signal.listeners.splice(i, 1)
   }
 }
 
