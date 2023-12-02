@@ -53,10 +53,15 @@ export let renderSystem: S.System = world => {
     grids.each(function renderGrid(grid, gridPos) {
       cellsIn.each(grid, function initCell(cell, cellPos, cellRect) {
         let graphics = new Pixi.Graphics()
-        graphics.rect(0, 0, cellRect.hw * 2, cellRect.hh * 2).stroke({
-          color: 0xde3249,
-          width: 3,
-        })
+        graphics
+          .rect(0, 0, cellRect.hw * 2, cellRect.hh * 2)
+          .stroke({
+            color: 0xdddddd,
+          })
+          .fill({
+            color: 0xffffff,
+            alpha: 0.2,
+          })
         graphics.x = gridPos.x + cellPos.x - cellRect.hw
         graphics.y = gridPos.y + cellPos.y - cellRect.hh
         world.add(cell, Graphics, graphics)

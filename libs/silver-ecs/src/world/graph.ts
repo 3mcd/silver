@@ -43,7 +43,7 @@ export class Node {
 let unlinkNodes = (
   nextNode: Node,
   prevNode: Node,
-  xor = Type.xor(nextNode.type, prevNode.type),
+  xor = Type.xorHash(nextNode.type, prevNode.type),
 ): void => {
   nextNode.edgesLeft.delete(xor)
   prevNode.edgesRight.delete(xor)
@@ -94,7 +94,7 @@ export let traverseLeft = (node: Node, iteratee: NodeIteratee): void => {
 let linkNodes = (
   nextNode: Node,
   prevNode: Node,
-  xor = Type.xor(nextNode.type, prevNode.type),
+  xor = Type.xorHash(nextNode.type, prevNode.type),
 ): void => {
   nextNode.edgesLeft.set(xor, prevNode)
   prevNode.edgesRight.set(xor, nextNode)
@@ -144,6 +144,8 @@ let dropNode = (graph: Graph, node: Node): void => {
   node.edgesLeft.forEach(function dropNodeUnlinkPrev(prevNode, xor) {
     unlinkNodes(node, prevNode, xor)
   })
+  node.edgesLeft.clear()
+  node.edgesRight.clear()
   graph.nodesByComponentsHash.delete(node.type.hash)
   SparseMap.delete(graph.nodesById, node.id)
   Signal.dispose(node.$dropped)
@@ -155,7 +157,7 @@ let dropNode = (graph: Graph, node: Node): void => {
   node.isDropped = true
 }
 
-export let deleteNode = (graph: Graph, node: Node): void => {
+export let pruneNode = (graph: Graph, node: Node): void => {
   let droppedNodes: Node[] = []
   // For every node to the right of the deleted node (inclusive).
   traverse(node, function deleteNodeTraverse(nextNode) {

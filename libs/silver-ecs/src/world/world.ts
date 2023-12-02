@@ -16,7 +16,8 @@ import * as Transaction from "./transaction"
 export class World {
   #entityRegistry
   #entityPairRoots
-  #nodesToDelete
+  #nodesToPrune
+  #nodesToSplice
   #releaseTemp
   #releaseTempAt
   #stage
@@ -31,7 +32,8 @@ export class World {
   constructor(tick = 0) {
     this.#entityRegistry = Entities.make()
     this.#entityPairRoots = [] as Graph.Node[][]
-    this.#nodesToDelete = [] as Graph.Node[]
+    this.#nodesToPrune = [] as Graph.Node[]
+    this.#nodesToSplice = [] as Graph.Node[]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
     this.#transaction = Transaction.make()
@@ -248,7 +250,7 @@ export class World {
       }
       // Delete the root pair node, which will also delete all pair nodes that
       // lead to the entity's relatives.
-      this.#nodesToDelete.push(pairRoot)
+      this.#nodesToPrune.push(pairRoot)
     }
     this.#entityPairRoots[entity] = undefined!
   }
@@ -661,27 +663,43 @@ export class World {
       this.#releaseTemp = false
     }
     // Immediately despawn all entities whose nodes are marked for deletion.
-    for (let i = 0; i < this.#nodesToDelete.length; i++) {
-      let node = this.#nodesToDelete[i]
+    for (let i = 0; i < this.#nodesToPrune.length; i++) {
+      let node = this.#nodesToPrune[i]
       Graph.traverse(node, node => {
         SparseSet.each(node.entities, this.#despawn)
       })
     }
     // Relocate entities.
-    Transaction.drain(
-      this.#transaction,
-      function relocateEntityBatch(batch, prevNode, nextNode) {
-        SparseSet.each(batch, function relocateEntity(entity) {
-          if (prevNode) Graph.removeEntity(prevNode, entity)
-          if (nextNode) Graph.insertEntity(nextNode, entity)
-        })
-      },
-    )
+    Transaction.drain(this.#transaction, (batch, prevNode, nextNode) => {
+      SparseSet.each(batch, entity => {
+        if (prevNode) {
+          Graph.removeEntity(prevNode, entity)
+          // if (
+          //   prevNode.type.relations.length > 0 &&
+          //   SparseSet.size(prevNode.entities) === 0
+          // ) {
+          //   this.#nodesToSplice.push(prevNode)
+          // }
+        }
+        if (nextNode) Graph.insertEntity(nextNode, entity)
+      })
+    })
     // Drop all nodes marked for deletion.
-    let node: Graph.Node
-    while ((node = this.#nodesToDelete.pop()!)) {
-      Graph.deleteNode(this.graph, node)
+    let node: Graph.Node | undefined
+    while ((node = this.#nodesToPrune.pop())) {
+      Graph.pruneNode(this.graph, node)
     }
+    // Why is this not working?!
+    // let i = 0
+    // while ((node = this.#nodesToSplice.pop())) {
+    //   if (SparseSet.size(node.entities) === 0) {
+    //     i++
+    //     Graph.spliceNode(this.graph, node)
+    //   }
+    // }
+    // if (i > 0) {
+    //   console.log(i)
+    // }
   }
 
   getExclusiveRelative<U extends Component.TRelation>(
@@ -694,6 +712,7 @@ export class World {
       throw new Error("Expected exclusive relation")
     }
     if (!Type.has(node.type, relation)) {
+      return undefined
       throw new Error("Expected entity to have relation")
     }
     for (let i = 0; i < node.type.pairs.length; i++) {

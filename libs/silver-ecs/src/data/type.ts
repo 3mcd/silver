@@ -67,7 +67,7 @@ export let supersetMayContain = (a: Type, b: Type): boolean => {
   return true
 }
 
-export let xor = (a: Type, b: Type): number => {
+export let xorHash = (a: Type, b: Type): number => {
   if (a.hash === b.hash) return 0
   let xor = 0
   let ia = 0
@@ -95,6 +95,20 @@ export let xor = (a: Type, b: Type): number => {
     ib++
   }
   return xor
+}
+
+export let intersection = <U extends Component.T[], V extends Component.T[]>(
+  a: Type<U>,
+  b: Type<V>,
+) => {
+  let components: Component.T[] = []
+  for (let i = 0; i < a.ordered.length; i++) {
+    let component = a.ordered[i]
+    if (b.sparse[component.id] !== undefined) {
+      components.push(component)
+    }
+  }
+  return from(components)
 }
 
 let with_ = <U extends Component.T[], V extends Component.T[]>(
@@ -136,24 +150,24 @@ export let withoutComponent = <U extends Component.T[], V extends Component.T>(
 let isType = (obj: object): obj is Type => "components" in obj
 
 let normalize = <U extends (Type | Component.T)[]>(types: U): Normalized<U> => {
-  let matched = new Set<Component.T>()
+  let matched = new Set<number>()
   let components = [] as Component.T[]
   for (let i = 0; i < types.length; i++) {
     let type = types[i]
     if (isType(type)) {
       for (let j = 0; j < type.components.length; j++) {
         let component = type.components[j]
-        if (matched.has(component)) {
+        if (matched.has(component.id)) {
           continue
         }
-        matched.add(component)
+        matched.add(component.id)
         components.push(component)
       }
     } else {
-      if (matched.has(type)) {
+      if (matched.has(type.id)) {
         continue
       }
-      matched.add(type)
+      matched.add(type.id)
       components.push(type)
     }
   }

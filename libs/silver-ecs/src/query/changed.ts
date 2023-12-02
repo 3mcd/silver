@@ -20,7 +20,7 @@ let makeComponentChangedPredicate = (component: Component.T) => {
   // entity has not changed
   s += `if(a${componentId}!==undefined&&a${componentId}>=b${componentId})return false;`
   // the entity has changed, so stage the new version
-  s += `$(k${componentId},b${componentId});`
+  s += `S(k${componentId},b${componentId});`
   return s
 }
 
@@ -38,7 +38,7 @@ export let compilePredicate = (
     body += makeComponentChangedPredicate(component)
   }
   body += "return true}"
-  return Function("A", "B", "$", body)(local, remote, update)
+  return Function("A", "B", "S", body)(local, remote, update)
 }
 
 export class Changed {

@@ -14,7 +14,7 @@ perf("calculate the xor of 2 types with 6 components each", () => {
   let typeA = Type.make.apply(null, components.slice(0, 6))
   let typeB = Type.make.apply(null, components.slice(4, 10))
   return () => {
-    Type.xor(typeA, typeB)
+    Type.xorHash(typeA, typeB)
   }
 })
 

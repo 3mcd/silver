@@ -38,11 +38,12 @@ let emitSpawnedEntities = (batch: Batch) => {
   )
 }
 
-let emitIncludedEntities = (batch: Batch) => {
+let emitUpgradedEntities = (batch: Batch) => {
+  // nextNode is guaranteed to be a superset of prevNode
   let prevNode = Assert.exists(batch.prevNode)
   Graph.traverseLeft(
     Assert.exists(batch.nextNode),
-    function emitIncludedEntities(visit: Graph.Node) {
+    function emitUpgradedEntities(visit: Graph.Node) {
       if (visit !== prevNode && !Type.isSuperset(prevNode.type, visit.type)) {
         Signal.emit(visit.$included, batch)
       }
@@ -50,11 +51,12 @@ let emitIncludedEntities = (batch: Batch) => {
   )
 }
 
-let emitExcludedEntities = (batch: Batch) => {
+let emitDowngradedEntities = (batch: Batch) => {
+  // nextNode is guaranteed to be a subset of prevNode
   let nextNode = Assert.exists(batch.nextNode)
   Graph.traverseLeft(
     Assert.exists(batch.prevNode),
-    function emitExcludedEntities(visit: Graph.Node) {
+    function emitDowngradedEntities(visit: Graph.Node) {
       if (visit !== nextNode && !Type.isSuperset(nextNode.type, visit.type)) {
         Signal.emit(visit.$excluded, batch)
       }
@@ -72,15 +74,32 @@ let emitDespawnedEntities = (batch: Batch) => {
 }
 
 let emitMovedEntities = (batch: Batch) => {
+  // Find the type the source and destination nodes have in common.
+  let intersection = Type.intersection(
+    Assert.exists(batch.prevNode).type,
+    Assert.exists(batch.nextNode).type,
+  )
   Graph.traverseLeft(
     Assert.exists(batch.nextNode),
-    function emitIncludedEntities(node: Graph.Node) {
+    function emitUpgradedEntities(node: Graph.Node) {
+      if (
+        intersection.hash === node.type.hash ||
+        Type.isSuperset(intersection, node.type)
+      ) {
+        return false
+      }
       Signal.emit(node.$included, batch)
     },
   )
   Graph.traverseLeft(
     Assert.exists(batch.prevNode),
-    function emitExcludedEntities(node: Graph.Node) {
+    function emitDowngradedEntities(node: Graph.Node) {
+      if (
+        intersection.hash === node.type.hash ||
+        Type.isSuperset(intersection, node.type)
+      ) {
+        return false
+      }
       Signal.emit(node.$excluded, batch)
     },
   )
@@ -122,9 +141,9 @@ export let drain = (transaction: T, iteratee?: Iteratee) => {
     if (prevNode === undefined) {
       emitSpawnedEntities(batch)
     } else if (Type.isSuperset(nextNode.type, prevNode.type)) {
-      emitIncludedEntities(batch)
+      emitMovedEntities(batch)
     } else if (Type.isSuperset(prevNode.type, nextNode.type)) {
-      emitExcludedEntities(batch)
+      emitMovedEntities(batch)
     } else {
       emitMovedEntities(batch)
     }
