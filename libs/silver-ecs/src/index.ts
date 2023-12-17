@@ -31,7 +31,6 @@ export * as SparseMap from "./sparse/sparse_map"
 export * as SparseSet from "./sparse/sparse_set"
 export {traverse} from "./world/graph"
 export {makeWorld} from "./world/world"
-export type {World} from "./world/world"
 import type {Type} from "./data/type"
 import type {Init} from "./world/commands"
 import type {World} from "./world/world"
@@ -41,6 +40,7 @@ export * as Graph from "./world/graph"
 export * as Hash from "./hash"
 export {parseLo, parseHi} from "./entity/entity"
 export * as Schema from "./data/schema"
+export * as World from "./world/world"
 
 type InitType<U extends Type> = U extends Type<infer T> ? Init<T> : never
 export type {InitType as Init}

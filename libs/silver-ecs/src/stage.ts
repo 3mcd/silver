@@ -409,11 +409,11 @@ export let insert = <U>(buffer: T<U>, time: number, event: U) => {
   }
 }
 
-export let Delete = <U>(buffer: T<U>, time: number) => {
+export let _delete = <U>(buffer: T<U>, time: number) => {
   buffer.map.delete(buffer.min, time, true)
   buffer.min = time
 }
-export {Delete as delete}
+export {_delete as delete}
 
 export let deleteRange = <U>(buffer: T<U>, time: number) => {
   buffer.map.delete(buffer.min, time, true)

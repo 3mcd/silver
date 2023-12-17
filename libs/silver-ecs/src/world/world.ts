@@ -17,7 +17,6 @@ export class World {
   #entityRegistry
   #entityPairRoots
   #nodesToPrune
-  #nodesToSplice
   #releaseTemp
   #releaseTempAt
   #stage
@@ -33,7 +32,6 @@ export class World {
     this.#entityRegistry = Entities.make()
     this.#entityPairRoots = [] as Graph.Node[][]
     this.#nodesToPrune = [] as Graph.Node[]
-    this.#nodesToSplice = [] as Graph.Node[]
     this.#stage = Stage.make<Commands.T>()
     this.#tick = tick
     this.#transaction = Transaction.make()
@@ -639,6 +637,17 @@ export class World {
     )
   }
 
+  reset(tick: number) {
+    this.#tick = tick
+    this.#releaseTempAt = undefined
+    this.#releaseTemp = false
+    Stage.drainTo(this.#stage, tick)
+    Transaction.drain(this.#transaction)
+    SparseMap.each(this.temp, (_, map) => {
+      SparseMap.clear(map)
+    })
+  }
+
   /**
    * Step the world forward to the specified tick. If no tick is specified, the
    * world will step forward by one tick.
@@ -659,7 +668,7 @@ export class World {
       this.#tick++
     }
     if (this.#releaseTemp) {
-      this.#releaseTempAt = this.#tick + 0
+      this.#releaseTempAt = this.#tick + 1
       this.#releaseTemp = false
     }
     // Immediately despawn all entities whose nodes are marked for deletion.
@@ -672,15 +681,7 @@ export class World {
     // Relocate entities.
     Transaction.drain(this.#transaction, (batch, prevNode, nextNode) => {
       SparseSet.each(batch, entity => {
-        if (prevNode) {
-          Graph.removeEntity(prevNode, entity)
-          // if (
-          //   prevNode.type.relations.length > 0 &&
-          //   SparseSet.size(prevNode.entities) === 0
-          // ) {
-          //   this.#nodesToSplice.push(prevNode)
-          // }
-        }
+        if (prevNode) Graph.removeEntity(prevNode, entity)
         if (nextNode) Graph.insertEntity(nextNode, entity)
       })
     })
@@ -689,17 +690,6 @@ export class World {
     while ((node = this.#nodesToPrune.pop())) {
       Graph.pruneNode(this.graph, node)
     }
-    // Why is this not working?!
-    // let i = 0
-    // while ((node = this.#nodesToSplice.pop())) {
-    //   if (SparseSet.size(node.entities) === 0) {
-    //     i++
-    //     Graph.spliceNode(this.graph, node)
-    //   }
-    // }
-    // if (i > 0) {
-    //   console.log(i)
-    // }
   }
 
   getExclusiveRelative<U extends Component.TRelation>(
@@ -713,7 +703,6 @@ export class World {
     }
     if (!Type.has(node.type, relation)) {
       return undefined
-      throw new Error("Expected entity to have relation")
     }
     for (let i = 0; i < node.type.pairs.length; i++) {
       let pair = node.type.pairs[i]

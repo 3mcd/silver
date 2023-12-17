@@ -12,9 +12,9 @@ let renderer = await Pixi.autoDetectRenderer({
   clearBeforeRender: true,
   backgroundAlpha: 1,
   backgroundColor: 0xffffff,
-  width: window.innerWidth,
-  height: window.innerHeight,
-  resolution: 1,
+  width: window.innerWidth * 10,
+  height: window.innerHeight * 10,
+  resolution: 0.2,
   antialias: false,
 })
 let stage = new Pixi.Container()

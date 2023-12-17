@@ -1,0 +1,27 @@
+{
+  "name": "mp",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx server.ts & vite"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fails-components/webtransport": "^0.3.1",
+    "pixi.js": "8.0.0-beta.11",
+    "silver-ecs": "workspace:*",
+    "silver-inspector": "workspace:*",
+    "silver-lib": "workspace:*",
+    "silver-net": "workspace:*",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
+    "vite": "^4.5.0"
+  },
+  "devDependencies": {
+    "tsx": "^3.12.7"
+  }
+}

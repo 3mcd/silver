@@ -13,9 +13,8 @@ export let Left = S.relation(S.Topology.Exclusive)
 export let Right = S.relation(S.Topology.Exclusive)
 export let Top = S.relation(S.Topology.Exclusive)
 export let Bottom = S.relation(S.Topology.Exclusive)
-export let CellIndex = S.value<number>()
 
-export const CELL_SIZE = 200
+export const CELL_SIZE = 500
 export const CELL_COUNT = 256
 export const CELL_SQRT = Math.sqrt(CELL_COUNT)
 
@@ -27,11 +26,9 @@ export let gridSystem: S.System = world => {
     S.Not(InCell),
   )
   let cells = S.query(world, S.type(Position, Rect, CellOf))
-  let cellsIn = S.query(world, S.type(CellIndex, CellOf), S.In())
   let cellBoxes = S.query(world, S.type(InCell, Position, Rect))
   let cellLookup: S.Entity[] = []
   let grid = world.with(Grid).with(Position).spawn()
-  let k = 0
   for (let i = 0; i < CELL_SQRT; i++) {
     for (let j = 0; j < CELL_SQRT; j++) {
       let cell = world
@@ -47,7 +44,6 @@ export let gridSystem: S.System = world => {
           hw: CELL_SIZE * 0.5,
           hh: CELL_SIZE * 0.5,
         })
-        .with(CellIndex, k++)
         .spawn()
       cellLookup.push(cell)
     }
@@ -121,10 +117,10 @@ export let gridSystem: S.System = world => {
     } catch {
       return
     }
-    const gridL = gridPos.x - (CELL_SIZE * CELL_SQRT) / 2
-    const gridR = gridPos.x + (CELL_SIZE * CELL_SQRT) / 2
-    const gridT = gridPos.y - (CELL_SIZE * CELL_SQRT) / 2
-    const gridB = gridPos.y + (CELL_SIZE * CELL_SQRT) / 2
+    const gridL = gridPos.x - CELL_SQRT * CELL_SIZE
+    const gridR = gridPos.x + CELL_SQRT * CELL_SIZE
+    const gridT = gridPos.y - CELL_SQRT * CELL_SIZE
+    const gridB = gridPos.y + CELL_SQRT * CELL_SIZE
     boxes.each(function findCellsForBoxesThatNowIntersectGrid(
       box,
       boxPos,

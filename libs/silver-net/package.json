@@ -1,7 +1,7 @@
 {
   "name": "silver-net",
   "version": "0.0.1",
-  "description": "",
+  "description": "Networking utilities for silver-ecs projects",
   "keywords": [
     "ecs",
     "entity-component system",
@@ -10,33 +10,20 @@
     "multiplayer",
     "mog"
   ],
-  "scripts": {
-    "test": "vitest",
-    "bench": "silver-bench"
-  },
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
   "files": [
-    "dist",
-    "debug"
+    "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3mcd/silver"
+  },
   "main": "dist/silver-net.cjs.js",
   "module": "dist/silver-net.esm.js",
   "source": "./src/index.ts",
-  "types": "./dist/types/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/silver-ecs.js"
-    },
-    "./debug": {
-      "import": "./dist/silver-ecs.debug.js"
-    },
-    "./dev": {
-      "import": "./src/index.ts"
-    }
-  },
+  "types": "./dist/silver-net.cjs.d.ts",
   "devDependencies": {
-    "silver-bench": "workspace:*",
     "silver-ecs": "workspace:*"
   },
   "peerDependencies": {

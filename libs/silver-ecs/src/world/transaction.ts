@@ -38,32 +38,6 @@ let emitSpawnedEntities = (batch: Batch) => {
   )
 }
 
-let emitUpgradedEntities = (batch: Batch) => {
-  // nextNode is guaranteed to be a superset of prevNode
-  let prevNode = Assert.exists(batch.prevNode)
-  Graph.traverseLeft(
-    Assert.exists(batch.nextNode),
-    function emitUpgradedEntities(visit: Graph.Node) {
-      if (visit !== prevNode && !Type.isSuperset(prevNode.type, visit.type)) {
-        Signal.emit(visit.$included, batch)
-      }
-    },
-  )
-}
-
-let emitDowngradedEntities = (batch: Batch) => {
-  // nextNode is guaranteed to be a subset of prevNode
-  let nextNode = Assert.exists(batch.nextNode)
-  Graph.traverseLeft(
-    Assert.exists(batch.prevNode),
-    function emitDowngradedEntities(visit: Graph.Node) {
-      if (visit !== nextNode && !Type.isSuperset(nextNode.type, visit.type)) {
-        Signal.emit(visit.$excluded, batch)
-      }
-    },
-  )
-}
-
 let emitDespawnedEntities = (batch: Batch) => {
   Graph.traverseLeft(
     Assert.exists(batch.prevNode),
@@ -140,10 +114,6 @@ export let drain = (transaction: T, iteratee?: Iteratee) => {
     })
     if (prevNode === undefined) {
       emitSpawnedEntities(batch)
-    } else if (Type.isSuperset(nextNode.type, prevNode.type)) {
-      emitMovedEntities(batch)
-    } else if (Type.isSuperset(prevNode.type, nextNode.type)) {
-      emitMovedEntities(batch)
     } else {
       emitMovedEntities(batch)
     }
@@ -169,7 +139,8 @@ export let locatePrevEntityNode = (
 
 export let move = (transaction: T, entity: Entity.T, nextNode?: Graph.Node) => {
   let prevBatch = SparseMap.get(transaction.batchesByEntity, entity)
-  // If the entity was already moved since the last drain,
+  // If the entity was already moved since the last drain, remove it from its
+  // previous batch.
   if (prevBatch !== undefined) {
     SparseSet.delete(prevBatch.entities, entity)
   }

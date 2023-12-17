@@ -1,7 +1,6 @@
 import * as S from "silver-ecs"
 import {Position} from "silver-lib"
 import {Rect, gridSystem} from "./grid"
-// import "./inspector"
 import {renderSystem} from "./render"
 import {world} from "./world"
 import {Bunny, bunniesSystem} from "./bunnies"
@@ -10,13 +9,11 @@ let spawnSystem: S.System = () => {
   for (let i = 0; i < 1_000; i++) {
     world
       .with(Bunny)
-      .with(
-        Position,
-        Position.make({
-          x: (Math.random() - 0.5) * 10_000,
-          y: (Math.random() - 0.5) * 10_000,
-        }),
-      )
+      .with(Position, {
+        x: (Math.random() - 0.5) * 10_000,
+        y: (Math.random() - 0.5) * 10_000,
+        z: 0,
+      })
       .with(Rect, {
         hw: 26 * 0.5,
         hh: 37 * 0.5,
