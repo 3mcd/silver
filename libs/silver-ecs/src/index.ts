@@ -41,6 +41,7 @@ export * as Hash from "./hash"
 export {parseLo, parseHi} from "./entity/entity"
 export * as Schema from "./data/schema"
 export * as World from "./world/world"
+export * as Commands from "./world/commands"
 
 type InitType<U extends Type> = U extends Type<infer T> ? Init<T> : never
 export type {InitType as Init}

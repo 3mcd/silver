@@ -203,7 +203,7 @@ let makeRelativesKeys = (query: T, nodeType: Type.T) => {
   let relativesKeys: number[] = []
   for (let i = 0; i < relativesProduct.length; i++) {
     let flat = relativesProduct[i].flat(1)
-    relativesKeys.push(Hash.normalize(Hash.words(flat)))
+    relativesKeys.push(Hash.asUint(Hash.words(flat)))
   }
   return relativesKeys
 }

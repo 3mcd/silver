@@ -16,6 +16,6 @@ export let words = (words: number[]): number => {
   return hash
 }
 
-export let normalize = (hash: number): number => {
+export let asUint = (hash: number): number => {
   return hash >>> 0
 }
