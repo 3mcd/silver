@@ -130,7 +130,7 @@ let emitNodeTraverse = (node: Node): void => {
 
 let insertNode = (graph: Graph, type: Type.T): Node => {
   let node: Node = new Node(type)
-  graph.nodesByComponentsHash.set(type.hash, node)
+  graph.nodesByHash.set(type.hash, node)
   SparseMap.set(graph.nodesById, node.id, node)
   linkNodesDeep(graph, node)
   emitNodeTraverse(node)
@@ -146,7 +146,7 @@ let dropNode = (graph: Graph, node: Node): void => {
   })
   node.edgesLeft.clear()
   node.edgesRight.clear()
-  graph.nodesByComponentsHash.delete(node.type.hash)
+  graph.nodesByHash.delete(node.type.hash)
   SparseMap.delete(graph.nodesById, node.id)
   Signal.dispose(node.$dropped)
   Signal.dispose(node.$created)
@@ -191,8 +191,7 @@ export let moveEntitiesLeft = (
 }
 
 export let resolve = (graph: Graph, type: Type.T): Node => {
-  let node =
-    graph.nodesByComponentsHash.get(type.hash) ?? insertNode(graph, type)
+  let node = graph.nodesByHash.get(type.hash) ?? insertNode(graph, type)
   return node
 }
 
@@ -201,7 +200,7 @@ export let resolveByComponent = (
   component: Component.T,
 ): Node => {
   let node =
-    graph.nodesByComponentsHash.get(Hash.word(undefined, component.id)) ??
+    graph.nodesByHash.get(Hash.word(undefined, component.id)) ??
     insertNode(graph, Type.make(component))
   return node
 }
@@ -212,14 +211,14 @@ export let findById = (graph: Graph, nodeId: number): Node | undefined => {
 
 export class Graph {
   nodesById
-  nodesByComponentsHash
+  nodesByHash
   root
 
   constructor() {
     this.root = new Node()
     this.nodesById = SparseMap.make<Node>()
-    this.nodesByComponentsHash = new Map<number, Node>()
-    this.nodesByComponentsHash.set(this.root.type.hash, this.root)
+    this.nodesByHash = new Map<number, Node>()
+    this.nodesByHash.set(this.root.type.hash, this.root)
     SparseMap.set(this.nodesById, this.root.id, this.root)
   }
 }

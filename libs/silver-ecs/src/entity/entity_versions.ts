@@ -3,19 +3,25 @@ import * as Entity from "./entity"
 export type EntityVersions = number[]
 export type T = EntityVersions
 
-export let make = (): T => []
+export let make = (): T => {
+  return []
+}
 
-let getAtKey = (changes: EntityVersions, key: number): number =>
-  (changes[key] ??= 0)
+let getAtKey = (changes: EntityVersions, key: number): number => {
+  return (changes[key] ??= 0)
+}
 
-let makeKey = (entity: Entity.T, componentId: number): number =>
-  Entity.make(Entity.parseLo(entity), componentId)
+let makeKey = (entity: Entity.T, componentId: number): number => {
+  return Entity.make(Entity.parseLo(entity), componentId)
+}
 
 export let get = (
   changes: EntityVersions,
   entity: Entity.T,
   componentId: number,
-): number => getAtKey(changes, makeKey(entity, componentId))
+): number => {
+  return getAtKey(changes, makeKey(entity, componentId))
+}
 
 export let bump = (
   changes: EntityVersions,

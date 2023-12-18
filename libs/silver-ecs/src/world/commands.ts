@@ -123,18 +123,25 @@ export let spawn = <U extends Component.T[]>(
   type: Type.T<U>,
   entity: Entity.T,
   init: Init<U>,
-) => new Command("spawn", entity, type, init) as Spawn<U>
+) => {
+  return new Command("spawn", entity, type, init) as Spawn<U>
+}
 
-export let despawn = (entity: Entity.T) =>
-  new Command("despawn", entity) as Despawn
+export let despawn = (entity: Entity.T) => {
+  return new Command("despawn", entity) as Despawn
+}
 
 export let add = <U extends Component.T[]>(
   type: Type.T<U>,
   entity: Entity.T,
   init: Init<U>,
-) => new Command("add", entity, type, init) as Add<U>
+) => {
+  return new Command("add", entity, type, init) as Add<U>
+}
 
 export let remove = <U extends Component.T[]>(
   type: Type.T<U>,
   entity: Entity.T,
-) => new Command("remove", entity, type) as Remove<U>
+) => {
+  return new Command("remove", entity, type) as Remove<U>
+}

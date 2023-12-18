@@ -179,6 +179,10 @@ export class World {
     Transaction.move(this.#transaction, entity)
   }
 
+  #despawnDroppedNodeEntities = (node: Graph.Node) => {
+    SparseSet.each(node.entities, this.#despawn)
+  }
+
   /**
    * Add or update a component for an entity.
    */
@@ -657,7 +661,7 @@ export class World {
       this.#releaseTempAt !== undefined &&
       this.#tick >= this.#releaseTempAt
     ) {
-      SparseMap.each(this.temp, (_, map) => {
+      SparseMap.each(this.temp, function releaseTempValues(_, map) {
         SparseMap.clear(map)
       })
       this.#releaseTempAt = undefined
@@ -674,17 +678,18 @@ export class World {
     // Immediately despawn all entities whose nodes are marked for deletion.
     for (let i = 0; i < this.#nodesToPrune.length; i++) {
       let node = this.#nodesToPrune[i]
-      Graph.traverse(node, node => {
-        SparseSet.each(node.entities, this.#despawn)
-      })
+      Graph.traverse(node, this.#despawnDroppedNodeEntities)
     }
     // Relocate entities.
-    Transaction.drain(this.#transaction, (batch, prevNode, nextNode) => {
-      SparseSet.each(batch, entity => {
-        if (prevNode) Graph.removeEntity(prevNode, entity)
-        if (nextNode) Graph.insertEntity(nextNode, entity)
-      })
-    })
+    Transaction.drain(
+      this.#transaction,
+      function moveEntityBatch(batch, prevNode, nextNode) {
+        SparseSet.each(batch, function moveEntity(entity) {
+          if (prevNode) Graph.removeEntity(prevNode, entity)
+          if (nextNode) Graph.insertEntity(nextNode, entity)
+        })
+      },
+    )
     // Drop all nodes marked for deletion.
     let node: Graph.Node | undefined
     while ((node = this.#nodesToPrune.pop())) {
@@ -736,4 +741,6 @@ export class World {
 }
 export type T = World
 
-export let makeWorld = (tick = 0): World => new World(tick)
+export let makeWorld = (tick = 0): World => {
+  return new World(tick)
+}

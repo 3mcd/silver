@@ -45,7 +45,7 @@ let roundDownTo = (x: number, t: number) => Math.floor(x / t) * t
 export class FixedTimestep {
   overshootTime
   skipTime
-  step
+  tick
   time
   readonly maxDrift
   readonly maxUpdateDelta
@@ -55,7 +55,7 @@ export class FixedTimestep {
   constructor(config: FixedTimestepperConfig) {
     this.overshootTime = 0
     this.skipTime = 0
-    this.step = 0
+    this.tick = 0
     this.time = 0
     this.maxDrift = config.maxDrift
     this.maxUpdateDelta = config.maxUpdateDelta
@@ -91,8 +91,9 @@ let compensateDeltaTime = (
   return compensatedDeltaTime
 }
 
-let measureDrift = (timestep: FixedTimestep, targetTime: number) =>
-  timestep.time - timestep.overshootTime - targetTime
+let measureDrift = (timestep: FixedTimestep, targetTime: number) => {
+  return timestep.time - timestep.overshootTime - targetTime
+}
 
 export let reset = (timestep: FixedTimestep, targetTime: number) => {
   let targetDecomposedTime = 0
@@ -105,12 +106,12 @@ export let reset = (timestep: FixedTimestep, targetTime: number) => {
       break
   }
   timestep.time = targetDecomposedTime
-  timestep.step = targetDecomposedTime / timestep.timestep
+  timestep.tick = targetDecomposedTime / timestep.timestep
   timestep.overshootTime = targetDecomposedTime - targetTime
 }
 
 let advanceInner = (timestep: FixedTimestep, deltaTime: number) => {
-  let steps = 0
+  let ticks = 0
   timestep.overshootTime -= deltaTime
   while (true) {
     let nextOvershootTime = timestep.overshootTime + timestep.timestep
@@ -119,9 +120,9 @@ let advanceInner = (timestep: FixedTimestep, deltaTime: number) => {
     }
     timestep.overshootTime = nextOvershootTime
     timestep.time += timestep.timestep
-    steps++
+    ticks++
   }
-  timestep.step += steps
+  timestep.tick += ticks
 }
 
 export let advance = (

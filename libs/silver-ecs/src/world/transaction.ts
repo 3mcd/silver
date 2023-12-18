@@ -164,4 +164,6 @@ export let move = (transaction: T, entity: Entity.T, nextNode?: Graph.Node) => {
   SparseMap.set(transaction.batchesByEntity, entity, nextBatch)
 }
 
-export let make = (): T => new Transaction()
+export let make = (): T => {
+  return new Transaction()
+}

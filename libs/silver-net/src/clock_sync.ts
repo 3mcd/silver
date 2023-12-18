@@ -3,52 +3,55 @@ import {
   CLOCK_SYNC_RESPONSE_MESSAGE_TYPE,
 } from "./protocol"
 
-export type ClockSyncResponsePayload = {
+export type ResponsePayload = {
   clientTime: number
   serverTime: number
 }
 
+export type Config = {
+  maxDeviation?: number
+  minSampleCount?: number
+  offsetSamplesOutlierRate?: number
+}
+
 class ClockSync {
-  maxOffsetDeviation = 0.1
-  minOffsetSamplesCount = 8
-  minOffsetSamplesCountWithOutliers = 0
-  offset = 0
-  sampleOutlierRate = 0.2
-  samples: number[] = []
-  samplesToDiscardPerExtreme = 2
+  maxDeviation
+  minSampleCount
+  minSampleCountWithOutliers
+  offset
+  sampleOutlierRate
+  samples
+  samplesToDiscardPerExtreme
 
-  constructor(
-    maxOffsetDeviation?: number,
-    minOffsetSamplesCount?: number,
-    offsetSamplesOutlierRate?: number,
-  ) {
-    this.maxOffsetDeviation = maxOffsetDeviation ?? this.maxOffsetDeviation
-    this.minOffsetSamplesCount =
-      minOffsetSamplesCount ?? this.minOffsetSamplesCount
-    this.sampleOutlierRate = offsetSamplesOutlierRate ?? this.sampleOutlierRate
+  constructor(config?: Partial<Config>) {
+    this.maxDeviation = config?.maxDeviation ?? 0.1
+    this.minSampleCount = config?.minSampleCount ?? 8
+    this.sampleOutlierRate = config?.offsetSamplesOutlierRate ?? 0.2
     this.samplesToDiscardPerExtreme = Math.ceil(
-      Math.max((this.minOffsetSamplesCount * this.sampleOutlierRate) / 2, 1),
+      Math.max((this.minSampleCount * this.sampleOutlierRate) / 2, 1),
     )
-    this.minOffsetSamplesCountWithOutliers =
-      this.minOffsetSamplesCount + this.samplesToDiscardPerExtreme * 2
-  }
-
-  get isSynced() {
-    return this.offset !== 0
+    this.minSampleCountWithOutliers =
+      this.minSampleCount + this.samplesToDiscardPerExtreme * 2
+    this.offset = 0
+    this.samples = [] as number[]
   }
 }
 export type T = ClockSync
 
+export let isSynced = (clockSync: ClockSync) => {
+  return clockSync.offset !== 0
+}
+
 export let addSample = (
   clockSync: ClockSync,
-  clockSyncPayload: ClockSyncResponsePayload,
+  clockSyncPayload: ResponsePayload,
   clientTime: number,
 ) => {
   let offsetSample =
     clockSyncPayload.serverTime - (clockSyncPayload.clientTime + clientTime) / 2
   if (
     clockSync.samples.unshift(offsetSample) ===
-    clockSync.minOffsetSamplesCountWithOutliers
+    clockSync.minSampleCountWithOutliers
   ) {
     let samples = clockSync.samples.slice().sort()
     let minSampleIndex = clockSync.samplesToDiscardPerExtreme
@@ -59,7 +62,7 @@ export let addSample = (
       offset += samples[i]
     }
     offset = offset / (maxSampleIndex - clockSync.samplesToDiscardPerExtreme)
-    if (Math.abs(offset - clockSync.offset) > clockSync.maxOffsetDeviation) {
+    if (Math.abs(offset - clockSync.offset) > clockSync.maxDeviation) {
       clockSync.offset = offset
     }
     clockSync.samples.pop()
@@ -72,16 +75,8 @@ export let estimateServerTime = (clockSync: ClockSync, clientTime: number) => {
   return clientTime + clockSync.offset
 }
 
-export let make = (
-  maxOffsetDeviation?: number,
-  minOffsetSamplesCount?: number,
-  offsetSamplesOutlierRate?: number,
-) => {
-  return new ClockSync(
-    maxOffsetDeviation,
-    minOffsetSamplesCount,
-    offsetSamplesOutlierRate,
-  )
+export let make = (config?: Partial<Config>) => {
+  return new ClockSync(config)
 }
 
 export let encodeRequest = (
@@ -115,7 +110,7 @@ export let encodeResponse = (
 export let decodeResponse = (
   view: DataView,
   offset: number,
-  payload: ClockSyncResponsePayload,
+  payload: ResponsePayload,
 ) => {
   offset += Uint8Array.BYTES_PER_ELEMENT
   payload.clientTime = view.getFloat64(offset, true)

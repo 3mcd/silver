@@ -43,4 +43,6 @@ export class Aliases {
 
 export let aliasContext = createContext<Aliases>(null!)
 
-export let makeDebugAliases = () => new Aliases()
+export let makeDebugAliases = () => {
+  return new Aliases()
+}

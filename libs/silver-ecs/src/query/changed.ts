@@ -30,8 +30,9 @@ export let compilePredicate = (
   remote: EntityVersions.T,
   stage: SparseMap.T<number>,
 ): Predicate => {
-  let update = (key: number, version: number) =>
+  let update = (key: number, version: number) => {
     SparseMap.set(stage, key, version)
+  }
   let body = "return function changed(e){"
   for (let i = 0; i < type.ordered.length; i++) {
     let component = type.ordered[i]
@@ -56,4 +57,6 @@ export class Changed {
 }
 export type T = Changed
 
-export let make = (type: Type.T, b: EntityVersions.T) => new Changed(type, b)
+export let make = (type: Type.T, b: EntityVersions.T) => {
+  return new Changed(type, b)
+}

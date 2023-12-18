@@ -1,11 +1,5 @@
 import {makeWorld, run} from "silver-ecs"
-import {
-  CLOCK_SYNC_REQUEST_MESSAGE_SIZE,
-  CLOCK_SYNC_RESPONSE_MESSAGE_SIZE,
-  CLOCK_SYNC_RESPONSE_MESSAGE_TYPE,
-  ClockSync,
-  FixedTimestep,
-} from "silver-net"
+import {Protocol, ClockSync, FixedTimestep} from "silver-net"
 import {io} from "socket.io-client"
 import {LAG_COMPENSATION_LATENCY, moveKinetics} from "./shared"
 
@@ -27,12 +21,14 @@ let status = Status.Connecting
 let clockSync = ClockSync.make()
 let clockSyncPayload = {clientTime: 0, serverTime: 0}
 let clockSyncRequestTime = 0
-let timestep = FixedTimestep.make()
+let fixedTimestep = FixedTimestep.make()
 let getTime = () => performance.now() / 1_000
 let previousTime = 0
 
 let sendClockSyncRequest = (clientTime: number) => {
-  let clockSyncRequest = new ArrayBuffer(CLOCK_SYNC_REQUEST_MESSAGE_SIZE)
+  let clockSyncRequest = new ArrayBuffer(
+    Protocol.CLOCK_SYNC_REQUEST_MESSAGE_SIZE,
+  )
   let clockSyncRequestView = new DataView(clockSyncRequest)
   ClockSync.encodeRequest(clockSyncRequestView, 0, clientTime)
   socket.send(clockSyncRequest)
@@ -47,16 +43,17 @@ let handleClockSyncResponse = (
   let clientTime = getTime()
   ClockSync.decodeResponse(view, offset, clockSyncPayload)
   ClockSync.addSample(clockSync, clockSyncPayload, clientTime)
-  // When the clock is synced, reset the timestep to the server time.
-  if (status === Status.SyncingClock && clockSync.isSynced) {
+  // When the clock is synced, reset the fixed timestep and world to the
+  // estimated server time.
+  if (status === Status.SyncingClock && ClockSync.isSynced(clockSync)) {
     let serverTime =
       ClockSync.estimateServerTime(clockSync, clientTime) +
       LAG_COMPENSATION_LATENCY
-    FixedTimestep.reset(timestep, serverTime)
-    world.reset(timestep.step)
+    FixedTimestep.reset(fixedTimestep, serverTime)
+    world.reset(fixedTimestep.tick)
     status = Status.AwaitingSnapshot
   }
-  return offset + CLOCK_SYNC_RESPONSE_MESSAGE_SIZE
+  return offset + Protocol.CLOCK_SYNC_RESPONSE_MESSAGE_SIZE
 }
 
 let onMessage = (data: ArrayBuffer) => {
@@ -64,7 +61,7 @@ let onMessage = (data: ArrayBuffer) => {
   let offset = 0
   while (offset < data.byteLength) {
     switch (view.getUint8(offset)) {
-      case CLOCK_SYNC_RESPONSE_MESSAGE_TYPE:
+      case Protocol.CLOCK_SYNC_RESPONSE_MESSAGE_TYPE:
         offset = handleClockSyncResponse(view, offset, clockSync)
         break
     }
@@ -79,6 +76,11 @@ socket.on("disconnect", () => {
 })
 socket.on("message", onMessage)
 
+let step = () => {
+  world.step()
+  run(world, moveKinetics)
+}
+
 let loop = () => {
   let clientTime = getTime()
   // Periodically send clock sync requests.
@@ -90,12 +92,11 @@ let loop = () => {
     let serverTime =
       ClockSync.estimateServerTime(clockSync, clientTime) +
       LAG_COMPENSATION_LATENCY
-    FixedTimestep.advance(timestep, clientTime - previousTime, serverTime)
+    FixedTimestep.advance(fixedTimestep, clientTime - previousTime, serverTime)
   }
   // Catch the simulation up to the approximated server tick.
-  while (world.tick < timestep.step) {
-    world.step()
-    run(world, moveKinetics)
+  while (world.tick < fixedTimestep.tick) {
+    step()
   }
   previousTime = clientTime
   requestAnimationFrame(loop)

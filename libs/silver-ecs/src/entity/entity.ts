@@ -35,8 +35,9 @@ export let EXTENT = Math.pow(2, 31) - 1
 /**
  * Makes a new 31-bit entity from the given 20-bit id and 11-bit `hi` integer.
  */
-export let make = (entityId: number, hi: number): Entity =>
-  (((hi & HI) << LO_EXTENT) | entityId) as Entity
+export let make = (entityId: number, hi: number): Entity => {
+  return (((hi & HI) << LO_EXTENT) | entityId) as Entity
+}
 
 /**
  * Performs a bounds check on the given entity.

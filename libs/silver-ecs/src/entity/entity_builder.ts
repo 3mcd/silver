@@ -38,4 +38,6 @@ export let make = <U extends Component.T[]>(
   world: World.T,
   type: Type.T<U>,
   values: Commands.Init<U>,
-) => new EntityBuilder(world, type, Commands.init(type, values))
+) => {
+  return new EntityBuilder(world, type, Commands.init(type, values))
+}

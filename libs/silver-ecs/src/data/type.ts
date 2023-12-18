@@ -292,7 +292,9 @@ export let from = <U extends (Component.T | Type)[]>(
 
 export let make = <U extends (Component.T | Type)[]>(
   ...types: U
-): Type<Normalized<U>> => from(types)
+): Type<Normalized<U>> => {
+  return from(types)
+}
 
 export let pair = (type: T, values: unknown[]): T => {
   let j = 0

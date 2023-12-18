@@ -18,7 +18,9 @@ export let make = (
   head = 0,
   generations: number[] = [],
   free: number[] = [],
-): T => new EntityRegistry(head, generations, free)
+): T => {
+  return new EntityRegistry(head, generations, free)
+}
 
 export let check = (entityRegistry: T, entity: Entity.T) => {
   Entity.assertValid(entity)

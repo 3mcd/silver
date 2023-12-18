@@ -15,8 +15,9 @@ export let make = <U extends number>(): SparseSet<U> => {
   return new SparseSet<U>()
 }
 
-export let has = <U extends number>(set: SparseSet<U>, value: U): boolean =>
-  set.sparse[value] !== undefined
+export let has = <U extends number>(set: SparseSet<U>, value: U): boolean => {
+  return set.sparse[value] !== undefined
+}
 
 export let add = <U extends number>(set: SparseSet<U>, value: U): number => {
   return (set.sparse[value] ??= set.dense.push(value) - 1)
