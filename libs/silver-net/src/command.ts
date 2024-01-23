@@ -1,4 +1,5 @@
-import {Commands, Type} from "silver-ecs"
+import {Commands, Hash, Type, typeFrom} from "silver-ecs"
+import {Assert} from "silver-lib"
 import * as Model from "./model"
 import {SPAWN_MESSAGE_TYPE} from "./protocol"
 
@@ -14,7 +15,7 @@ let compileTypeEncoder = (type: Type, model: Model.T): TypeEncoder => {
     body += `o+=4;`
   }
   body += "}"
-  return Function(body)(model.toIso)
+  return Function("m", body)(model.toIso)
 }
 
 export let encodeSpawn = (
@@ -33,11 +34,25 @@ export let encodeSpawn = (
 }
 
 export let decodeSpawn = (view: DataView, offset: number, model: Model.T) => {
-  let type = model.iso[view.getUint8(offset)]
   offset += 1
-  let typeComponentsLength = view.getUint8(offset)
+  let count = view.getUint8(offset)
   offset += 1
-  for (let i = 0; i < typeComponentsLength; i++) {
-    let component = view.getUint32(offset)
+  let hash = Hash.make()
+  for (let i = 0; i < count; i++) {
+    let cid = view.getUint32(offset + i * 4)
+    hash = Hash.word(hash, cid)
   }
+  let type = model.isoType[Hash.asUint(hash)]
+  if (type === undefined) {
+    let iso = [] as number[]
+    for (let i = 0; i < count; i++) {
+      iso.push(view.getUint32(offset))
+      offset += 4
+    }
+    let components = iso.map(cid => Assert.exists(model.iso[cid]))
+    type = typeFrom(components)
+  } else {
+    offset += count * 4
+  }
+  return type
 }

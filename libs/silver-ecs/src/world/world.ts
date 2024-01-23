@@ -241,10 +241,13 @@ export class World {
       let pairRoot = entityPairRoots[i]
       let pair = Type.componentAt(pairRoot.type, 0) as Component.TPair
       let pairComponentId = Entity.parseHi(pair.id)
-      let pairComponent = Assert.exists(Component.getRelation(pairComponentId))
+      let pairComponent = Assert.exists(Component.findById(pairComponentId))
       // If the pair is inclusive (i.e. not hierarchical), remove the pair from
       // all related entities.
-      if (pairComponent.topology === Component.Topology.Inclusive) {
+      if (
+        (pairComponent as Component.TRelation).topology ===
+        Component.Topology.Inclusive
+      ) {
         Graph.moveEntitiesLeft(this.graph, pairRoot, pair, (entity, node) => {
           Transaction.move(this.#transaction, entity, node)
           this.#write(entity, pair, undefined)

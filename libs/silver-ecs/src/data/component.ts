@@ -130,9 +130,9 @@ export let makeComponentId = () => {
   return componentId
 }
 
-let relations = new Map<number, TRelation>()
-export let getRelation = (componentId: number): TRelation | undefined => {
-  return relations.get(componentId)
+let components = new Map<number, T>()
+export let findById = (componentId: number): T | undefined => {
+  return components.get(componentId)
 }
 
 class Component {
@@ -190,6 +190,8 @@ function make(
   schema?: Schema.T,
   initializer?: Initializer,
 ): T {
+  let component = new Component(id, kind, topology, schema, initializer) as T
+  components.set(id, component)
   return new Component(id, kind, topology, schema, initializer) as T
 }
 
@@ -355,7 +357,6 @@ export function valueRelation(
     (typeof schema === "number" ? schema : topology) ?? Topology.Inclusive,
     typeof schema === "number" ? undefined : schema,
   )
-  relations.set(componentId, component)
   return Type.make(component)
 }
 
@@ -373,7 +374,6 @@ export let relation = (
 ): Type.Type<[TagRelation]> => {
   let componentId = makeComponentId()
   let component = make(componentId, Kind.TagRelation, topology)
-  relations.set(componentId, component)
   return Type.make(component)
 }
 

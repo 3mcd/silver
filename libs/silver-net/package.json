@@ -23,10 +23,14 @@
   "module": "dist/silver-net.esm.js",
   "source": "./src/index.ts",
   "types": "./dist/silver-net.cjs.d.ts",
+  "scripts": {
+    "test": "vitest"
+  },
   "devDependencies": {
     "silver-ecs": "workspace:*"
   },
   "peerDependencies": {
-    "silver-ecs": "workspace:*"
+    "silver-ecs": "workspace:*",
+    "silver-lib": "workspace:*"
   }
 }
