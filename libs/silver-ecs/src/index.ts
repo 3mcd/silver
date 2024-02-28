@@ -8,28 +8,28 @@ export {
   isTag,
   isTagRelationship,
   isValue,
-  isValueRelation,
+  isRefRelation as isValueRelation,
   isValueRelationship,
   relation,
   storesValue,
   tag,
-  value,
-  valueRelation,
+  ref,
+  refRelation as valueRelation,
 } from "./data/component"
 export type {
   T as Component,
-  ValuePair as Relation,
+  RefPair as Relation,
   Tag,
   TagRelation,
-  Value,
+  Ref as Value,
 } from "./data/component"
 export * from "./data/schema"
 export * as Schema from "./data/schema"
 export {
-  componentAt,
+  component_at as componentAt,
   has as hasComponent,
   make as type,
-  from as typeFrom,
+  from as type_from_components,
 } from "./data/type"
 export type {Type, Unitary} from "./data/type"
 export {parseHi, parseLo} from "./entity/entity"
@@ -43,7 +43,7 @@ export * as Signal from "./signal"
 export * as SparseMap from "./sparse/sparse_map"
 export * as SparseSet from "./sparse/sparse_set"
 export * as Commands from "./world/commands"
-export {traverse} from "./world/graph"
+export {traverse_right as traverse} from "./world/graph"
 export {makeWorld} from "./world/world"
 export type {InitType as Init}
 import type {Type} from "./data/type"

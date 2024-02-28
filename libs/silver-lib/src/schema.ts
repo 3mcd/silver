@@ -14,34 +14,34 @@ export type Quaternion = {
   w: number
 }
 
-export let Name = S.value("string")
+export let Name = S.ref("string")
 
 export interface Position extends Vector3 {}
-export let Position = S.value<Position>(
+export let Position = S.ref<Position>(
   {x: "f64", y: "f64", z: "f64"},
   ({x, y, z}) => new structs.Position(x, y, z),
 )
 
 export interface LinearVelocity extends Vector3 {}
-export let LinearVelocity = S.value<LinearVelocity>(
+export let LinearVelocity = S.ref<LinearVelocity>(
   {x: "f64", y: "f64", z: "f64"},
   ({x, y, z}) => new structs.Velocity(x, y, z),
 )
 
 export interface AngularVelocity extends Vector3 {}
-export let AngularVelocity = S.value<AngularVelocity>(
+export let AngularVelocity = S.ref<AngularVelocity>(
   {x: "f64", y: "f64", z: "f64"},
   ({x, y, z}) => new structs.Velocity(x, y, z),
 )
 
 export interface Rotation extends Quaternion {}
-export let Rotation = S.value<Rotation>(
+export let Rotation = S.ref<Rotation>(
   {x: "f64", y: "f64", z: "f64", w: "f64"},
   ({x, y, z, w}) => new structs.Rotation(x, y, z, w || 1),
 )
 
 export interface Scale extends Vector3 {}
-export let Scale = S.value<Scale>(
+export let Scale = S.ref<Scale>(
   {x: "f64", y: "f64", z: "f64"},
   ({x, y, z}) => new structs.Scale(x, y, z),
 )

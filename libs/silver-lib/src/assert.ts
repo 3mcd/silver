@@ -13,7 +13,7 @@ export function ok(
   }
 }
 
-export let exists = <T>(value: T | undefined, message?: string): T => {
+export let value = <T>(value: T | undefined, message?: string): T => {
   ok(value != undefined, message)
   return value!
 }

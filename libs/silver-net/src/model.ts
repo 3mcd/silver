@@ -1,23 +1,24 @@
 import {Component, Type, Unitary} from "silver-ecs"
 
 class Model {
-  iso
-  isoType
-  toIso
+  iso_components
+  iso_types
+  to_iso_component
 
   constructor(types: Unitary[]) {
-    this.iso = [] as Component[]
-    this.isoType = [] as Type[]
-    this.toIso = [] as number[]
+    this.iso_components = [] as Component[]
+    this.iso_types = [] as Type[]
+    this.to_iso_component = [] as number[]
     for (let i = 0; i < types.length; i++) {
       let type = types[i]
-      this.add(type)
+      this.add_component(type)
     }
   }
 
-  add(type: Unitary) {
+  add_component(type: Unitary) {
     let component = type.components[0]
-    this.toIso[component.id] = this.iso.push(component) - 1
+    this.to_iso_component[component.id] =
+      this.iso_components.push(component) - 1
     return this
   }
 }

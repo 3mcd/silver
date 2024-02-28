@@ -7,9 +7,9 @@ export enum Kind {
   Tag,
   TagRelation,
   TagPair,
-  Value,
-  ValueRelation,
-  ValuePair,
+  Ref,
+  RefRelation,
+  RefPair,
 }
 
 type Initializer<U = unknown> = (value: U) => U
@@ -40,7 +40,7 @@ export type Relatives<U extends T[], Out extends Entity.T[] = []> = U extends [
   ? Tail extends T[]
     ? Relatives<
         Tail,
-        Head extends ValueRelation<unknown> | TagRelation
+        Head extends RefRelation<unknown> | TagRelation
           ? [...Out, Entity.T]
           : Out
       >
@@ -49,11 +49,11 @@ export type Relatives<U extends T[], Out extends Entity.T[] = []> = U extends [
 
 export type ValueOf<U extends T> = U extends TagRelation
   ? never
-  : U extends ValueRelation<infer V>
+  : U extends RefRelation<infer V>
   ? V
   : U extends Tag
   ? never
-  : U extends Value<infer V>
+  : U extends Ref<infer V>
   ? V
   : never
 
@@ -85,8 +85,8 @@ export interface Tag extends Base<void> {
 /**
  * A datatype that can be added to or removed from entities.
  */
-export interface Value<U = unknown> extends Base<U> {
-  kind: Kind.Value
+export interface Ref<U = unknown> extends Base<U> {
+  kind: Kind.Ref
   schema?: Schema.SchemaOf<U>
   initializer?: Initializer<any>
 }
@@ -94,8 +94,8 @@ export interface Value<U = unknown> extends Base<U> {
 /**
  * A datatype that describes an entity's relationship to another entity.
  */
-export interface ValueRelation<U = unknown> extends Base<U> {
-  kind: Kind.ValueRelation
+export interface RefRelation<U = unknown> extends Base<U> {
+  kind: Kind.RefRelation
   schema?: Schema.SchemaOf<U>
   topology: Topology
   initializer?: Initializer<any>
@@ -113,14 +113,14 @@ export interface TagPair extends Base<void> {
   kind: Kind.TagPair
 }
 
-export interface ValuePair extends Base<void> {
-  kind: Kind.ValuePair
+export interface RefPair extends Base<void> {
+  kind: Kind.RefPair
 }
 
-export type TBase = Tag | Value
-export type TValue = Value | ValueRelation
-export type TRelation = TagRelation | ValueRelation
-export type TPair = TagPair | ValuePair
+export type TBase = Tag | Ref
+export type TRef = Ref | RefRelation
+export type TRelation = TagRelation | RefRelation
+export type TPair = TagPair | RefPair
 export type T = TBase | TRelation | TPair
 
 let nextComponentId = 1
@@ -155,7 +155,7 @@ class Component {
     this.topology = topology
     if (initializer) {
       this.initializer = initializer
-    } else if (kind === Kind.Value && schema) {
+    } else if (kind === Kind.Ref && schema) {
       this.initializer = Schema.initialize.bind(schema)
     }
   }
@@ -170,19 +170,19 @@ function make(
 function make(id: number, kind: Kind.TagPair, topology?: Topology): TagPair
 function make(
   id: number,
-  kind: Kind.Value,
+  kind: Kind.Ref,
   topology?: Topology,
   schema?: Schema.T,
   initializer?: Initializer,
-): Value
+): Ref
 function make(
   id: number,
-  kind: Kind.ValueRelation,
+  kind: Kind.RefRelation,
   topology?: Topology,
   schema?: Schema.T,
   initializer?: Initializer,
-): ValueRelation
-function make(id: number, kind: Kind.ValuePair, topology?: Topology): ValuePair
+): RefRelation
+function make(id: number, kind: Kind.RefPair, topology?: Topology): RefPair
 function make(
   id: number,
   kind: Kind,
@@ -210,13 +210,13 @@ type RecursivePartial<T> = {
  * auto-initialization.
  *
  * @example <caption>Define a component with a schema and add it to an entity.</caption>
- * let Position = S.value({x: "f32", y: "f32"})
+ * let Position = S.ref({x: "f32", y: "f32"})
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function value<U extends Schema.T>(
+export function ref<U extends Schema.T>(
   schema: U,
   initializer?: Initializer<Schema.Express<U>>,
-): Type.Type<[Value<Schema.Express<U>>]>
+): Type.Type<[Ref<Schema.Express<U>>]>
 /**
  * Define a component using a generic type and schema. The schema must satisfy
  * the type provided to the generic parameter.
@@ -229,23 +229,23 @@ export function value<U extends Schema.T>(
  *   x: number,
  *   y: number,
  * }
- * let Position = S.value<Position>({x: "f32", y: "f32"}) // Value<Position>
+ * let Position = S.ref<Position>({x: "f32", y: "f32"}) // Value<Position>
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function value<U>(
+export function ref<U>(
   schema: Schema.SchemaOf<RecursivePartial<U>>,
   initializer?: Initializer<U>,
-): Type.Type<[Value<U>]>
+): Type.Type<[Ref<U>]>
 /**
  * Define a schemaless component with a statically-typed shape.
  *
  * The component is not eligible for serialization and auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
- * let Position = S.value<Position>()
+ * let Position = S.ref<Position>()
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function value<U>(): Type.Type<[Value<U>]>
+export function ref<U>(): Type.Type<[Ref<U>]>
 /**
  * Define a component with an undefined shape. The component's values will
  * be typed `unknown`.
@@ -254,11 +254,11 @@ export function value<U>(): Type.Type<[Value<U>]>
  * auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
- * let Anything = S.value() // Value<unknown>
+ * let Anything = S.ref() // Value<unknown>
  * let entity = world.spawn(Anything, [[[]]])
  */
-export function value(): Type.Type<[Value<unknown>]>
-export function value(
+export function ref(): Type.Type<[Ref<unknown>]>
+export function ref(
   schema?: Schema.T | Initializer,
   initializer?: Initializer,
 ) {
@@ -267,7 +267,7 @@ export function value(
     schema = undefined
   }
   return Type.make(
-    make(makeComponentId(), Kind.Value, undefined, schema, initializer),
+    make(makeComponentId(), Kind.Ref, undefined, schema, initializer),
   )
 }
 
@@ -293,10 +293,10 @@ export let tag = (): Type.Type<[Tag]> =>
  * let Orbits = S.relation({distance: "f32", period: "f32"})
  * let entity = world.spawn(Orbits, [sun, {distance: 10, period: 0.5}])
  */
-export function valueRelation<U extends Schema.T>(
+export function refRelation<U extends Schema.T>(
   schema: U,
   topology?: Topology,
-): Type.Type<[ValueRelation<Schema.Express<U>>]>
+): Type.Type<[RefRelation<Schema.Express<U>>]>
 /**
  * Define a relation using the given generic type and schema. The schema must satisfy
  * the type provided to the generic parameter.
@@ -310,10 +310,10 @@ export function valueRelation<U extends Schema.T>(
  * let Owes = S.relation<number>("f32")
  * let entity = world.spawn(Owes, [bank, 1_000])
  */
-export function valueRelation<U>(
+export function refRelation<U>(
   schema: Schema.SchemaOf<U>,
   topology?: Topology,
-): Type.Type<[ValueRelation<U>]>
+): Type.Type<[RefRelation<U>]>
 /**
  * Define a schemaless relation with a statically-typed shape.
  *
@@ -326,9 +326,7 @@ export function valueRelation<U>(
  * let Owes = S.relation<number>()
  * let entity = world.spawn(Owes, [bank, 1_000])
  */
-export function valueRelation<U>(
-  topology?: Topology,
-): Type.Type<[ValueRelation<U>]>
+export function refRelation<U>(topology?: Topology): Type.Type<[RefRelation<U>]>
 /**
  * Define a relation with an undefined shape.
  *
@@ -343,17 +341,14 @@ export function valueRelation<U>(
  * let OwesAnything = S.relation()
  * let entity = world.spawn(OwesAnything, [[[]]])
  */
-export function valueRelation(
+export function refRelation(
   topology?: Topology,
-): Type.Type<[ValueRelation<unknown>]>
-export function valueRelation(
-  schema?: Schema.T | Topology,
-  topology?: Topology,
-) {
+): Type.Type<[RefRelation<unknown>]>
+export function refRelation(schema?: Schema.T | Topology, topology?: Topology) {
   let componentId = makeComponentId()
   let component = make(
     componentId,
-    Kind.ValueRelation,
+    Kind.RefRelation,
     (typeof schema === "number" ? schema : topology) ?? Topology.Inclusive,
     typeof schema === "number" ? undefined : schema,
   )
@@ -377,11 +372,11 @@ export let relation = (
   return Type.make(component)
 }
 
-type PairsOf<U extends ValueRelation | TagRelation> = U extends ValueRelation
-  ? ValuePair
+type PairsOf<U extends RefRelation | TagRelation> = U extends RefRelation
+  ? RefPair
   : TagPair
 
-export let makePair = <U extends ValueRelation | TagRelation>(
+export let makePair = <U extends RefRelation | TagRelation>(
   component: U,
   entity: Entity.T,
 ): PairsOf<U> => {
@@ -389,27 +384,27 @@ export let makePair = <U extends ValueRelation | TagRelation>(
   if (component.kind === Kind.TagRelation) {
     return make(componentId, Kind.TagPair) as PairsOf<U>
   } else {
-    return make(componentId, Kind.ValuePair) as PairsOf<U>
+    return make(componentId, Kind.RefPair) as PairsOf<U>
   }
 }
 
-export let storesValue = (component: T): component is Value | ValuePair => {
+export let storesValue = (component: T): component is Ref | RefPair => {
   switch (component.kind) {
-    case Kind.Value:
-    case Kind.ValuePair:
+    case Kind.Ref:
+    case Kind.RefPair:
       return true
     default:
       return false
   }
 }
 
-export let isValue = (component: T): component is Value =>
-  component.kind === Kind.Value
+export let isValue = (component: T): component is Ref =>
+  component.kind === Kind.Ref
 
 export let isInitialized = (component: T): boolean => {
   switch (component.kind) {
-    case Kind.Value:
-    case Kind.ValueRelation:
+    case Kind.Ref:
+    case Kind.RefRelation:
     case Kind.TagRelation:
       return true
     default:
@@ -420,19 +415,19 @@ export let isInitialized = (component: T): boolean => {
 export let isTagRelation = (component: T): component is TagRelation =>
   component.kind === Kind.TagRelation
 
-export let isValueRelation = (component: T): component is ValueRelation =>
-  component.kind === Kind.ValueRelation
+export let isRefRelation = (component: T): component is RefRelation =>
+  component.kind === Kind.RefRelation
 
 export let isRelation = (
   component: T,
-): component is ValueRelation | TagRelation =>
-  component.kind === Kind.TagRelation || component.kind === Kind.ValueRelation
+): component is RefRelation | TagRelation =>
+  component.kind === Kind.TagRelation || component.kind === Kind.RefRelation
 
 export let isPair = (component: T): component is TPair =>
-  component.kind === Kind.ValuePair || component.kind === Kind.TagPair
+  component.kind === Kind.RefPair || component.kind === Kind.TagPair
 
-export let isValueRelationship = (component: T): component is ValuePair =>
-  component.kind === Kind.ValuePair
+export let isValueRelationship = (component: T): component is RefPair =>
+  component.kind === Kind.RefPair
 
 export let isTagRelationship = (component: T): component is TagPair =>
   component.kind === Kind.TagPair

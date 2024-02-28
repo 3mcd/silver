@@ -6,7 +6,7 @@ interface Rect {
   hh: number
 }
 export let Grid = S.tag()
-export let Rect = S.value<Rect>({hw: "f32", hh: "f32"})
+export let Rect = S.ref<Rect>({hw: "f32", hh: "f32"})
 export let InCell = S.relation()
 export let CellOf = S.relation()
 export let Left = S.relation(S.Topology.Exclusive)

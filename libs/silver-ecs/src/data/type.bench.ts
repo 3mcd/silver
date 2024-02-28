@@ -2,7 +2,7 @@ import {perf} from "silver-bench"
 import * as Component from "./component"
 import * as Type from "./type"
 
-let components = Array.from({length: 20}, Component.valueRelation)
+let components = Array.from({length: 20}, Component.refRelation)
 
 perf("create a type with 20 components", () => {
   return () => {
@@ -14,7 +14,7 @@ perf("calculate the xor of 2 types with 6 components each", () => {
   let typeA = Type.make.apply(null, components.slice(0, 6))
   let typeB = Type.make.apply(null, components.slice(4, 10))
   return () => {
-    Type.xorHash(typeA, typeB)
+    Type.xor_hash(typeA, typeB)
   }
 })
 

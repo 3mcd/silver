@@ -19,7 +19,10 @@ let socket = io("https://localhost:3000", {
 })
 let status = Status.Connecting
 let clockSync = ClockSync.make()
-let clockSyncPayload = {clientTime: 0, serverTime: 0}
+let clockSyncPayload: ClockSync.OffsetSample = {
+  client_time: 0,
+  server_time: 0,
+}
 let clockSyncRequestTime = 0
 let fixedTimestep = FixedTimestep.make()
 let getTime = () => performance.now() / 1_000
@@ -30,7 +33,7 @@ let sendClockSyncRequest = (clientTime: number) => {
     Protocol.CLOCK_SYNC_REQUEST_MESSAGE_SIZE,
   )
   let clockSyncRequestView = new DataView(clockSyncRequest)
-  ClockSync.encodeRequest(clockSyncRequestView, 0, clientTime)
+  ClockSync.encode_request(clockSyncRequestView, 0, clientTime)
   socket.send(clockSyncRequest)
   clockSyncRequestTime = clientTime
 }
@@ -42,12 +45,12 @@ let handleClockSyncResponse = (
 ) => {
   let clientTime = getTime()
   ClockSync.decodeResponse(view, offset, clockSyncPayload)
-  ClockSync.addSample(clockSync, clockSyncPayload, clientTime)
+  ClockSync.add_sample(clockSync, clockSyncPayload, clientTime)
   // When the clock is synced, reset the fixed timestep and world to the
   // estimated server time.
-  if (status === Status.SyncingClock && ClockSync.isSynced(clockSync)) {
+  if (status === Status.SyncingClock && ClockSync.is_synced(clockSync)) {
     let serverTime =
-      ClockSync.estimateServerTime(clockSync, clientTime) +
+      ClockSync.estimate_server_time(clockSync, clientTime) +
       LAG_COMPENSATION_LATENCY
     FixedTimestep.reset(fixedTimestep, serverTime)
     world.reset(fixedTimestep.tick)
@@ -90,7 +93,7 @@ let loop = () => {
   // When the clock is synced, advance the timestep in lockstep with the server.
   if (status === Status.AwaitingSnapshot) {
     let serverTime =
-      ClockSync.estimateServerTime(clockSync, clientTime) +
+      ClockSync.estimate_server_time(clockSync, clientTime) +
       LAG_COMPENSATION_LATENCY
     FixedTimestep.advance(fixedTimestep, clientTime - previousTime, serverTime)
   }

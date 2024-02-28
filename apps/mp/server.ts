@@ -4,7 +4,7 @@ import {LAG_COMPENSATION_LATENCY, moveKinetics} from "./shared"
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
 import {Server, Socket} from "socket.io"
-import {Protocol, ClockSync} from "silver-net"
+import {Protocol} from "silver-net"
 
 let port = process.env.PORT || 3000
 let fixedTimestep = FixedTimestep.make({
@@ -19,12 +19,17 @@ let handleClockSyncRequest = (
   offset: number,
 ) => {
   let serverTime = now()
-  let clientTime = ClockSync.decodeRequest(view, offset)
+  let clientTime = Protocol.ClockSync.decode_request(view, offset)
   let clockSyncResponse = new Uint8Array(
     Protocol.CLOCK_SYNC_RESPONSE_MESSAGE_SIZE,
   )
   let clockSyncResponseView = new DataView(clockSyncResponse.buffer)
-  ClockSync.encodeResponse(clockSyncResponseView, 0, clientTime, serverTime)
+  Protocol.ClockSync.encode_response(
+    clockSyncResponseView,
+    0,
+    clientTime,
+    serverTime,
+  )
   socket.send(clockSyncResponse)
   return offset + Protocol.CLOCK_SYNC_REQUEST_MESSAGE_SIZE
 }

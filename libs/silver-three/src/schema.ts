@@ -6,14 +6,14 @@ let threeObject = {
   uuid: "string",
 } satisfies S.Schema.Object
 
-export let ThreeGeometry = S.value<three.BufferGeometry>(threeObject)
-export let ThreeMaterial = S.value<three.Material>(threeObject)
-export let ThreeLight = S.value<three.Light>(threeObject)
-export let ThreeCamera = S.value<three.PerspectiveCamera>(threeObject)
+export let ThreeGeometry = S.ref<three.BufferGeometry>(threeObject)
+export let ThreeMaterial = S.ref<three.Material>(threeObject)
+export let ThreeLight = S.ref<three.Light>(threeObject)
+export let ThreeCamera = S.ref<three.PerspectiveCamera>(threeObject)
 
 export let Mesh = S.type(ThreeGeometry, ThreeMaterial)
 
-export let InstanceCount = S.value<number>("u32")
+export let InstanceCount = S.ref<number>("u32")
 export let Instanced = S.type(Mesh, InstanceCount)
 export let IsInstance = S.tag()
 export let InstanceOf = S.relation(S.Topology.Exclusive)

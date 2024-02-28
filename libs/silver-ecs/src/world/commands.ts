@@ -5,16 +5,16 @@ import * as Schema from "../data/schema"
 import * as Assert from "../assert"
 
 export type InitTagPair = Entity.T
-export type InitValuePair<U = unknown> = [relative: Entity.T, value: U]
+export type InitRefPair<U = unknown> = [relative: Entity.T, value: U]
 
 export type InitSingle<U extends Component.T = Component.T> =
   U extends Component.TagRelation
     ? InitTagPair
-    : U extends Component.ValueRelation<infer V>
-    ? InitValuePair<V>
-    : U extends Component.Value<infer V>
+    : U extends Component.RefRelation<infer V>
+    ? InitRefPair<V>
+    : U extends Component.Ref<infer V>
     ? V
-    : U extends Component.ValuePair
+    : U extends Component.RefPair
     ? unknown
     : never
 
@@ -44,18 +44,18 @@ export let init = <U extends Component.T[]>(
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
     if (
-      component.kind === Component.Kind.Value ||
-      component.kind === Component.Kind.ValueRelation
+      component.kind === Component.Kind.Ref ||
+      component.kind === Component.Kind.RefRelation
     ) {
       let value = values[j]
       if (
-        Component.isValueRelation(component) &&
-        (value as InitValuePair)[1] === undefined
+        Component.isRefRelation(component) &&
+        (value as InitRefPair)[1] === undefined
       ) {
         Assert.ok(
           component.initializer !== undefined && component.schema !== undefined,
         )
-        ;(value as InitValuePair)[1] = component.initializer(
+        ;(value as InitRefPair)[1] = component.initializer(
           Schema.initialize(component.schema),
         )
       } else if (value === undefined) {

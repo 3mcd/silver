@@ -16,8 +16,8 @@ perf("relocate 1000 entities", () => {
   let {transition} = fixture()
   let count = 1_000
   let graph = Graph.make()
-  let nodeA = Graph.resolve(graph, A)
-  let nodeB = Graph.resolve(graph, B)
+  let nodeA = Graph.resolve_node_by_type(graph, A)
+  let nodeB = Graph.resolve_node_by_type(graph, B)
   return () => {
     for (let i = 0; i < count; i++) {
       Transition.move(transition, i as Entity.T, nodeA, nodeB)
@@ -29,9 +29,9 @@ perf("relocate 1000 times", () => {
   let {transition} = fixture()
   let count = 1_000
   let graph = Graph.make()
-  let nodeA = Graph.resolve(graph, A)
-  let nodeB = Graph.resolve(graph, B)
-  let nodeC = Graph.resolve(graph, C)
+  let nodeA = Graph.resolve_node_by_type(graph, A)
+  let nodeB = Graph.resolve_node_by_type(graph, B)
+  let nodeC = Graph.resolve_node_by_type(graph, C)
   let entity = 0 as Entity.T
   Transition.move(transition, entity, nodeA, nodeB)
   return () => {
@@ -55,14 +55,14 @@ perf("drain 1000 entities", () => {
     Type.make(A, B),
   ]
   for (let i = 0; i < types.length; i++) {
-    Graph.resolve(graph, types[i])
+    Graph.resolve_node_by_type(graph, types[i])
   }
   for (let i = 0; i < count; i++) {
     Transition.move(
       transition,
       i as Entity.T,
-      Graph.resolve(graph, types[i % types.length]),
-      Graph.resolve(graph, types[(i + 1) % types.length]),
+      Graph.resolve_node_by_type(graph, types[i % types.length]),
+      Graph.resolve_node_by_type(graph, types[(i + 1) % types.length]),
     )
   }
   return () => {

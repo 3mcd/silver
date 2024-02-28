@@ -63,7 +63,7 @@ let delete_ = (map: SparseMap, key: number): void => {
 }
 export {delete_ as delete}
 
-export let eachValue = <U>(
+export let each_value = <U>(
   map: SparseMap<U>,
   iteratee: ForEachValueIteratee<U>,
 ): void => {
@@ -93,7 +93,7 @@ export let values = <U>(map: SparseMap<U>): U[] => {
   return map.dense
 }
 
-export let toSparseArray = <U>(map: SparseMap<U>): U[] => {
+export let to_sparse_array = <U>(map: SparseMap<U>): U[] => {
   let sparse = new Array(map.sparse.length)
   for (let i = 0; i < map.dense.length; i++) {
     sparse[map.indices[i]] = map.dense[i]

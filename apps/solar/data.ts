@@ -5,13 +5,13 @@ import json from "./data.json"
 type Orbit = {radius: number; period: number}
 type Position = {x: number; y: number}
 
-export const Color = S.value<string>("string")
-export const Radius = S.value<number>("f32")
-export const Orbits = S.valueRelation<Orbit>(
+export const Color = S.ref<string>("string")
+export const Radius = S.ref<number>("f32")
+export const Orbits = S.refRelation<Orbit>(
   {radius: "f32", period: "f32"},
   S.Topology.Exclusive,
 )
-export const Position = S.value<Position>({x: "f32", y: "f32"})
+export const Position = S.ref<Position>({x: "f32", y: "f32"})
 
 export const Body = S.type(Name, Color, Radius, Position)
 export const Satellite = S.type(Body, Orbits)

@@ -46,19 +46,19 @@ let makeEachIteratorFetchExp = (type: Type.T, out: Type.T) => {
   let s = ""
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
-    if (component.kind === Component.Kind.Value) {
+    if (component.kind === Component.Kind.Ref) {
       s +=
         out.components.length === 0
           ? `s${i}[e],`
-          : Type.hasComponent(out, component)
+          : Type.has_component(out, component)
           ? `t${i}.dense[t${i}.sparse[e]],`
           : `s${i}[e]??t${i}.dense[t${i}.sparse[e]],`
-    } else if (component.kind === Component.Kind.ValueRelation) {
+    } else if (component.kind === Component.Kind.RefRelation) {
       let pair = `${(component.id & Entity.HI) << Entity.LO_EXTENT}|r${i}`
       s +=
         out.components.length === 0
           ? `S[${pair}][e],`
-          : Type.hasComponent(out, component)
+          : Type.has_component(out, component)
           ? // TODO: This is broken.
             `T[${pair}][e],`
           : `S[${pair}][e]??T[${pair}][e],`
@@ -103,7 +103,7 @@ let makeStoreDeclarations = (type: Type.T, out: Type.T) => {
   let s = ""
   for (let i = 0; i < type.components.length; i++) {
     let component = type.components[i]
-    if (component.kind === Component.Kind.Value) {
+    if (component.kind === Component.Kind.Ref) {
       s += `let s${i}=S[${component.id}];`
       if (out.components.length > 0) {
         s += `let t${i}=T.dense[T.sparse[${component.id}]];`
@@ -203,7 +203,7 @@ let makeRelativesKeys = (query: T, nodeType: Type.T) => {
   let relativesKeys: number[] = []
   for (let i = 0; i < relativesProduct.length; i++) {
     let flat = relativesProduct[i].flat(1)
-    relativesKeys.push(Hash.asUint(Hash.words(flat)))
+    relativesKeys.push(Hash.as_uint(Hash.hash_words(flat)))
   }
   return relativesKeys
 }
@@ -251,7 +251,7 @@ export class Query<U extends Component.T[] = Component.T[]> {
     this.filters = initializeFilters(filters, world)
     this.matches = matches
     this.isMonitor = isMonitor
-    this.node = Graph.resolve(world.graph, type)
+    this.node = Graph.resolve_node_by_type(world.graph, type)
     this.relativeMatches = relativeMatches
     this.type = type
     this.world = world
@@ -359,7 +359,7 @@ let initializeFilters = (filters: Filter.T[], world: World.T) => {
         not.push(filter)
         break
       case Filter.Kind.Changed: {
-        changed.push(Changed.make(filter.type, world.entityChanges))
+        changed.push(Changed.make(filter.type, world.entity_versions))
         break
       }
       case Filter.Kind.In:
@@ -384,7 +384,9 @@ let initGraphListenersForMonitor = (query: Query, filters: Filter.T[]) => {
           rememberNode(
             query,
             Assert.exists(
-              filter.kind === Filter.Kind.In ? batch.nextNode : batch.prevNode,
+              filter.kind === Filter.Kind.In
+                ? batch.next_node
+                : batch.prev_node,
             ),
             SparseSet.values(batch.entities),
           )
@@ -396,7 +398,7 @@ let initGraphListenersForMonitor = (query: Query, filters: Filter.T[]) => {
           onBatch,
         )
         if (filter.kind === Filter.Kind.In) {
-          Graph.traverse(query.node, node => {
+          Graph.traverse_right(query.node, node => {
             rememberNode(query, node, SparseSet.values(node.entities))
           })
         }
@@ -414,8 +416,8 @@ let initGraphListeners = (query: Query) => {
     forgetNode(query, node)
   }
   Signal.subscribe(query.node.$created, onNodeCreated)
-  Signal.subscribe(query.node.$dropped, onNodeRemoved)
-  Graph.traverse(query.node, onNodeCreated)
+  Signal.subscribe(query.node.$disposed, onNodeRemoved)
+  Graph.traverse_right(query.node, onNodeCreated)
 }
 
 export let make = <U extends Component.T[]>(

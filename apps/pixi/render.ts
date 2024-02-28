@@ -4,8 +4,8 @@ import {DebugHighlighted, DebugSelected, Position} from "silver-lib"
 import {CellOf, Grid, InCell, Rect} from "./grid"
 import {Bunny} from "./bunnies"
 
-export let Sprite = S.value<Pixi.Sprite>()
-export let Graphics = S.value<Pixi.Graphics>()
+export let Sprite = S.ref<Pixi.Sprite>()
+export let Graphics = S.ref<Pixi.Graphics>()
 
 let renderer = await Pixi.autoDetectRenderer({
   preference: "webgpu",

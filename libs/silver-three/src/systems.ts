@@ -172,10 +172,8 @@ export let instanceSystem: S.System = world => {
     })
     instancesIn.each((entity, position, rotation) => {
       let instanceOf = world.getExclusiveRelative(entity, InstanceOf)
-      let instances = Assert.exists(
-        S.SparseMap.get(objectInstances, instanceOf),
-      )
-      let mesh = Assert.exists(
+      let instances = Assert.value(S.SparseMap.get(objectInstances, instanceOf))
+      let mesh = Assert.value(
         S.SparseMap.get(objectsByEntity, instanceOf),
       ) as three.InstancedMesh
       updateInstance(
@@ -188,9 +186,7 @@ export let instanceSystem: S.System = world => {
     })
     instanced.each(entity => {
       let mesh = S.SparseMap.get(objectsByEntity, entity) as three.InstancedMesh
-      let meshInstances = Assert.exists(
-        S.SparseMap.get(objectInstances, entity),
-      )
+      let meshInstances = Assert.value(S.SparseMap.get(objectInstances, entity))
       instances.each(entity, (instance, position, rotation) => {
         updateInstance(
           mesh,
