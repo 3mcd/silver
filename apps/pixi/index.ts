@@ -24,7 +24,7 @@ let spawn_system: System = (world: World.T) => {
 let bunnies = query(Bunny, Position)
 
 let move_bunnies: System = world => {
-  world.for_each(bunnies, function move_bunny(_, pos) {
+  world.for_each(bunnies, function move_bunny(pos) {
     pos.x += 0.4
     pos.y += 0.4
   })
@@ -36,6 +36,11 @@ let app = App.make()
   .add_system(move_bunnies)
   .add_system(grid_system, after(move_bunnies))
   .add_system(render_system, after(grid_system), after(move_bunnies))
+  .add_effect(
+    Bunny,
+    () => {},
+    () => {},
+  )
 
 let loop = () => {
   app.run()

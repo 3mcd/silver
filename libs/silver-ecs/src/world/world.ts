@@ -13,10 +13,13 @@ import * as Op from "./op"
 import * as Graph from "./graph"
 import * as Transaction from "./transaction"
 import * as Query from "../query/query"
+import * as Effect from "./effect"
+import * as Node from "./node"
 
 export type Res<U> = Type.T<[Component.Ref<U>]>
 
-export class World {
+export class World implements Node.Listener {
+  #effects
   #entity_registry
   #entity_pair_roots
   #gc
@@ -34,11 +37,12 @@ export class World {
   readonly temp_data
 
   constructor(tick = 0) {
-    this.#entity_pair_roots = [] as Graph.Node[][]
+    this.#effects = [] as Effect.T[]
+    this.#entity_pair_roots = [] as Node.T[][]
     this.#entity_registry = Entities.make()
     this.#gc = false
     this.#gc_at = undefined as number | undefined
-    this.#nodes_to_prune = [] as Graph.Node[]
+    this.#nodes_to_prune = [] as Node.T[]
     this.#queries = new Map<Query.T, Query.CompiledQuery>()
     this.#resources = [] as unknown[]
     this.#stage = Stage.make<Op.T>()
@@ -48,7 +52,11 @@ export class World {
     this.entity_versions = EntityVersions.make()
     this.graph = Graph.make()
     this.temp_data = SparseMap.make<SparseMap.T>()
-    Signal.subscribe(this.graph.root.$created, this.#record_relation_node)
+    Node.add_listener(this.graph.root, this)
+  }
+
+  on_node_created(node: Node.T): void {
+    this.#record_relation_node(node)
   }
 
   #locate(entity: Entity.T) {
@@ -167,7 +175,7 @@ export class World {
     Transaction.move(this.#transaction, entity)
   }
 
-  #despawn_disposed_node_entities = (node: Graph.Node) => {
+  #despawn_disposed_node_entities = (node: Node.T) => {
     SparseSet.each(node.entities, this.#despawn)
   }
 
@@ -199,7 +207,7 @@ export class World {
    * Marshal pair nodes into a map indexed by the pair's entity id. This map is
    * used to dispose an entity's pair nodes when the entity is despawned.
    */
-  #record_relation_node = (node: Graph.Node) => {
+  #record_relation_node = (node: Node.T) => {
     for (let i = 0; i < node.type.pairs.length; i++) {
       let pair = node.type.pairs[i]
       let pair_entity_id = Entity.parse_lo(pair.id)
@@ -608,20 +616,20 @@ export class World {
     // Immediately despawn all entities whose nodes are marked for deletion.
     for (let i = 0; i < this.#nodes_to_prune.length; i++) {
       let node = this.#nodes_to_prune[i]
-      Graph.traverse_right(node, this.#despawn_disposed_node_entities)
+      Node.traverse_right(node, this.#despawn_disposed_node_entities)
     }
     // Relocate entities.
     Transaction.drain(
       this.#transaction,
       function move_entity_batch(batch, prev_node, next_node) {
         SparseSet.each(batch, function moveEntity(entity) {
-          if (prev_node) Graph.remove_entity(prev_node, entity)
-          if (next_node) Graph.insert_entity(next_node, entity)
+          if (prev_node) Node.remove_entity(prev_node, entity)
+          if (next_node) Node.insert_entity(next_node, entity)
         })
       },
     )
     // Drop all nodes marked for deletion.
-    let node: Graph.Node | undefined
+    let node: Node.T | undefined
     while ((node = this.#nodes_to_prune.pop())) {
       Graph.prune(this.graph, node)
     }
@@ -671,7 +679,7 @@ export class World {
       Type.component_at(type, 0),
     )
     let entity: Entity.T | undefined
-    Graph.traverse_right(node, visited_node => {
+    Node.traverse_right(node, visited_node => {
       if (SparseSet.size(visited_node.entities) > 0) {
         entity = SparseSet.at(visited_node.entities, 0)
         return false

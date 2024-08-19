@@ -163,29 +163,37 @@ class Component {
   }
 }
 
-function make(id: number, kind: Kind.Tag, topology?: Topology): Tag
-function make(
+export function make(id: number, kind: Kind.Tag, topology?: Topology): Tag
+export function make(
   id: number,
   kind: Kind.TagRelation,
   topology?: Topology,
 ): TagRelation
-function make(id: number, kind: Kind.TagPair, topology?: Topology): TagPair
-function make(
+export function make(
+  id: number,
+  kind: Kind.TagPair,
+  topology?: Topology,
+): TagPair
+export function make(
   id: number,
   kind: Kind.Ref,
   topology?: Topology,
   schema?: Schema.T,
   initialize?: Initializer,
 ): Ref
-function make(
+export function make(
   id: number,
   kind: Kind.RefRelation,
   topology?: Topology,
   schema?: Schema.T,
   initialize?: Initializer,
 ): RefRelation
-function make(id: number, kind: Kind.RefPair, topology?: Topology): RefPair
-function make(
+export function make(
+  id: number,
+  kind: Kind.RefPair,
+  topology?: Topology,
+): RefPair
+export function make(
   id: number,
   kind: Kind,
   topology?: Topology,

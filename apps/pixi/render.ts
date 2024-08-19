@@ -63,11 +63,11 @@ console.log(window.innerWidth, window.innerHeight)
 let boxes = query(InCell("*"))
 let grids = query(Grid, Position)
 let cells = query(CellOf("*"), Graphics)
-let cells_in = query(CellOf("*"), Position, Rect, In())
-let sprites_selected_enter = query(Sprite, DebugSelected, In(DebugSelected))
-let sprites_selected_exit = query(Sprite, DebugSelected, Out())
-let sprites_highlighted_enter = query(Sprite, DebugHighlighted, In())
-let sprites_highlighted_exit = query(Sprite, DebugHighlighted, Out())
+let cells_in = query(CellOf("*"), Position, In())
+let sprites_selected_in = query(Sprite, DebugSelected, In(DebugSelected))
+let sprites_selected_out = query(Sprite, DebugSelected, Out())
+let sprites_highlighted_in = query(Sprite, DebugHighlighted, In())
+let sprites_highlighted_out = query(Sprite, DebugHighlighted, Out())
 let bunnies = query(Sprite, Position, Rect)
 let bunnies_in = query(Bunny, Position, Rect, In())
 let bunnies_out = query(Sprite, Out(Bunny))
@@ -108,25 +108,22 @@ export let render_system: System = world => {
       }
     })
   })
-  world.for_each(sprites_selected_enter, function select_sprite(_, sprite) {
+  world.for_each(sprites_selected_in, function select_sprite(_, sprite) {
     sprite.tint = 0x00ff00
   })
   world.for_each(
-    sprites_selected_exit,
+    sprites_selected_out,
     function deselect_sprite(entity, sprite) {
       if (world.is_alive(entity)) {
         sprite.tint = world.has(entity, DebugHighlighted) ? 0x0000ff : 0xffffff
       }
     },
   )
+  world.for_each(sprites_highlighted_in, function highlight_sprite(_, sprite) {
+    sprite.tint = 0x0000ff
+  })
   world.for_each(
-    sprites_highlighted_enter,
-    function highlight_sprite(_, sprite) {
-      sprite.tint = 0x0000ff
-    },
-  )
-  world.for_each(
-    sprites_highlighted_exit,
+    sprites_highlighted_out,
     function unhighlight_sprite(entity, sprite) {
       if (world.is_alive(entity)) {
         sprite.tint = world.has(entity, DebugSelected) ? 0x00ff00 : 0xffffff
