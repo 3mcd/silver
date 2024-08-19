@@ -171,7 +171,9 @@ export let instanceSystem: S.System = world => {
       }
     })
     instancesIn.each((entity, position, rotation) => {
-      let instanceOf = world.getExclusiveRelative(entity, InstanceOf)
+      let instanceOf = Assert.value(
+        world.get_exclusive_relative(entity, InstanceOf),
+      )
       let instances = Assert.value(S.SparseMap.get(objectInstances, instanceOf))
       let mesh = Assert.value(
         S.SparseMap.get(objectsByEntity, instanceOf),
@@ -190,7 +192,7 @@ export let instanceSystem: S.System = world => {
       instances.each(entity, (instance, position, rotation) => {
         updateInstance(
           mesh,
-          S.SparseSet.indexOf(meshInstances, instance),
+          S.SparseSet.index_of(meshInstances, instance),
           position,
           rotation,
           world.get(instance, Scale),

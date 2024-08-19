@@ -24,7 +24,7 @@ export let Query = (props: Props) => {
   let world = useWorld()
   let results = useQuery(props.query.query)
   let onSelectAll = useCallback(() => {
-    props.query.query.each(entity => {
+    props.query.query.for_each(entity => {
       world.add(entity, DebugSelected)
     })
   }, [props.query, world])

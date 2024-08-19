@@ -15,7 +15,7 @@ let CLOCK_SYNC_REQUEST_INTERVAL = 0.1
 let world = makeWorld()
 let socket = io("https://localhost:3000", {
   rejectUnauthorized: false,
-  transports: ["websocket"],
+  transports: ["webtransport"],
 })
 let status = Status.Connecting
 let clockSync = ClockSync.make()

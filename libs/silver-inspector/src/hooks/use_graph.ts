@@ -3,28 +3,32 @@ import * as S from "silver-ecs"
 import {worldContext} from "../context/world_context"
 
 let compareNodes = (a: S.Graph.Node, b: S.Graph.Node) => {
-  return a.type.ids.length - b.type.ids.length
+  return a.type.component_ids.length - b.type.component_ids.length
 }
 
 export let useGraph = () => {
   let world = useContext(worldContext)
   let [nodes, setNodes] = useState(() =>
-    S.SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
+    S.SparseMap.values(world.graph.nodes_by_id).slice().sort(compareNodes),
   )
   useEffect(() => {
     let unsubscribeCreated = S.Signal.subscribe(
       world.graph.root.$created,
       () => {
         setNodes(
-          S.SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
+          S.SparseMap.values(world.graph.nodes_by_id)
+            .slice()
+            .sort(compareNodes),
         )
       },
     )
     let unsubscribeRemoved = S.Signal.subscribe(
-      world.graph.root.$dropped,
+      world.graph.root.$disposed,
       () => {
         setNodes(
-          S.SparseMap.values(world.graph.nodesById).slice().sort(compareNodes),
+          S.SparseMap.values(world.graph.nodes_by_id)
+            .slice()
+            .sort(compareNodes),
         )
       },
     )

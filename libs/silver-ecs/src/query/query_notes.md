@@ -3,7 +3,7 @@
 A query may specify more than one relation.
 
 ```ts
-query = query(world, type(OnTeam /* 1 */, InVehicle /* 2 */))
+query = query(world, [OnTeam /* 1 */, InVehicle /* 2 */])
 ```
 
 This query listens for nodes that match `(OnTeam, InVehicle)`. Nodes with these components are guaranteed to have at least one relationship for both `OnTeam` and `InVehicle`. The node might look something like:

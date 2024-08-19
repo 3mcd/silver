@@ -6,7 +6,7 @@ import * as SparseMap from "../sparse/sparse_map"
 
 export type Predicate = (entity: Entity.T) => boolean
 
-let makeComponentChangedPredicate = (component: Component.T) => {
+let make_component_changed_predicate = (component: Component.T) => {
   let componentId = component.id
   // make the component+entity key
   let s = `let k${componentId}=((${componentId}&${Entity.HI})<<${Entity.LO_EXTENT})|(e&${Entity.LO});`
@@ -24,7 +24,7 @@ let makeComponentChangedPredicate = (component: Component.T) => {
   return s
 }
 
-export let compilePredicate = (
+export let compile_changed_predicate = (
   type: Type.T,
   local: EntityVersions.T,
   remote: EntityVersions.T,
@@ -34,9 +34,9 @@ export let compilePredicate = (
     SparseMap.set(stage, key, version)
   }
   let body = "return function changed(e){"
-  for (let i = 0; i < type.ordered.length; i++) {
-    let component = type.ordered[i]
-    body += makeComponentChangedPredicate(component)
+  for (let i = 0; i < type.vec.length; i++) {
+    let component = type.vec[i]
+    body += make_component_changed_predicate(component)
   }
   body += "return true}"
   return Function("A", "B", "S", body)(local, remote, update)
@@ -52,7 +52,7 @@ export class Changed {
     this.a = EntityVersions.make()
     this.b = b
     this.stage = SparseMap.make<number>()
-    this.predicate = compilePredicate(type, this.a, this.b, this.stage)
+    this.predicate = compile_changed_predicate(type, this.a, this.b, this.stage)
   }
 }
 export type T = Changed

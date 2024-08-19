@@ -10,7 +10,7 @@ export let useQueries = () => {
 export let useQuery = (query: S.Query) => {
   useNode(query.node)
   let matches: S.Entity[] = []
-  query.each(entity => {
+  query.for_each(entity => {
     matches.push(entity)
   })
   return matches

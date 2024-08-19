@@ -18,9 +18,8 @@ type Props = {
 export let TypeHeader = memo((props: Props) => {
   let world = useWorld()
   let aliases = useAliases()
-  let tags = props.type.ordered.filter(
-    component =>
-      S.isTag(component) && component !== DebugHighlighted.ordered[0],
+  let tags = props.type.vec.filter(
+    component => S.is_tag(component) && component !== DebugHighlighted.vec[0],
   )
   return tags.length + props.type.pairs.length > 0 ? (
     <HStack paddingX="2" fontSize="sm" gap="2" paddingBottom="4">
@@ -35,7 +34,7 @@ export let TypeHeader = memo((props: Props) => {
                 key={tag.id}
                 variant="solid"
                 background={
-                  tag === DebugSelected.ordered[0] ? "sky.7" : "accent.default"
+                  tag === DebugSelected.vec[0] ? "sky.7" : "accent.default"
                 }
               >
                 {aliases.getComponentAlias(tag)}

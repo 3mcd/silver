@@ -27,6 +27,6 @@ export let dispose = <U>(signal: Signal<U>) => {
   signal.listeners = []
 }
 
-export let make = <U>(): Signal<U> => {
+export let make = <U>(): T<U> => {
   return new Signal()
 }

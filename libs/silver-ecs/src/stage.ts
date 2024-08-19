@@ -415,12 +415,12 @@ export let _delete = <U>(buffer: T<U>, time: number) => {
 }
 export {_delete as delete}
 
-export let deleteRange = <U>(buffer: T<U>, time: number) => {
+export let delete_range = <U>(buffer: T<U>, time: number) => {
   buffer.map.delete(buffer.min, time, true)
   buffer.min = time
 }
 
-export let drainTo = <U>(
+export let drain_to = <U>(
   buffer: T<U>,
   time: number,
   iteratee?: (value: U, key: number) => void,

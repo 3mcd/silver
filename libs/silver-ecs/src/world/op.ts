@@ -41,28 +41,28 @@ export let init = <U extends Component.T[]>(
   values: Init<U>,
 ): Init<U> => {
   let j = 0
-  for (let i = 0; i < type.components.length; i++) {
-    let component = type.components[i]
+  for (let i = 0; i < type.def.length; i++) {
+    let component = type.def[i]
     if (
       component.kind === Component.Kind.Ref ||
       component.kind === Component.Kind.RefRelation
     ) {
       let value = values[j]
       if (
-        Component.isRefRelation(component) &&
+        Component.is_ref_relation(component) &&
         (value as InitRefPair)[1] === undefined
       ) {
         Assert.ok(
-          component.initializer !== undefined && component.schema !== undefined,
+          component.initialize !== undefined && component.schema !== undefined,
         )
-        ;(value as InitRefPair)[1] = component.initializer(
+        ;(value as InitRefPair)[1] = component.initialize(
           Schema.initialize(component.schema),
         )
       } else if (value === undefined) {
         Assert.ok(
-          component.initializer !== undefined && component.schema !== undefined,
+          component.initialize !== undefined && component.schema !== undefined,
         )
-        value = component.initializer(Schema.initialize(component.schema))
+        value = component.initialize(Schema.initialize(component.schema))
       }
       values[j++] = value
     }
@@ -97,7 +97,7 @@ export type Remove<U extends Component.T[] = Component.T[]> = {
 
 export type T = Spawn | Despawn | Add | Remove
 
-class Command {
+class Op {
   kind
   entity
   type?
@@ -124,11 +124,11 @@ export let spawn = <U extends Component.T[]>(
   entity: Entity.T,
   init: Init<U>,
 ) => {
-  return new Command("spawn", entity, type, init) as Spawn<U>
+  return new Op("spawn", entity, type, init) as Spawn<U>
 }
 
 export let despawn = (entity: Entity.T) => {
-  return new Command("despawn", entity) as Despawn
+  return new Op("despawn", entity) as Despawn
 }
 
 export let add = <U extends Component.T[]>(
@@ -136,12 +136,12 @@ export let add = <U extends Component.T[]>(
   entity: Entity.T,
   init: Init<U>,
 ) => {
-  return new Command("add", entity, type, init) as Add<U>
+  return new Op("add", entity, type, init) as Add<U>
 }
 
 export let remove = <U extends Component.T[]>(
   type: Type.T<U>,
   entity: Entity.T,
 ) => {
-  return new Command("remove", entity, type) as Remove<U>
+  return new Op("remove", entity, type) as Remove<U>
 }

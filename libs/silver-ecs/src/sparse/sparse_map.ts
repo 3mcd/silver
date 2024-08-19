@@ -14,7 +14,7 @@ export class SparseMap<U = unknown> {
 }
 export type T<U = unknown> = SparseMap<U>
 
-export let make = <U>(init?: (U | undefined)[]): SparseMap<U> => {
+export let make = <U>(init?: (U | undefined)[]): T<U> => {
   let map = new SparseMap<U>()
   if (init !== undefined) {
     init.forEach((value, key) => {
@@ -31,19 +31,19 @@ export let size = (map: SparseMap): number => {
 }
 
 export let get = <U>(map: SparseMap<U>, key: number): U | undefined => {
-  let denseIndex = map.sparse[key]
-  if (denseIndex === undefined) return undefined
-  return map.dense[denseIndex]
+  let dense_index = map.sparse[key]
+  if (dense_index === undefined) return undefined
+  return map.dense[dense_index]
 }
 
 export let set = <U>(map: SparseMap<U>, key: number, value: U): void => {
-  let denseIndex = map.sparse[key]
-  if (denseIndex === undefined) {
+  let dense_index = map.sparse[key]
+  if (dense_index === undefined) {
     map.sparse[key] = map.dense.length
     map.dense.push(value)
     map.indices.push(key)
   } else {
-    map.dense[denseIndex] = value
+    map.dense[dense_index] = value
   }
 }
 
@@ -51,14 +51,14 @@ export let has = (map: SparseMap, key: number): boolean =>
   map.sparse[key] !== undefined
 
 let delete_ = (map: SparseMap, key: number): void => {
-  let denseIndex = map.sparse[key]
-  if (denseIndex === undefined) return
-  let sparseIndex = map.indices[map.indices.length - 1]
-  map.dense[denseIndex] = map.dense[map.dense.length - 1]
+  let dense_index = map.sparse[key]
+  if (dense_index === undefined) return
+  let sparse_index = map.indices[map.indices.length - 1]
+  map.dense[dense_index] = map.dense[map.dense.length - 1]
   map.dense.pop()
-  map.indices[denseIndex] = sparseIndex
+  map.indices[dense_index] = sparse_index
   map.indices.pop()
-  map.sparse[sparseIndex] = denseIndex
+  map.sparse[sparse_index] = dense_index
   map.sparse[key] = undefined!
 }
 export {delete_ as delete}
@@ -89,7 +89,7 @@ export let clear = (map: SparseMap): void => {
   }
 }
 
-export let values = <U>(map: SparseMap<U>): U[] => {
+export let values = <U>(map: SparseMap<U>): ReadonlyArray<U> => {
   return map.dense
 }
 

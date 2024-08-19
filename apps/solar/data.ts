@@ -7,7 +7,7 @@ type Position = {x: number; y: number}
 
 export const Color = S.ref<string>("string")
 export const Radius = S.ref<number>("f32")
-export const Orbits = S.refRelation<Orbit>(
+export const Orbits = S.ref_relation<Orbit>(
   {radius: "f32", period: "f32"},
   S.Topology.Exclusive,
 )

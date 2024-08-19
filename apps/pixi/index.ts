@@ -1,11 +1,10 @@
-import * as S from "silver-ecs"
+import {App, System, World, after, query} from "silver-ecs"
 import {Position} from "silver-lib"
-import {Rect, gridSystem} from "./grid"
-import {renderSystem} from "./render"
-import {world} from "./world"
-import {Bunny, bunniesSystem} from "./bunnies"
+import {Bunny} from "./bunny"
+import {Rect, create_grid, grid_system} from "./grid"
+import {render_system} from "./render"
 
-let spawnSystem: S.System = () => {
+let spawn_system: System = (world: World.T) => {
   for (let i = 0; i < 1_000; i++) {
     world
       .with(Bunny)
@@ -20,15 +19,26 @@ let spawnSystem: S.System = () => {
       })
       .spawn()
   }
-  return () => {}
 }
 
+let bunnies = query(Bunny, Position)
+
+let move_bunnies: System = world => {
+  world.for_each(bunnies, function move_bunny(_, pos) {
+    pos.x += 0.4
+    pos.y += 0.4
+  })
+}
+
+let app = App.make()
+  .add_init_system(spawn_system)
+  .add_init_system(create_grid)
+  .add_system(move_bunnies)
+  .add_system(grid_system, after(move_bunnies))
+  .add_system(render_system, after(grid_system), after(move_bunnies))
+
 let loop = () => {
-  S.run(world, spawnSystem)
-  S.run(world, bunniesSystem)
-  S.run(world, gridSystem)
-  S.run(world, renderSystem)
-  world.step()
+  app.run()
   requestAnimationFrame(loop)
 }
 

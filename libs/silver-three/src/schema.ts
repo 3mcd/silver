@@ -16,7 +16,7 @@ export let Mesh = S.type(ThreeGeometry, ThreeMaterial)
 export let InstanceCount = S.ref<number>("u32")
 export let Instanced = S.type(Mesh, InstanceCount)
 export let IsInstance = S.tag()
-export let InstanceOf = S.relation(S.Topology.Exclusive)
+export let InstanceOf = S.rel(S.Topology.Exclusive)
 export let Instance = S.type(IsInstance, InstanceOf)
 
 export let CastsShadow = S.tag()

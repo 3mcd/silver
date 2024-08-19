@@ -26,7 +26,7 @@ let EntityNodeRow = memo((props: EntityNodeRowProps) => {
   let size = S.SparseSet.size(props.node.entities)
   let color = useMemo(
     () =>
-      S.hasComponent(props.node.type, DebugSelected) ? "sky.7" : undefined,
+      S.has_component(props.node.type, DebugSelected) ? "sky.7" : undefined,
     [props.node.type],
   )
   let onClick = useCallback(() => {

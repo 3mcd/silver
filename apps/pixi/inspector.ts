@@ -3,7 +3,7 @@ import {world} from "./world"
 import * as S from "silver-ecs"
 import {CellOf, Grid, InCell, Rect} from "./grid"
 import {Graphics, Sprite} from "./render"
-import {Bunny} from "./bunnies"
+import {Bunny} from "./bunny"
 
 if (window.matchMedia) {
   const mode = window.matchMedia("(prefers-color-scheme: dark)")
@@ -23,7 +23,7 @@ let aliases = makeDebugAliases()
   .set(CellOf, "CellOf")
 
 let queries = {
-  bunnies: S.query(world, Bunny),
+  bunnies: S.query(Bunny),
 }
 
 mount(world, document.getElementById("inspector")!, aliases, queries)

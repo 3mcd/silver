@@ -20,7 +20,7 @@ export let Component = memo((props: ComponentProps) => {
   let world = useWorld()
   let aliases = useAliases()
   let alias = aliases.getComponentAlias(props.component) ?? props.component.id
-  if (S.isRelationship(props.component)) {
+  if (S.is_pair(props.component)) {
     let [relationAlias, relative] = alias.split(":")
     let relativeEntity = world.hydrate(Number(relative))
     relative = world.get(relativeEntity, Name) ?? relative
@@ -62,11 +62,11 @@ export let Component = memo((props: ComponentProps) => {
 export let Type = memo((props: Props) => {
   return (
     <Text>
-      {props.type.ordered.map((component, i) =>
-        S.isRelation(component) ? null : (
+      {props.type.vec.map((component, i) =>
+        S.is_relation(component) ? null : (
           <Fragment key={component.id}>
             <Component component={component} />
-            {i < props.type.ordered.length - 1 && ", "}
+            {i < props.type.vec.length - 1 && ", "}
           </Fragment>
         ),
       )}

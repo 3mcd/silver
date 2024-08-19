@@ -35,14 +35,14 @@ export let EXTENT = Math.pow(2, 31) - 1
 /**
  * Makes a new 31-bit entity from the given 20-bit id and 11-bit `hi` integer.
  */
-export let make = (entityId: number, hi: number): Entity => {
-  return (((hi & HI) << LO_EXTENT) | entityId) as Entity
+export let make = (entity_id: number, hi: number): Entity => {
+  return (((hi & HI) << LO_EXTENT) | entity_id) as Entity
 }
 
 /**
  * Performs a bounds check on the given entity.
  */
-export let assertValid = (entity: number) => {
+export let assert_valid = (entity: number) => {
   Assert.ok(entity >= 0)
   Assert.ok(entity <= EXTENT)
 }
@@ -50,7 +50,7 @@ export let assertValid = (entity: number) => {
 /**
  * Performs a bounds check on the given entity id.
  */
-export let assertValidId = (entityId: number) => {
+export let assert_valid_id = (entityId: number) => {
   Assert.ok(entityId >= 0)
   Assert.ok(entityId <= LO)
 }
@@ -58,7 +58,7 @@ export let assertValidId = (entityId: number) => {
 /**
  * Performs a bounds check on the given hi 11-bit integer.
  */
-export let assertValidHi = (hi: number) => {
+export let assert_valid_hi = (hi: number) => {
   Assert.ok(hi >= 1)
   Assert.ok(hi <= HI)
 }
@@ -66,15 +66,15 @@ export let assertValidHi = (hi: number) => {
 /**
  * Extracts the entity id from the given entity.
  */
-export let parseLo = (entity: number) => {
-  assertValid(entity)
+export let parse_lo = (entity: number) => {
+  assert_valid(entity)
   return entity & LO
 }
 
 /**
  * Extracts the hi 11 bits from the given entity.
  */
-export let parseHi = (entity: number) => {
-  assertValid(entity)
+export let parse_hi = (entity: number) => {
+  assert_valid(entity)
   return entity >> LO_EXTENT
 }

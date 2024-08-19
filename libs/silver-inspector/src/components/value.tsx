@@ -55,10 +55,10 @@ export let ValueInner = <U extends S.Schema.T>(props: ValueInnerProps<U>) => {
 export let Value = (props: Props) => {
   let world = useWorld()
   let component = props.component
-  if (S.storesValue(component)) {
-    let value = world.stores[component.id][S.parseLo(props.entity)]
-    if (S.isValueRelationship(component)) {
-      component = S.getRelation(S.parseHi(component.id))!
+  if (S.references_value(component)) {
+    let value = world.entity_data[component.id][S.parse_lo(props.entity)]
+    if (S.is_ref_pair(component)) {
+      component = S.find_component_by_id(S.parse_hi(component.id))!
     }
     return (
       <Code
@@ -80,6 +80,6 @@ export let Value = (props: Props) => {
       </Code>
     )
   } else {
-    return S.isTag(props.component) ? "✅" : "?"
+    return S.is_tag(props.component) ? "✅" : "?"
   }
 }

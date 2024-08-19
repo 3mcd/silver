@@ -9,8 +9,8 @@ let type_encoders: TypeEncoder[] = []
 
 let make_type_encoder = (type: Type, model: Model.T): TypeEncoder => {
   let body = "return(v,o)=>{"
-  for (let i = 0; i < type.components.length; i++) {
-    let component = type.components[i]
+  for (let i = 0; i < type.def.length; i++) {
+    let component = type.def[i]
     body += `v.setUint32(o,m[${component.id}]);`
     body += `o+=4;`
   }
@@ -26,7 +26,7 @@ export let encode_spawn = (
 ) => {
   view.setUint8(offset, SPAWN_MESSAGE_TYPE)
   offset += 1
-  view.setUint8(offset, spawn.type.components.length)
+  view.setUint8(offset, spawn.type.def.length)
   offset += 1
   let encode_type =
     type_encoders[spawn.type.hash] ?? make_type_encoder(spawn.type, model)

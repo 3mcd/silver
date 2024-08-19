@@ -38,7 +38,7 @@ export let Inner = (props: Props & {type: S.Type}) => {
   useEffect(() => {
     world.add(props.entity, DebugHighlighted)
     return () => {
-      if (world.isAlive(props.entity)) {
+      if (world.is_alive(props.entity)) {
         world.remove(props.entity, DebugHighlighted)
       }
     }
@@ -83,8 +83,8 @@ export let Inner = (props: Props & {type: S.Type}) => {
     >
       <TypeHeader type={props.type} onEntitySelected={props.onEntitySelected} />
       <Stack paddingX="4">
-        {props.type.ordered.map(component =>
-          S.isValue(component) && component !== S.componentAt(Name, 0) ? (
+        {props.type.vec.map(component =>
+          S.is_ref(component) && component !== S.component_at(Name, 0) ? (
             <Fragment key={component.id}>
               <Heading as="h3" fontWeight="medium" fontSize="md">
                 {aliases.getComponentAlias(component)}
@@ -100,14 +100,14 @@ export let Inner = (props: Props & {type: S.Type}) => {
 
 export let Entity = (props: Props) => {
   let world = useWorld()
-  let node = world.isAlive(props.entity)
+  let node = world.is_alive(props.entity)
     ? world.locate(props.entity)
     : world.graph.root
   // Subscribe to changes in the entity's node so we can re-render if it is
   // moved or despawned. Right now this causes a re-render for any entity
   // that is changed within the node.
   useNode(node)
-  if (world.isAlive(props.entity)) {
+  if (world.is_alive(props.entity)) {
     return <Inner {...props} type={node.type} />
   } else {
     return (

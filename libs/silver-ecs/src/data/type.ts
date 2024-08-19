@@ -1,8 +1,10 @@
+import * as Assert from "../assert"
 import * as Entity from "../entity/entity"
 import * as Hash from "../hash"
 import {ExcludeFromTuple} from "../types"
-import * as Commands from "../world/commands"
+import * as Commands from "../world/op"
 import * as Component from "./component"
+import * as Schema from "./schema"
 
 export type Normalized<
   U extends (Type | Component.T)[],
@@ -24,8 +26,8 @@ export type Normalized<
 
 export type Unitary<U extends Component.T = Component.T> = Type<[U]>
 
-export enum Kind {
-  Default,
+export enum PairState {
+  None,
   Unpaired,
   Paired,
 }
@@ -35,7 +37,7 @@ let make_sparse = (components: Component.T[]): number[] => {
   for (let i = 0; i < components.length; i++) {
     let component = components[i]
     if (
-      Component.isRelation(component) &&
+      Component.is_relation(component) &&
       sparse[component.id] !== undefined &&
       component.topology === Component.Topology.Exclusive
     ) {
@@ -49,59 +51,90 @@ let make_sparse = (components: Component.T[]): number[] => {
 }
 
 export class Type<U extends Component.T[] = Component.T[]> {
-  component_ids
-  components
-  ordered
+  def
   hash
-  kind
+  pair_state
   pair_counts
   pairs
-  relations
+  refs
+  rels
   sparse
+  vec
+  vec_ids
 
   constructor(components: U) {
-    let ordered = components.slice().sort((a, b) => a.id - b.id)
+    let vec = components.slice().sort((a, b) => a.id - b.id)
     this.sparse = make_sparse(components)
-    this.component_ids = ordered.map(component => component.id)
-    this.ordered = ordered
-    this.components = components
-    this.hash = Hash.hash_words(this.component_ids)
-    this.relations = components.filter(Component.isRelation)
+    this.vec_ids = vec.map(component => component.id)
+    this.vec = vec
+    this.def = components
+    this.hash = Hash.hash_words(this.vec_ids)
+    this.refs = components.filter(Component.is_ref)
+    this.rels = components.filter(Component.is_relation)
     this.pair_counts = [] as number[]
-    this.pairs = ordered.filter(Component.isPair)
-    this.kind =
-      this.relations.length === 0
-        ? Kind.Default
-        : this.relations.length === this.pairs.length
-        ? Kind.Paired
-        : Kind.Unpaired
-    for (let i = 0; i < this.relations.length; i++) {
-      let relation = this.relations[i]
+    this.pairs = vec.filter(Component.is_pair)
+    this.pair_state =
+      this.rels.length === 0
+        ? PairState.None
+        : this.rels.length === this.pairs.length
+        ? PairState.Paired
+        : PairState.Unpaired
+    for (let i = 0; i < this.rels.length; i++) {
+      let rel = this.rels[i]
       for (let j = 0; j < this.pairs.length; j++) {
         let pair = this.pairs[j]
-        let pair_relation_id = Entity.parseHi(pair.id)
-        if (pair_relation_id === relation.id) {
-          this.pair_counts[relation.id] =
-            (this.pair_counts[relation.id] || 0) + 1
+        let pair_rel_id = Entity.parse_hi(pair.id)
+        if (pair_rel_id === rel.id) {
+          this.pair_counts[rel.id] = (this.pair_counts[rel.id] || 0) + 1
         }
       }
     }
+  }
+
+  make(
+    init?: U[0] extends Component.Ref<infer V> ? Partial<V> : never,
+  ): U[0] extends Component.Ref<infer V> ? V : never {
+    let ref = this.def[0]
+    if (Component.is_ref(ref) && ref.schema !== undefined) {
+      let value = Schema.initialize(ref.schema) as U[0] extends Component.Ref<
+        infer V
+      >
+        ? V
+        : never
+      if (ref.initialize === undefined) {
+        return value
+      }
+      return ref.initialize(
+        typeof ref.schema === "object"
+          ? Object.assign(value as {}, init)
+          : value,
+      )
+    }
+    throw new Error(
+      `Failed to initialize component value: component is missing schema`,
+    )
   }
 }
 export type T<U extends Component.T[] = Component.T[]> = Type<U>
 
 export let is_superset = (a: Type, b: Type): boolean => {
   // This type is a void type.
-  if (a.component_ids.length === 0) return false
+  if (a.vec_ids.length === 0) {
+    return false
+  }
   // Compared type is a void type.
-  if (b.component_ids.length === 0) return true
+  if (b.vec_ids.length === 0) {
+    return true
+  }
   // Compared type is equivalent to this type.
-  if (a.hash === b.hash) return false
+  if (a.hash === b.hash) {
+    return false
+  }
   let ia = 0
   let ib = 0
-  while (ia < a.component_ids.length && ib < b.component_ids.length) {
-    let ida = a.component_ids[ia]
-    let idb = b.component_ids[ib]
+  while (ia < a.vec_ids.length && ib < b.vec_ids.length) {
+    let ida = a.vec_ids[ia]
+    let idb = b.vec_ids[ib]
     if (ida < idb) {
       ia++
     } else if (ida > idb) {
@@ -111,15 +144,15 @@ export let is_superset = (a: Type, b: Type): boolean => {
       ib++
     }
   }
-  return ib === b.component_ids.length
+  return ib === b.vec_ids.length
 }
 
 export let is_left = (a: Type, b: Type): boolean => {
   let ia = 0
   let ib = 0
-  while (ia < a.component_ids.length && ib < b.component_ids.length) {
-    let ida = a.component_ids[ia]
-    let idb = b.component_ids[ib]
+  while (ia < a.vec_ids.length && ib < b.vec_ids.length) {
+    let ida = a.vec_ids[ia]
+    let idb = b.vec_ids[ib]
     if (ida < idb) {
       ib++
     } else if (ida > idb) {
@@ -137,9 +170,9 @@ export let xor_hash = (a: Type, b: Type): number => {
   let xor = 0
   let ia = 0
   let ib = 0
-  while (ia < a.component_ids.length && ib < b.component_ids.length) {
-    let ida = a.component_ids[ia]
-    let idb = b.component_ids[ib]
+  while (ia < a.vec_ids.length && ib < b.vec_ids.length) {
+    let ida = a.vec_ids[ia]
+    let idb = b.vec_ids[ib]
     if (ida === idb) {
       ia++
       ib++
@@ -151,15 +184,19 @@ export let xor_hash = (a: Type, b: Type): number => {
       ib++
     }
   }
-  while (ia < a.component_ids.length) {
-    xor = Hash.hash_word(xor, a.component_ids[ia])
+  while (ia < a.vec_ids.length) {
+    xor = Hash.hash_word(xor, a.vec_ids[ia])
     ia++
   }
-  while (ib < b.component_ids.length) {
-    xor = Hash.hash_word(xor, b.component_ids[ib])
+  while (ib < b.vec_ids.length) {
+    xor = Hash.hash_word(xor, b.vec_ids[ib])
     ib++
   }
   return xor
+}
+
+export let xor_hash_u = (a: Type, b: Type): number => {
+  return xor_hash(a, b) >>> 0
 }
 
 export let intersection = <U extends Component.T[], V extends Component.T[]>(
@@ -167,8 +204,8 @@ export let intersection = <U extends Component.T[], V extends Component.T[]>(
   b: Type<V>,
 ) => {
   let components: Component.T[] = []
-  for (let i = 0; i < a.ordered.length; i++) {
-    let component = a.ordered[i]
+  for (let i = 0; i < a.vec.length; i++) {
+    let component = a.vec[i]
     if (b.sparse[component.id] !== undefined) {
       components.push(component)
     }
@@ -179,7 +216,7 @@ export let intersection = <U extends Component.T[], V extends Component.T[]>(
 let with_ = <U extends Component.T[], V extends Component.T[]>(
   a: T<U>,
   b: T<V>,
-): T<[...U, ...V]> => from(a.components.concat(b.components as Component.T[]))
+): T<[...U, ...V]> => from(a.def.concat(b.def as Component.T[]))
 export {with_ as with}
 
 export let without = <U extends Component.T[], V extends Component.T[]>(
@@ -187,12 +224,12 @@ export let without = <U extends Component.T[], V extends Component.T[]>(
   b: T<V>,
 ): T<[...U, ...V]> => {
   let components: Component.T[] = []
-  for (let i = 0; i < a.ordered.length; i++) {
-    let component = a.ordered[i]
+  for (let i = 0; i < a.vec.length; i++) {
+    let component = a.vec[i]
     if (b.sparse[component.id] === undefined) {
       components.push(component)
     } else if (
-      Component.isRelation(component) &&
+      Component.is_relation(component) &&
       b.pair_counts[component.id] < a.pair_counts[component.id]
     ) {
       components.push(component)
@@ -204,24 +241,24 @@ export let without = <U extends Component.T[], V extends Component.T[]>(
 export let with_component = <U extends Component.T[], V extends Component.T>(
   type: T<U>,
   component: V,
-): T<[...U, V]> => from(type.components.concat(component))
+): T<[...U, V]> => from(type.def.concat(component))
 
 export let without_component = <U extends Component.T[], V extends Component.T>(
   type: T<U>,
   component: V,
 ): T<ExcludeFromTuple<U, V>> =>
-  from(type.components.filter(c => c.id !== component.id))
+  from(type.def.filter(c => c.id !== component.id))
 
-let isType = (obj: object): obj is Type => "components" in obj
+export let is_type = (obj: object): obj is Type => obj instanceof Type
 
 let normalize = <U extends (Type | Component.T)[]>(types: U): Normalized<U> => {
   let matched = new Set<number>()
   let components = [] as Component.T[]
   for (let i = 0; i < types.length; i++) {
     let type = types[i]
-    if (isType(type)) {
-      for (let j = 0; j < type.components.length; j++) {
-        let component = type.components[j]
+    if (is_type(type)) {
+      for (let j = 0; j < type.def.length; j++) {
+        let component = type.def[j]
         if (matched.has(component.id)) {
           continue
         }
@@ -240,8 +277,8 @@ let normalize = <U extends (Type | Component.T)[]>(types: U): Normalized<U> => {
 }
 
 export let has = (a: Type, b: Type): boolean => {
-  for (let i = 0; i < b.component_ids.length; i++) {
-    let component_id = b.component_ids[i]
+  for (let i = 0; i < b.vec_ids.length; i++) {
+    let component_id = b.vec_ids[i]
     if (a.sparse[component_id] === undefined) {
       return false
     }
@@ -261,7 +298,9 @@ export let component_at = <U extends Component.T[], I extends number = 0>(
   type: Type<U>,
   index: I,
 ): U[I] => {
-  return type.components[index] as U[I]
+  const component = type.def[index] as U[I]
+  Assert.ok(component !== undefined)
+  return component
 }
 
 export let from = <U extends (Component.T | Type)[]>(
@@ -272,23 +311,4 @@ export let make = <U extends (Component.T | Type)[]>(
   ...types: U
 ): Type<Normalized<U>> => {
   return from(types)
-}
-
-export let pair = (type: T, values: unknown[]): T => {
-  let j = 0
-  for (let i = 0; i < type.components.length; i++) {
-    let relation = type.components[i]
-    if (Component.isRelation(relation)) {
-      let pairValue = values[j] as Commands.InitTagPair | Commands.InitRefPair
-      let pair = Component.makePair(
-        relation,
-        typeof pairValue === "number" ? pairValue : pairValue[0],
-      )
-      type = with_component(type, pair)
-      j++
-    } else if (Component.storesValue(relation)) {
-      j++
-    }
-  }
-  return type
 }

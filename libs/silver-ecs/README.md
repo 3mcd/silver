@@ -6,11 +6,11 @@ An experimental rewrite of Javelin v2 with a simplified API and improved entity 
 
 ### Relationship data
 
-Entity relationships are components so they can also store component values. Relations that hold data are defined using `S.refRelation`.
+Entity relationships are components so they can also store component values. Relations that hold data are defined using `S.ref_relation`.
 
 ```ts
 type Orbit = {distance: number; period: number}
-let Orbits = S.refRelation<Orbit>()
+let Orbits = S.ref_relation<Orbit>()
 
 let sun = world.spawn()
 let earth = world.spawn(Orbits, [sun, {distance: 1, period: 1}])

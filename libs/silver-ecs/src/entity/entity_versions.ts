@@ -7,32 +7,32 @@ export let make = (): T => {
   return []
 }
 
-let getAtKey = (changes: EntityVersions, key: number): number => {
+let get_at_key = (changes: EntityVersions, key: number): number => {
   return (changes[key] ??= 0)
 }
 
-let makeKey = (entity: Entity.T, componentId: number): number => {
-  return Entity.make(Entity.parseLo(entity), componentId)
+let make_key = (entity: Entity.T, component_id: number): number => {
+  return Entity.make(Entity.parse_lo(entity), component_id)
 }
 
 export let get = (
   changes: EntityVersions,
   entity: Entity.T,
-  componentId: number,
+  component_id: number,
 ): number => {
-  return getAtKey(changes, makeKey(entity, componentId))
+  return get_at_key(changes, make_key(entity, component_id))
 }
 
 export let bump = (
   changes: EntityVersions,
   entity: Entity.T,
-  componentId: number,
+  component_id: number,
 ): number => {
-  let key = makeKey(entity, componentId)
-  return (changes[key] = getAtKey(changes, key) + 1)
+  let key = make_key(entity, component_id)
+  return (changes[key] = get_at_key(changes, key) + 1)
 }
 
-export let setAtKey = (
+export let set_at_key = (
   changes: EntityVersions,
   key: number,
   version: number,

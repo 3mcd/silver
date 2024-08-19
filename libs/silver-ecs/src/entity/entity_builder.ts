@@ -1,6 +1,6 @@
 import * as Component from "../data/component"
 import * as Type from "../data/type"
-import * as Commands from "../world/commands"
+import * as Commands from "../world/op"
 import * as World from "../world/world"
 
 export class EntityBuilder<U extends Component.T[] = Component.T[]> {

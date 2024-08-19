@@ -61,11 +61,11 @@ export let GraphVis = (props: Props) => {
       let nodeObject = (nodeCache.current[node.id] ??= {
         id: node.id,
         node,
-        name: node.type.ids.join(","),
+        name: node.type.component_ids.join(","),
         size: node.type.ordered.length,
       })
       data.nodes.push(nodeObject)
-      node.edgesRight.forEach(nextNode => {
+      node.edges_next.forEach(nextNode => {
         let linkObject = (linkCache.current[`${node.id}:${nextNode.id}`] ??= {
           source: node.id,
           target: nextNode.id,

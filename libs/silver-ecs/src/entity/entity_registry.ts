@@ -23,17 +23,17 @@ export let make = (
 }
 
 export let check = (entityRegistry: T, entity: Entity.T) => {
-  Entity.assertValid(entity)
-  let entityId = Entity.parseLo(entity)
-  let entityGen = Entity.parseHi(entity)
+  Entity.assert_valid(entity)
+  let entityId = Entity.parse_lo(entity)
+  let entityGen = Entity.parse_hi(entity)
   Assert.ok(checkGeneration(entityRegistry, entityId, entityGen))
   return entityId
 }
 
-export let checkFast = (entityRegistry: T, entity: Entity.T) => {
-  Entity.assertValid(entity)
-  let entityId = Entity.parseLo(entity)
-  let entityGen = Entity.parseHi(entity)
+export let check_fast = (entityRegistry: T, entity: Entity.T) => {
+  Entity.assert_valid(entity)
+  let entityId = Entity.parse_lo(entity)
+  let entityGen = Entity.parse_hi(entity)
   return checkGeneration(entityRegistry, entityId, entityGen)
 }
 
@@ -61,7 +61,7 @@ export let retain = (entityRegistry: T): Entity.T => {
     while (entityRegistry.generations[entityRegistry.head] !== undefined) {
       entityRegistry.head++
     }
-    Entity.assertValidId(entityRegistry.head)
+    Entity.assert_valid_id(entityRegistry.head)
     entityId = entityRegistry.head
     entityGen = entityRegistry.generations[entityId] = 0
   }
@@ -69,9 +69,9 @@ export let retain = (entityRegistry: T): Entity.T => {
 }
 
 export let release = (entityRegistry: T, entity: Entity.T) => {
-  Entity.assertValid(entity)
-  let entityId = Entity.parseLo(entity)
-  let entityGen = Entity.parseHi(entity)
+  Entity.assert_valid(entity)
+  let entityId = Entity.parse_lo(entity)
+  let entityGen = Entity.parse_hi(entity)
   if (checkGeneration(entityRegistry, entityId, entityGen)) {
     // Recycle the entity id if the entity can be invalidated.
     if (entityGen < Entity.HI) {
@@ -82,9 +82,9 @@ export let release = (entityRegistry: T, entity: Entity.T) => {
 }
 
 export let rollback = (entityRegistry: T, entity: Entity.T) => {
-  Entity.assertValid(entity)
-  let entityId = Entity.parseLo(entity)
-  let entityGen = Entity.parseHi(entity)
+  Entity.assert_valid(entity)
+  let entityId = Entity.parse_lo(entity)
+  let entityGen = Entity.parse_hi(entity)
   entityRegistry.generations[entityId] =
     entityGen === 0 ? undefined! : entityGen - 1
   entityRegistry.free.push(entityId)

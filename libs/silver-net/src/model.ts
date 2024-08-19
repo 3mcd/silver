@@ -16,7 +16,7 @@ class Model {
   }
 
   add_component(type: Unitary) {
-    let component = type.components[0]
+    let component = type.def[0]
     this.to_iso_component[component.id] =
       this.iso_components.push(component) - 1
     return this
