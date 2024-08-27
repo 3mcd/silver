@@ -1,10 +1,9 @@
-import * as Component from "../data/component"
-import * as Type from "../data/type"
-import * as Entity from "../entity/entity"
-import * as Hash from "../hash"
-import * as Signal from "../signal"
-import * as SparseMap from "../sparse/sparse_map"
-import * as SparseSet from "../sparse/sparse_set"
+import * as Component from "./component"
+import * as Type from "./type"
+import * as Entity from "./entity"
+import * as Hash from "./hash"
+import * as SparseMap from "./sparse_map"
+import * as SparseSet from "./sparse_set"
 import * as Node from "./node"
 
 export class Graph {
@@ -27,27 +26,30 @@ export let make = (): Graph => {
 }
 
 let link_nodes_traverse = (graph: Graph, node: Node.T): void => {
-  Node.traverse_right(graph.root, function linkNodesDeepTraverse(visited_node) {
-    let visited_node_has_supersets = false
-    let edges_next = SparseMap.values(visited_node.edges_next)
-    for (let i = 0; i < edges_next.length; i++) {
-      if (Type.is_superset(node.type, edges_next[i].type)) {
-        visited_node_has_supersets = true
-        break
+  Node.traverse_right(
+    graph.root,
+    function link_nodes_traverse_visitor(visited_node) {
+      let visited_node_has_supersets = false
+      let edges_next = SparseMap.values(visited_node.next_nodes)
+      for (let i = 0; i < edges_next.length; i++) {
+        if (Type.is_superset(node.type, edges_next[i].type)) {
+          visited_node_has_supersets = true
+          break
+        }
       }
-    }
-    if (
-      visited_node_has_supersets === false &&
-      Type.is_superset(node.type, visited_node.type)
-    ) {
-      Node.link(node, visited_node)
-      return Type.is_left(node.type, visited_node.type)
-    } else if (Type.is_superset(visited_node.type, node.type)) {
-      Node.link(visited_node, node)
-      return false
-    }
-    return true
-  })
+      if (
+        visited_node_has_supersets === false &&
+        Type.is_superset(node.type, visited_node.type)
+      ) {
+        Node.link(node, visited_node)
+        return Type.is_left(node.type, visited_node.type)
+      } else if (Type.is_superset(visited_node.type, node.type)) {
+        Node.link(visited_node, node)
+        return false
+      }
+      return true
+    },
+  )
 }
 
 let emit_nodes_traverse = (node: Node.T): void => {
@@ -67,19 +69,19 @@ let insert_node = (graph: Graph, type: Type.T): Node.T => {
 
 let dispose_node = (graph: Graph, node: Node.T): void => {
   SparseMap.each(
-    node.edges_prev,
+    node.prev_nodes,
     function dispose_node_unlink_prev(xor, prev_node) {
       Node.unlink(node, prev_node, xor)
     },
   )
   SparseMap.each(
-    node.edges_next,
+    node.next_nodes,
     function dispose_node_unlink_next(xor, next_node) {
       Node.unlink(next_node, node, xor)
     },
   )
-  SparseMap.clear(node.edges_prev)
-  SparseMap.clear(node.edges_next)
+  SparseMap.clear(node.prev_nodes)
+  SparseMap.clear(node.next_nodes)
   graph.nodes_by_hash.delete(node.type.hash)
   SparseMap.delete(graph.nodes_by_id, node.id)
   node.listeners = []
@@ -110,7 +112,7 @@ export let move_entities_left = (
 ): void => {
   Node.traverse_right(node, function move_entities_left_inner(next_node) {
     let prev_type = Type.without_component(next_node.type, component)
-    let prev_node = resolve_node_by_type(graph, prev_type)
+    let prev_node = find_or_create_node_by_type(graph, prev_type)
     SparseSet.each(
       next_node.entities,
       function move_entities_left_inner(entity) {
@@ -122,12 +124,15 @@ export let move_entities_left = (
   })
 }
 
-export let resolve_node_by_type = (graph: Graph, type: Type.T): Node.T => {
+export let find_or_create_node_by_type = (
+  graph: Graph,
+  type: Type.T,
+): Node.T => {
   let node = graph.nodes_by_hash.get(type.hash) ?? insert_node(graph, type)
   return node
 }
 
-export let resolve_node_by_component = (
+export let find_or_create_node_by_component = (
   graph: Graph,
   component: Component.T,
 ): Node.T => {

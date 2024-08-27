@@ -1,5 +1,5 @@
-import * as Assert from "../assert"
-import {Opaque} from "../types"
+import * as Assert from "./assert"
+import {Opaque} from "./types"
 
 /**
  * The maximum number of spawned (alive) entities.
@@ -22,9 +22,7 @@ export let MAX_EID = (1 << 19) - 1
 /**
  * A unique identifier for a thing in the game world.
  */
-declare const Entity: unique symbol
-export type Entity = Opaque<number, typeof Entity>
-export type T = Entity
+export type T = number & {readonly _Entity__: true}
 
 export let LO_EXTENT = 20
 export let LO = (1 << LO_EXTENT) - 1
@@ -35,8 +33,8 @@ export let EXTENT = Math.pow(2, 31) - 1
 /**
  * Makes a new 31-bit entity from the given 20-bit id and 11-bit `hi` integer.
  */
-export let make = (entity_id: number, hi: number): Entity => {
-  return (((hi & HI) << LO_EXTENT) | entity_id) as Entity
+export let make = (entity_id: number, hi: number): T => {
+  return (((hi & HI) << LO_EXTENT) | entity_id) as T
 }
 
 /**

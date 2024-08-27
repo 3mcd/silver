@@ -1,4 +1,4 @@
-import * as World from "../world/world"
+import * as World from "../world"
 import * as Range from "./range"
 
 export type Fn = (world: World.T) => void

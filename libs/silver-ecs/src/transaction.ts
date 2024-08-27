@@ -1,10 +1,9 @@
-import * as Assert from "../assert"
-import * as Type from "../data/type"
-import * as Entity from "../entity/entity"
-import * as Hash from "../hash"
-import * as Signal from "../signal"
-import * as SparseMap from "../sparse/sparse_map"
-import * as SparseSet from "../sparse/sparse_set"
+import * as Assert from "./assert"
+import * as Type from "./type"
+import * as Entity from "./entity"
+import * as Hash from "./hash"
+import * as SparseMap from "./sparse_map"
+import * as SparseSet from "./sparse_set"
 import * as Node from "./node"
 
 export type Iteratee = (
@@ -127,17 +126,17 @@ export let drain = (transaction: T, iteratee?: Iteratee) => {
   SparseMap.clear(transaction.batches_by_entity)
 }
 
-export let locate_prev_entity_node = (
+export let get_prev_entity_node = (
   transaction: T,
   entity: Entity.T,
 ): Node.T | undefined => SparseMap.get(transaction.locations, entity)
 
-export let locate_next_entity_node = (
+export let get_next_entity_node = (
   transaction: T,
   entity: Entity.T,
 ): Node.T | undefined =>
   SparseMap.get(transaction.batches_by_entity, entity)?.next_node ??
-  locate_prev_entity_node(transaction, entity)
+  get_prev_entity_node(transaction, entity)
 
 export let move = (transaction: T, entity: Entity.T, next_node?: Node.T) => {
   let prev_batch = SparseMap.get(transaction.batches_by_entity, entity)
@@ -148,7 +147,7 @@ export let move = (transaction: T, entity: Entity.T, next_node?: Node.T) => {
   }
   // If the entity is being moved to the same node it was already in,
   // do nothing.
-  let prev_node = locate_prev_entity_node(transaction, entity)
+  let prev_node = get_prev_entity_node(transaction, entity)
   if (prev_node === next_node) {
     return
   }

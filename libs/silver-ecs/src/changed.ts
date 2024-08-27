@@ -1,8 +1,8 @@
-import * as Component from "../data/component"
-import * as Type from "../data/type"
-import * as Entity from "../entity/entity"
-import * as EntityVersions from "../entity/entity_versions"
-import * as SparseMap from "../sparse/sparse_map"
+import * as Component from "./component"
+import * as Type from "./type"
+import * as Entity from "./entity"
+import * as EntityVersions from "./entity_versions"
+import * as SparseMap from "./sparse_map"
 
 export type Predicate = (entity: Entity.T) => boolean
 

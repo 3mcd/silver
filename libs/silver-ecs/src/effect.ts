@@ -1,10 +1,15 @@
-import * as Component from "../data/component"
-import * as Query from "../query/query"
+import * as Component from "./component"
+import * as Entity from "./entity"
 import * as Node from "./node"
+import * as SparseSet from "./sparse_set"
 import * as Transaction from "./transaction"
-import * as Type from "../data/type"
+import * as Type from "./type"
 
-type Event<U extends Component.T[]> = (...args: Query.EachArgs<U>) => boolean
+type Event<U extends Component.T[]> = (
+  // TODO: pass ref values
+  // ...args: Parameters<Query.ForEachIteratee<U>>
+  entity: Entity.T,
+) => boolean
 
 class Effect<U extends Component.T[]> implements Node.Listener {
   type
@@ -17,18 +22,16 @@ class Effect<U extends Component.T[]> implements Node.Listener {
     this.on_unmatch = on_unmatch
   }
 
-  on_entities_in(batch: Transaction.Batch): void {
-    for (let i = 0; i < batch.entities.length; i++) {
-      const entity = batch.entities[i]
+  on_node_entities_in(batch: Transaction.Batch): void {
+    SparseSet.each(batch.entities, entity => {
       this.on_match(entity)
-    }
+    })
   }
 
-  on_entities_out(batch: Transaction.Batch): void {
-    for (let i = 0; i < batch.entities.length; i++) {
-      const entity = batch.entities[i]
+  on_node_entities_out(batch: Transaction.Batch): void {
+    SparseSet.each(batch.entities, entity => {
       this.on_unmatch(entity)
-    }
+    })
   }
 }
 

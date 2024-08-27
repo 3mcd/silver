@@ -35,14 +35,14 @@ export type Scalar = Numeric | String
  * An object data type whose keys are strings and whose values are scalars or
  * (deeper-nested) objects.
  */
-export interface Object {
+export interface Struct {
   [key: string]: T
 }
 
 /**
  * A type that describes the shape of a component.
  */
-export type T = Object | Scalar
+export type T = Struct | Scalar
 
 /**
  * Express the value of a schema.
@@ -53,7 +53,7 @@ export type T = Object | Scalar
  * @example <caption>Express the value of an object schema.</caption>
  * type T = Express<{x: "f32", y: "f32"}> // {x: number, y: number}
  */
-export type Express<U extends T> = U extends Object
+export type Express<U extends T> = U extends Struct
   ? {
       [K in keyof U]: Express<U[K]>
     }

@@ -1,5 +1,5 @@
 import * as Assert from "../assert"
-import * as World from "../world/world"
+import * as World from "../world"
 import * as Schedule from "./schedule"
 import * as System from "./system"
 

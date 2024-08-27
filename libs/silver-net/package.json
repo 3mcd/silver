@@ -24,7 +24,7 @@
   "source": "./src/index.ts",
   "types": "./dist/silver-net.cjs.d.ts",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest run"
   },
   "devDependencies": {
     "silver-ecs": "workspace:*"

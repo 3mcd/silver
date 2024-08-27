@@ -11,7 +11,8 @@
     "mog"
   ],
   "scripts": {
-    "bench": "silver-bench"
+    "bench": "silver-bench",
+    "test": "vitest run"
   },
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",

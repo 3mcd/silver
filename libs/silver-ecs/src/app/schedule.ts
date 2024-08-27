@@ -1,4 +1,4 @@
-import * as World from "../world/world"
+import * as World from "../world"
 import * as SystemGraph from "./system_graph"
 import * as System from "./system"
 import * as Range from "./range"
