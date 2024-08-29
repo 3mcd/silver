@@ -30,13 +30,13 @@ let link_nodes_traverse = (graph: Graph, inserted_node: Node.T): void => {
     graph.root,
     function link_nodes_traverse_visitor(visited_node) {
       let inserted_node_is_superset_of_visited_node_supersets = false
-      let inserted_node_is_superset_of_visited_node = Type.is_superset_fast(
+      let inserted_node_is_superset_of_visited_node = Type.is_superset(
         inserted_node.type,
         visited_node.type,
       )
       let next_nodes = SparseMap.values(visited_node.next_nodes)
       for (let i = 0; i < next_nodes.length; i++) {
-        if (Type.is_superset_fast(inserted_node.type, next_nodes[i].type)) {
+        if (Type.is_superset(inserted_node.type, next_nodes[i].type)) {
           inserted_node_is_superset_of_visited_node_supersets = true
           break
         }
@@ -50,13 +50,13 @@ let link_nodes_traverse = (graph: Graph, inserted_node: Node.T): void => {
         // found
         return true
       }
-      if (Type.is_superset_fast(visited_node.type, inserted_node.type)) {
+      if (Type.is_superset(visited_node.type, inserted_node.type)) {
         Node.link(visited_node, inserted_node)
         // look at previous nodes and unlink connections
         SparseMap.each(
           visited_node.prev_nodes,
           function link_nodes_traverse_unlink(xor, prev_node) {
-            if (Type.is_superset_fast(inserted_node.type, prev_node.type)) {
+            if (Type.is_superset(inserted_node.type, prev_node.type)) {
               Node.unlink(visited_node, prev_node, xor)
             }
           },

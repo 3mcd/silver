@@ -31,24 +31,24 @@ let to_vec = (components: Component.T[]) => {
  * types.
  */
 class Type {
-  ids
   pairs
   refs
   rels
   rels_inverse
+  set;
   vec
   vec_hash
 
   constructor(vec: Component.T[], vec_hash: number) {
-    this.ids = new Set<number>()
     this.pairs = vec.filter(Component.is_pair)
     this.refs = vec.filter(Component.is_ref)
     this.rels = vec.filter(Component.is_rel)
     this.rels_inverse = vec.filter(Component.is_rel_inverse)
+    this.set = new Set<number>()
     this.vec = vec
     this.vec_hash = vec_hash
     for (let i = 0; i < vec.length; i++) {
-      this.ids.add(vec[i].id)
+      this.set.add(vec[i].id)
     }
   }
 }
@@ -111,18 +111,6 @@ export let is_superset = (a: T, b: T): boolean => {
     }
   }
   return ib === b.vec.length
-}
-
-/**
- * Check if set `a` contains every component of set `b`.
- */
-export let is_superset_fast = (a: T, b: T): boolean => {
-  for (let i = 0; i < b.vec.length; i++) {
-    if (a.ids.has(b.vec[i].id) === false) {
-      return false
-    }
-  }
-  return true
 }
 
 /**
@@ -207,14 +195,14 @@ export let intersection = (a: T, b: T) => {
  * Check if set `a` contains component `component`.
  */
 export let has_component = (a: T, component: Component.T): boolean => {
-  return a.ids.has(component.id)
+  return a.set.has(component.id)
 }
 
 /**
  * Check if set `a` contains component with id `component_id`.
  */
 export let has_component_id = (a: T, component_id: number): boolean => {
-  return a.ids.has(component_id)
+  return a.set.has(component_id)
 }
 
 /**
@@ -248,16 +236,6 @@ if (import.meta.vitest) {
     let bac = make([B, A, C])
     expect(is_superset(bac, ab)).to.equal(true)
     expect(is_superset(ab, bac)).to.equal(false)
-  })
-
-  test("is_superset_fast", () => {
-    let A = Component.tag()
-    let B = Component.tag()
-    let C = Component.tag()
-    let ab = make([A, B])
-    let bac = make([B, A, C])
-    expect(is_superset_fast(bac, ab)).to.equal(true)
-    expect(is_superset_fast(ab, bac)).to.equal(false)
   })
 
   test("xor_hash", () => {

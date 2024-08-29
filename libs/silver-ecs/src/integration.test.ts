@@ -36,14 +36,14 @@ test("integration", async () => {
     .with(InCell(cell_0))
     .spawn()
   let grape = world
-    .with(Name, "Orange")
+    .with(Name, "Grape")
     .with(IsFood)
     .with(InCell(cell_1))
     .spawn()
   let plank = world.with(Name, "Plank").with(InCell(cell_1)).spawn()
 
   world.with(Name, "Stevie").with(Likes(apple)).spawn()
-  world.with(Name, "Aubrey").with(Likes(grape)).spawn()
+  world.with(Name, "Aubrey").with(Likes(apple)).with(Likes(grape)).spawn()
   world.with(Name, "Jordan").with(Likes(plank)).spawn()
 
   world.step()
@@ -59,6 +59,7 @@ test("integration", async () => {
 
   expect(results).toEqual([
     ["Stevie", "Apple", {x: 2, y: 4}, {x: 0, y: 0}],
-    ["Aubrey", "Orange", {x: 1, y: 0}, {x: 0, y: 0}],
+    ["Aubrey", "Apple", {x: 2, y: 4}, {x: 0, y: 0}],
+    ["Aubrey", "Grape", {x: 1, y: 0}, {x: 0, y: 0}],
   ])
 })
