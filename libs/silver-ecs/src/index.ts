@@ -28,12 +28,12 @@ export type {
 export * from "./schema"
 export * as Schema from "./schema"
 export {
-  component_at as component_at,
+  at as at,
   has as has_component,
   make as type,
-  from as type_from_components,
-} from "./type"
-export type {Type, Unitary} from "./type"
+  make as type_from_components,
+} from "./sig"
+export type {Sig as Type, Unitary} from "./sig"
 export {parse_hi, parse_lo} from "./entity"
 export type {Entity} from "./entity"
 export * as Hash from "./hash"
@@ -48,8 +48,8 @@ export * as Commands from "./op"
 export {traverse_right as traverse} from "./graph"
 export {make as makeWorld} from "./world"
 export type {InitType as Init}
-import type {Type} from "./type"
+import type {Sig} from "./sig"
 import type {Init} from "./op"
-export type Data<T extends Type> = T extends Type<infer U> ? Init<U> : never
+export type Data<T extends Sig> = T extends Sig<infer U> ? Init<U> : never
 
-type InitType<U extends Type> = U extends Type<infer T> ? Init<T> : never
+type InitType<U extends Sig> = U extends Sig<infer T> ? Init<T> : never

@@ -58,7 +58,7 @@ let emit_moved_entities = (batch: Batch) => {
     Assert.exists(batch.next_node),
     function emit_upgraded_entities(visit: Node.T) {
       if (
-        intersection.hash === visit.type.hash ||
+        intersection.vec_hash === visit.type.vec_hash ||
         Type.is_superset(intersection, visit.type)
       ) {
         return false
@@ -70,7 +70,7 @@ let emit_moved_entities = (batch: Batch) => {
     Assert.exists(batch.prev_node),
     function emit_downgraded_entities(node: Node.T) {
       if (
-        intersection.hash === node.type.hash ||
+        intersection.vec_hash === node.type.vec_hash ||
         Type.is_superset(intersection, node.type)
       ) {
         return false

@@ -1,129 +1,106 @@
-import * as Assert from "./assert"
-import * as Entity from "./entity"
-import * as Hash from "./hash"
-import {ExcludeFromTuple} from "./types"
-import * as Commands from "./op"
 import * as Component from "./component"
-import * as Schema from "./schema"
+import * as Hash from "./hash"
+import * as Entity from "./entity"
 
-export type Normalized<
-  U extends (Type | Component.T)[],
-  Out extends Component.T[] = [],
-> = U extends []
-  ? Out
-  : U extends [infer Head, ...infer Tail]
-  ? Tail extends (Type | Component.T)[]
-    ? Normalized<
-        Tail,
-        Head extends Type<infer V>
-          ? [...Out, ...Normalized<V>]
-          : Head extends Component.T
-          ? [...Out, Head]
-          : never
-      >
-    : never
-  : never
-
-export type Unitary<U extends Component.T = Component.T> = Type<[U]>
-
-let make_sparse = (components: Component.T[]): number[] => {
-  let sparse = []
+/**
+ * Create an ordered collection of unique components from a unrestricted array
+ * of components.
+ */
+let to_vec = (components: Component.T[]) => {
+  let unique = new Set<Component.T>()
   for (let i = 0; i < components.length; i++) {
     let component = components[i]
-    if (
-      Component.is_rel(component) &&
-      sparse[component.id] !== undefined &&
-      component.topology === Component.Topology.Exclusive
-    ) {
-      throw new Error(
-        `Failed to construct type: type has multiple parents for hierarchical relation`,
-      )
+    if (unique.has(component)) {
+      continue
     }
-    sparse[component.id] = i
+    unique.add(component)
+    if (Component.is_pair(component)) {
+      let rel_id = Entity.parse_hi(component.id)
+      let rel = Component.find_by_id(rel_id)!
+      if (unique.has(rel)) {
+        continue
+      }
+      unique.add(rel)
+    }
   }
-  return sparse
+  return Array.from(unique).sort((a, b) => a.id - b.id)
 }
 
-export class Type<U extends Component.T[] = Component.T[]> {
-  def
-  hash
-  pair_counts
+/**
+ * A type is a unique, ordered set of components that can be compared to other
+ * types.
+ */
+class Type {
+  ids
   pairs
   refs
   rels
-  rel_targets
-  sparse
+  rels_inverse
   vec
-  vec_ids
+  vec_hash
 
-  constructor(components: U) {
-    let vec = components.slice().sort((a, b) => a.id - b.id)
-    this.sparse = make_sparse(components)
-    this.vec_ids = vec.map(component => component.id)
-    this.vec = vec
-    this.def = components
-    this.hash = Hash.hash_words(this.vec_ids)
-    this.refs = components.filter(Component.is_ref)
-    this.rels = components.filter(Component.is_rel)
-    this.rel_targets = components.filter(Component.is_rel_target)
-    this.pair_counts = [] as number[]
+  constructor(vec: Component.T[], vec_hash: number) {
+    this.ids = new Set<number>()
     this.pairs = vec.filter(Component.is_pair)
-    for (let i = 0; i < this.rels.length; i++) {
-      let rel = this.rels[i]
-      for (let j = 0; j < this.pairs.length; j++) {
-        let pair = this.pairs[j]
-        let pair_rel_id = Entity.parse_hi(pair.id)
-        if (pair_rel_id === rel.id) {
-          this.pair_counts[rel.id] = (this.pair_counts[rel.id] || 0) + 1
-        }
-      }
+    this.refs = vec.filter(Component.is_ref)
+    this.rels = vec.filter(Component.is_rel)
+    this.rels_inverse = vec.filter(Component.is_rel_inverse)
+    this.vec = vec
+    this.vec_hash = vec_hash
+    for (let i = 0; i < vec.length; i++) {
+      this.ids.add(vec[i].id)
     }
-  }
-
-  make(
-    init?: U[0] extends Component.Ref<infer V> ? Partial<V> : never,
-  ): U[0] extends Component.Ref<infer V> ? V : never {
-    let ref = this.def[0]
-    if (Component.is_ref(ref) && ref.schema !== undefined) {
-      let value = Schema.initialize(ref.schema) as U[0] extends Component.Ref<
-        infer V
-      >
-        ? V
-        : never
-      if (ref.initialize === undefined) {
-        return value
-      }
-      return ref.initialize(
-        typeof ref.schema === "object"
-          ? Object.assign(value as {}, init)
-          : value,
-      )
-    }
-    throw new Error(
-      `Failed to initialize component value: component is missing schema`,
-    )
   }
 }
-export type T<U extends Component.T[] = Component.T[]> = Type<U>
 
-export let is_superset = (a: Type, b: Type): boolean => {
-  // This type is a void type.
-  if (a.vec_ids.length === 0) {
+export type T = Type
+
+let cache: Type[] = []
+let cache_vec: Type[] = []
+
+/**
+ * Create a type from an unrestricted array of components.
+ *
+ * This function returns the same type instance for the same set of components,
+ * meaning types created with this function can be compared by reference.
+ */
+export let make = (components: Component.T[]) => {
+  let components_hash = Hash.hash_words(components.map(c => c.id))
+  if (cache[components_hash] !== undefined) {
+    return cache[components_hash]
+  }
+  let vec = to_vec(components)
+  let vec_hash = Hash.hash_words(vec.map(c => c.id))
+  if (cache_vec[vec_hash] !== undefined) {
+    return (cache[components_hash] = cache_vec[vec_hash])
+  }
+  return (cache[components_hash] = cache_vec[vec_hash] =
+    new Type(vec, vec_hash))
+}
+
+export let empty = make([])
+
+/**
+ * Check if set `a` contains every component of set `b`.
+ */
+export let is_superset = (a: T, b: T): boolean => {
+  // This type is an empty type.
+  if (a.vec.length === 0) {
     return false
   }
-  // Compared type is a void type.
-  if (b.vec_ids.length === 0) {
+  // Compared type is an empty type.
+  if (b.vec.length === 0) {
     return true
   }
   // Compared type is equivalent to this type.
-  if (a.hash === b.hash) {
+  if (a.vec_hash === b.vec_hash) {
     return false
   }
   let ia = 0
   let ib = 0
-  while (ia < a.vec_ids.length && ib < b.vec_ids.length) {
-    let ida = a.vec_ids[ia]
-    let idb = b.vec_ids[ib]
+  while (ia < a.vec.length && ib < b.vec.length) {
+    let ida = a.vec[ia].id
+    let idb = b.vec[ib].id
     if (ida < idb) {
       ia++
     } else if (ida > idb) {
@@ -133,35 +110,35 @@ export let is_superset = (a: Type, b: Type): boolean => {
       ib++
     }
   }
-  return ib === b.vec_ids.length
+  return ib === b.vec.length
 }
 
-export let is_left = (a: Type, b: Type): boolean => {
-  let ia = 0
-  let ib = 0
-  while (ia < a.vec_ids.length && ib < b.vec_ids.length) {
-    let ida = a.vec_ids[ia]
-    let idb = b.vec_ids[ib]
-    if (ida < idb) {
-      ib++
-    } else if (ida > idb) {
+/**
+ * Check if set `a` contains every component of set `b`.
+ */
+export let is_superset_fast = (a: T, b: T): boolean => {
+  for (let i = 0; i < b.vec.length; i++) {
+    if (a.ids.has(b.vec[i].id) === false) {
       return false
-    } else {
-      ia++
-      ib++
     }
   }
   return true
 }
 
-export let xor_hash = (a: Type, b: Type): number => {
-  if (a.hash === b.hash) return 0
+/**
+ * Compute a unique integer that represents the difference between sets `a` and
+ * `b`.
+ */
+export let xor_hash = (a: T, b: T): number => {
+  if (a.vec_hash === b.vec_hash) {
+    return 0
+  }
   let xor = 0
   let ia = 0
   let ib = 0
-  while (ia < a.vec_ids.length && ib < b.vec_ids.length) {
-    let ida = a.vec_ids[ia]
-    let idb = b.vec_ids[ib]
+  while (ia < a.vec.length && ib < b.vec.length) {
+    let ida = a.vec[ia].id
+    let idb = b.vec[ib].id
     if (ida === idb) {
       ia++
       ib++
@@ -173,138 +150,169 @@ export let xor_hash = (a: Type, b: Type): number => {
       ib++
     }
   }
-  while (ia < a.vec_ids.length) {
-    xor = Hash.hash_word(xor, a.vec_ids[ia])
+  while (ia < a.vec.length) {
+    xor = Hash.hash_word(xor, a.vec[ia].id)
     ia++
   }
-  while (ib < b.vec_ids.length) {
-    xor = Hash.hash_word(xor, b.vec_ids[ib])
+  while (ib < b.vec.length) {
+    xor = Hash.hash_word(xor, b.vec[ib].id)
     ib++
   }
   return xor
 }
 
-export let xor_hash_u = (a: Type, b: Type): number => {
+/**
+ * Compute a unique unsigned integer that represents the difference between sets
+ * `a` and `b`.
+ */
+export let xor_hash_u = (a: T, b: T): number => {
   return xor_hash(a, b) >>> 0
 }
 
-export let intersection = <U extends Component.T[], V extends Component.T[]>(
-  a: Type<U>,
-  b: Type<V>,
-) => {
+/**
+ * Compute the type that contains all components from sets `a` and `b`.
+ */
+export let sum = (a: T, b: T) => make(a.vec.concat(b.vec))
+
+/**
+ * Compute the type that contains all components that are unique to set `a`.
+ */
+export let difference = (a: T, b: T) => {
   let components: Component.T[] = []
   for (let i = 0; i < a.vec.length; i++) {
     let component = a.vec[i]
-    if (b.sparse[component.id] !== undefined) {
+    if (has_component(b, component) === false) {
       components.push(component)
     }
   }
-  return from(components)
+  return make(components)
 }
 
-let with_ = <U extends Component.T[], V extends Component.T[]>(
-  a: T<U>,
-  b: T<V>,
-): T<[...U, ...V]> => from(a.def.concat(b.def as Component.T[]))
-export {with_ as with}
-
-export let without = <U extends Component.T[], V extends Component.T[]>(
-  a: T<U>,
-  b: T<V>,
-): T<[...U, ...V]> => {
-  let components: Component.T[] = []
+/**
+ * Compute the type that contains all components that are common to both sets `a`
+ * and `b`.
+ */
+export let intersection = (a: T, b: T) => {
+  let common: Component.T[] = []
   for (let i = 0; i < a.vec.length; i++) {
     let component = a.vec[i]
-    if (b.sparse[component.id] === undefined) {
-      components.push(component)
-    } else if (
-      Component.is_rel(component) &&
-      b.pair_counts[component.id] < a.pair_counts[component.id]
-    ) {
-      components.push(component)
+    if (has_component(b, component)) {
+      common.push(component)
     }
   }
-  return from(components)
+  return make(common)
 }
 
-export let with_component = <U extends Component.T[], V extends Component.T>(
-  type: T<U>,
-  component: V,
-): T<[...U, V]> => from(type.def.concat(component))
-
-export let without_component = <U extends Component.T[], V extends Component.T>(
-  type: T<U>,
-  component: V,
-): T<ExcludeFromTuple<U, V>> =>
-  from(type.def.filter(c => c.id !== component.id))
-
-export let is_type = (obj: object): obj is Type => obj instanceof Type
-
-let normalize = <U extends (Type | Component.T)[]>(types: U): Normalized<U> => {
-  let components_seen = new Set<number>()
-  let components = [] as Component.T[]
-  for (let i = 0; i < types.length; i++) {
-    let type = types[i]
-    if (is_type(type)) {
-      for (let j = 0; j < type.def.length; j++) {
-        let component = type.def[j]
-        if (components_seen.has(component.id)) {
-          continue
-        }
-        components_seen.add(component.id)
-        components.push(component)
-      }
-    } else {
-      if (components_seen.has(type.id)) {
-        continue
-      }
-      if (Component.is_pair(type)) {
-        let rel_id = Entity.parse_hi(type.id)
-        if (components_seen.has(rel_id)) {
-          continue
-        }
-        components.push(Component.find_by_id(rel_id)!)
-      }
-      components_seen.add(type.id)
-      components.push(type)
-    }
-  }
-  return components as Normalized<U>
+/**
+ * Check if set `a` contains component `component`.
+ */
+export let has_component = (a: T, component: Component.T): boolean => {
+  return a.ids.has(component.id)
 }
 
-export let has = (a: Type, b: Type): boolean => {
-  for (let i = 0; i < b.vec_ids.length; i++) {
-    let component_id = b.vec_ids[i]
-    if (a.sparse[component_id] === undefined) {
-      return false
-    }
-  }
-  return true
+/**
+ * Check if set `a` contains component with id `component_id`.
+ */
+export let has_component_id = (a: T, component_id: number): boolean => {
+  return a.ids.has(component_id)
 }
 
-export let has_component_id = (type: Type, component_id: number): boolean => {
-  return type.sparse[component_id] !== undefined
-}
+/**
+ * Add component `component` to set `a`.
+ */
+export let with_component = (a: T, component: Component.T) =>
+  make(a.vec.concat(component))
 
-export let has_component = (type: Type, component: Component.T): boolean => {
-  return type.sparse[component.id] !== undefined
-}
+/**
+ * Remove component `component` from set `a`.
+ */
+export let without_component = (a: T, component: Component.T) =>
+  make(a.vec.filter(c => c.id !== component.id))
 
-export let component_at = <U extends Component.T[], I extends number = 0>(
-  type: Type<U>,
-  index: I,
-): U[I] => {
-  const component = type.def[index] as U[I]
-  Assert.ok(component !== undefined)
-  return component
-}
+if (import.meta.vitest) {
+  let {test, expect} = await import("vitest")
 
-export let from = <U extends (Component.T | Type)[]>(
-  types: U,
-): Type<Normalized<U>> => new Type(normalize(types))
+  test("compare by reference", () => {
+    let A = Component.tag()
+    let B = Component.tag()
+    let a = make([A, B])
+    let b = make([B, A])
+    expect(a === b).to.equal(true)
+  })
 
-export let make = <U extends (Component.T | Type)[]>(
-  ...types: U
-): Type<Normalized<U>> => {
-  return from(types)
+  test("is_superset", () => {
+    let A = Component.tag()
+    let B = Component.tag()
+    let C = Component.tag()
+    let ab = make([A, B])
+    let bac = make([B, A, C])
+    expect(is_superset(bac, ab)).to.equal(true)
+    expect(is_superset(ab, bac)).to.equal(false)
+  })
+
+  test("is_superset_fast", () => {
+    let A = Component.tag()
+    let B = Component.tag()
+    let C = Component.tag()
+    let ab = make([A, B])
+    let bac = make([B, A, C])
+    expect(is_superset_fast(bac, ab)).to.equal(true)
+    expect(is_superset_fast(ab, bac)).to.equal(false)
+  })
+
+  test("xor_hash", () => {
+    let A = Component.tag()
+    let B = Component.tag()
+    let C = Component.tag()
+    let D = Component.tag()
+    let E = Component.tag()
+    let F = Component.tag()
+    let ab = make([A, B])
+    let cd = make([C, D])
+    let ef = make([E, F])
+    let xor_ab_cd = xor_hash(ab, cd)
+    let xor_ab_ef = xor_hash(ab, ef)
+    expect(xor_ab_cd).not.toBeNaN()
+    expect(xor_ab_ef).not.toBeNaN()
+    expect(xor_ab_cd).not.toEqual(xor_ab_ef)
+  })
+
+  test("intersection", () => {
+    let A = Component.tag()
+    let B = Component.tag()
+    let C = Component.tag()
+    let a = make([A])
+    let b = make([B])
+    let c = make([C])
+    let ab = make([A, B])
+    let bc = make([B, C])
+    let abc = make([A, B, C])
+    expect(intersection(ab, bc)).toEqual(b)
+    expect(intersection(ab, abc)).toEqual(ab)
+    expect(intersection(bc, abc)).toEqual(bc)
+    expect(intersection(a, b)).toEqual(empty)
+    expect(intersection(a, c)).toEqual(empty)
+  })
+
+  test("has_component", () => {
+    let A = Component.tag()
+    let B = Component.tag()
+    let a = make([A])
+    let b = make([B])
+    expect(has_component(a, A)).to.equal(true)
+    expect(has_component(a, B)).to.equal(false)
+    expect(has_component(b, A)).to.equal(false)
+    expect(has_component(b, B)).to.equal(true)
+  })
+
+  test("has_component_id", () => {
+    let A = Component.tag()
+    let B = Component.tag()
+    let a = make([A])
+    let b = make([B])
+    expect(has_component_id(a, A.id)).to.equal(true)
+    expect(has_component_id(a, B.id)).to.equal(false)
+    expect(has_component_id(b, A.id)).to.equal(false)
+    expect(has_component_id(b, B.id)).to.equal(true)
+  })
 }

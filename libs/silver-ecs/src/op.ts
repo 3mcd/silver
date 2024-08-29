@@ -9,11 +9,11 @@ export enum Kind {
   Remove,
 }
 
-export type Spawn<U extends Component.T[] = Component.T[]> = {
+export type Spawn = {
   kind: Kind.Spawn
   entity: Entity.T
-  type: Type.T<U>
-  values: Component.ValuesOf<U>
+  type: Type.T
+  values: unknown[]
 }
 
 export type Despawn = {
@@ -21,17 +21,17 @@ export type Despawn = {
   entity: Entity.T
 }
 
-export type Add<U extends Component.T[] = Component.T[]> = {
+export type Add = {
   kind: Kind.Add
   entity: Entity.T
-  type: Type.T<U>
-  values: Component.ValuesOf<U>
+  type: Type.T
+  values: unknown[]
 }
 
-export type Remove<U extends Component.T[] = Component.T[]> = {
+export type Remove = {
   kind: Kind.Remove
   entity: Entity.T
-  type: Type.T<U>
+  type: Type.T
 }
 
 export type T = Spawn | Despawn | Add | Remove
@@ -56,11 +56,11 @@ class Op {
 }
 
 export let spawn = <U extends Component.T[]>(
-  type: Type.T<U>,
+  type: Type.T,
   entity: Entity.T,
   values: Component.ValuesOf<U>,
 ) => {
-  return new Op(Kind.Spawn, entity, type, values) as Spawn<U>
+  return new Op(Kind.Spawn, entity, type, values) as Spawn
 }
 
 export let despawn = (entity: Entity.T) => {
@@ -68,16 +68,13 @@ export let despawn = (entity: Entity.T) => {
 }
 
 export let add = <U extends Component.T[]>(
-  type: Type.T<U>,
+  type: Type.T,
   entity: Entity.T,
   values: Component.ValuesOf<U>,
 ) => {
-  return new Op(Kind.Add, entity, type, values) as Add<U>
+  return new Op(Kind.Add, entity, type, values) as Add
 }
 
-export let remove = <U extends Component.T[]>(
-  type: Type.T<U>,
-  entity: Entity.T,
-) => {
-  return new Op(Kind.Remove, entity, type) as Remove<U>
+export let remove = (type: Type.T, entity: Entity.T) => {
+  return new Op(Kind.Remove, entity, type) as Remove
 }

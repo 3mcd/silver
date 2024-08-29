@@ -15,7 +15,7 @@ export class Graph {
     this.root = Node.make()
     this.nodes_by_id = SparseMap.make<Node.T>()
     this.nodes_by_hash = new Map<number, Node.T>()
-    this.nodes_by_hash.set(this.root.type.hash, this.root)
+    this.nodes_by_hash.set(this.root.type.vec_hash, this.root)
     SparseMap.set(this.nodes_by_id, this.root.id, this.root)
   }
 }
@@ -25,26 +25,42 @@ export let make = (): Graph => {
   return new Graph()
 }
 
-let link_nodes_traverse = (graph: Graph, node: Node.T): void => {
+let link_nodes_traverse = (graph: Graph, inserted_node: Node.T): void => {
   Node.traverse_right(
     graph.root,
     function link_nodes_traverse_visitor(visited_node) {
-      let visited_node_has_supersets = false
-      let edges_next = SparseMap.values(visited_node.next_nodes)
-      for (let i = 0; i < edges_next.length; i++) {
-        if (Type.is_superset(node.type, edges_next[i].type)) {
-          visited_node_has_supersets = true
+      let inserted_node_is_superset_of_visited_node_supersets = false
+      let inserted_node_is_superset_of_visited_node = Type.is_superset_fast(
+        inserted_node.type,
+        visited_node.type,
+      )
+      let next_nodes = SparseMap.values(visited_node.next_nodes)
+      for (let i = 0; i < next_nodes.length; i++) {
+        if (Type.is_superset_fast(inserted_node.type, next_nodes[i].type)) {
+          inserted_node_is_superset_of_visited_node_supersets = true
           break
         }
       }
       if (
-        visited_node_has_supersets === false &&
-        Type.is_superset(node.type, visited_node.type)
+        inserted_node_is_superset_of_visited_node_supersets === false &&
+        inserted_node_is_superset_of_visited_node
       ) {
-        Node.link(node, visited_node)
-        return Type.is_left(node.type, visited_node.type)
-      } else if (Type.is_superset(visited_node.type, node.type)) {
-        Node.link(visited_node, node)
+        Node.link(inserted_node, visited_node)
+        // continue until a node that is a superset of the inserted node is
+        // found
+        return true
+      }
+      if (Type.is_superset_fast(visited_node.type, inserted_node.type)) {
+        Node.link(visited_node, inserted_node)
+        // look at previous nodes and unlink connections
+        SparseMap.each(
+          visited_node.prev_nodes,
+          function link_nodes_traverse_unlink(xor, prev_node) {
+            if (Type.is_superset_fast(inserted_node.type, prev_node.type)) {
+              Node.unlink(visited_node, prev_node, xor)
+            }
+          },
+        )
         return false
       }
       return true
@@ -53,14 +69,14 @@ let link_nodes_traverse = (graph: Graph, node: Node.T): void => {
 }
 
 let emit_nodes_traverse = (node: Node.T): void => {
-  Node.traverse_left(node, function emitNode(visit) {
+  Node.traverse_left(node, function emit_node(visit) {
     Node.emit_node_created(visit, node)
   })
 }
 
 let insert_node = (graph: Graph, type: Type.T): Node.T => {
   let node: Node.T = Node.make(type)
-  graph.nodes_by_hash.set(type.hash, node)
+  graph.nodes_by_hash.set(type.vec_hash, node)
   SparseMap.set(graph.nodes_by_id, node.id, node)
   link_nodes_traverse(graph, node)
   emit_nodes_traverse(node)
@@ -82,10 +98,9 @@ let dispose_node = (graph: Graph, node: Node.T): void => {
   )
   SparseMap.clear(node.prev_nodes)
   SparseMap.clear(node.next_nodes)
-  graph.nodes_by_hash.delete(node.type.hash)
+  graph.nodes_by_hash.delete(node.type.vec_hash)
   SparseMap.delete(graph.nodes_by_id, node.id)
   node.listeners = []
-  node.disposed = true
 }
 
 export let prune = (graph: Graph, node: Node.T): void => {
@@ -128,7 +143,7 @@ export let find_or_create_node_by_type = (
   graph: Graph,
   type: Type.T,
 ): Node.T => {
-  let node = graph.nodes_by_hash.get(type.hash) ?? insert_node(graph, type)
+  let node = graph.nodes_by_hash.get(type.vec_hash) ?? insert_node(graph, type)
   return node
 }
 
@@ -138,7 +153,7 @@ export let find_or_create_node_by_component = (
 ): Node.T => {
   let node =
     graph.nodes_by_hash.get(Hash.hash_word(undefined, component.id)) ??
-    insert_node(graph, Type.make(component))
+    insert_node(graph, Type.make([component]))
   return node
 }
 

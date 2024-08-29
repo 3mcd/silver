@@ -1,10 +1,10 @@
 import * as SparseSet from "./sparse_set"
 
 interface RelMap<U extends number> {
-  set(source: U, target: U): void
-  has(source: U): boolean
-  delete_target(target: U): void
-  delete_source(source: U): void
+  set_object(source: U, target: U): void
+  has_subject(source: U): boolean
+  delete_object(target: U): void
+  delete_subject(source: U): void
 }
 
 class RelMap<U extends number> implements RelMap<U> {
@@ -16,18 +16,18 @@ class RelMap<U extends number> implements RelMap<U> {
     this.b_to_a = [] as SparseSet.T<U>[]
   }
 
-  set(source: U, target: U) {
+  set_object(source: U, target: U) {
     let b = (this.a_to_b[source] ??= SparseSet.make())
     let a = (this.b_to_a[target] ??= SparseSet.make())
     SparseSet.add(b, target)
     SparseSet.add(a, source)
   }
 
-  has(source: U): boolean {
+  has_subject(source: U): boolean {
     return this.a_to_b[source] !== undefined
   }
 
-  delete_target(target: U) {
+  delete_object(target: U) {
     let a = this.b_to_a[target]
     if (a === undefined) {
       return
@@ -45,7 +45,7 @@ class RelMap<U extends number> implements RelMap<U> {
     delete this.b_to_a[target]
   }
 
-  delete_source(source: U) {
+  delete_subject(source: U) {
     let b = this.a_to_b[source]
     if (b === undefined) {
       return
@@ -73,16 +73,16 @@ if (import.meta.vitest) {
 
   test("relmap", () => {
     let relmap = new RelMap<number>()
-    relmap.set(1, 2)
-    relmap.set(1, 3)
-    relmap.set(2, 3)
-    expect(relmap.has(1)).to.equal(true)
-    expect(relmap.has(2)).to.equal(true)
-    relmap.delete_source(1)
-    expect(relmap.has(1)).to.equal(false)
-    expect(relmap.has(2)).to.equal(true)
-    relmap.delete_target(3)
-    expect(relmap.has(1)).to.equal(false)
-    expect(relmap.has(2)).to.equal(false)
+    relmap.set_object(1, 2)
+    relmap.set_object(1, 3)
+    relmap.set_object(2, 3)
+    expect(relmap.has_subject(1)).to.equal(true)
+    expect(relmap.has_subject(2)).to.equal(true)
+    relmap.delete_subject(1)
+    expect(relmap.has_subject(1)).to.equal(false)
+    expect(relmap.has_subject(2)).to.equal(true)
+    relmap.delete_object(3)
+    expect(relmap.has_subject(1)).to.equal(false)
+    expect(relmap.has_subject(2)).to.equal(false)
   })
 }

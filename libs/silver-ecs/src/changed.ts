@@ -1,5 +1,5 @@
 import * as Component from "./component"
-import * as Type from "./type"
+import * as Type from "./sig"
 import * as Entity from "./entity"
 import * as EntityVersions from "./entity_versions"
 import * as SparseMap from "./sparse_map"

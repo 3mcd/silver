@@ -16,7 +16,7 @@ import * as Stage from "./stage"
 import * as Transaction from "./transaction"
 import * as Type from "./type"
 
-export type Res<U> = Type.T<[Component.Ref<U>]>
+// export type Res<U> = Sig.T<[Component.Ref<U>]>
 
 export class World {
   #effects
@@ -91,9 +91,10 @@ export class World {
     this.#gc = true
   }
 
-  #write_many(entity: Entity.T, type: Type.T, values: unknown[]) {
-    for (let i = 0; i < type.refs.length; i++) {
-      this.#write(entity, type.refs[i], values[i])
+  #write_many(entity: Entity.T, sig: Type.T, values: unknown[]) {
+    for (let i = 0; i < sig.refs.length; i++) {
+      let ref = sig.refs[i]
+      this.#write(entity, ref, values[ref.id])
     }
   }
 
@@ -126,21 +127,24 @@ export class World {
       let pair = type.pairs[i]
       let pair_rel_id = Entity.parse_hi(pair.id)
       let pair_rel = Component.find_by_id(pair_rel_id) as Component.Rel
-      let target_entity_id = Entity.parse_lo(pair.id)
-      let target_entity = Entities.hydrate(
+      let object_entity_id = Entity.parse_lo(pair.id)
+      let object_entity = Entities.hydrate(
         this.#entity_registry,
-        target_entity_id,
+        object_entity_id,
       )
-      let target_entity_node = this.get_entity_node(target_entity)
-      if (!Type.has_component(target_entity_node.type, pair_rel.target)) {
-        this.#apply_add(Op.add(Type.make(pair_rel.target), target_entity, []))
+      let object_entity_ndoe = this.get_entity_node(object_entity)
+      if (!Type.has_component(object_entity_ndoe.type, pair_rel.inverse)) {
+        // grant the object entity the relation's inverse tag
+        this.#apply_add(
+          Op.add(Type.make([pair_rel.inverse]), object_entity, []),
+        )
       }
-      let next_target_entity_node = this.get_entity_node(target_entity)
-      Node.set_rel_target(
+      let next_target_entity_node = this.get_entity_node(object_entity)
+      Node.set_rel_object(
         next_target_entity_node,
-        pair_rel.target.id,
+        pair_rel.inverse.id,
         source_entity,
-        target_entity,
+        object_entity,
       )
     }
   }
@@ -160,27 +164,18 @@ export class World {
     // }
   }
 
-  #move_relations(
-    target_entity: Entity.T,
-    prev_node: Node.T,
-    next_node: Node.T,
-  ) {
-    for (let i = 0; i < prev_node.type.rel_targets.length; i++) {
-      let rel_target = prev_node.type.rel_targets[i]
-      let rel_target_map = prev_node.rel_maps[rel_target.id]
-      let rel_target_refs = rel_target_map.b_to_a[target_entity]
-      if (rel_target_refs === undefined) {
+  #move_relations(object: Entity.T, prev_node: Node.T, next_node: Node.T) {
+    for (let i = 0; i < prev_node.type.rels_inverse.length; i++) {
+      let rel_inverse = prev_node.type.rels_inverse[i]
+      let rel_inverse_map = prev_node.rel_maps[rel_inverse.id]
+      let rel_subjects = rel_inverse_map.b_to_a[object]
+      if (rel_subjects === undefined) {
         continue
       }
-      SparseSet.each(rel_target_refs, source_entity => {
-        Node.set_rel_target(
-          next_node,
-          rel_target.id,
-          source_entity as Entity.T,
-          target_entity,
-        )
+      SparseSet.each(rel_subjects, subject => {
+        Node.set_rel_object(next_node, rel_inverse.id, subject, object)
       })
-      Node.unset_rel_target(prev_node, rel_target.id, target_entity)
+      Node.delete_rel_object(prev_node, rel_inverse.id, object)
     }
   }
 
@@ -198,7 +193,7 @@ export class World {
   #apply_add(op: Op.Add) {
     let {entity, type, values} = op
     let prev_node = this.get_entity_node(entity)
-    let next_type = Type.with(prev_node.type, type)
+    let next_type = Type.sum(prev_node.type, type)
     let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
     this.#write_many(entity, type, values)
     this.#move_relations(entity, prev_node, next_node)
@@ -209,7 +204,7 @@ export class World {
   #apply_remove(op: Op.Remove) {
     let {entity, type} = op
     let prev_node = this.get_entity_node(entity)
-    let next_type = Type.without(prev_node.type, type)
+    let next_type = Type.difference(prev_node.type, type)
     let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
     this.#clear_many(entity, type)
     this.#move_relations(entity, prev_node, next_node)
@@ -237,32 +232,29 @@ export class World {
     return this.#tick
   }
 
-  has_resource<U>(res: Res<U>): boolean {
-    let res_component = Type.component_at(res, 0)
-    return this.#resources[res_component.id] !== undefined
-  }
+  // has_resource<U>(res: Res<U>): boolean {
+  //   let res_component = Sig.at(res, 0)
+  //   return this.#resources[res_component.id] !== undefined
+  // }
 
-  set_resource<U>(res: Res<U>, resource: U) {
-    let res_component = Type.component_at(res, 0)
-    this.#resources[res_component.id] = resource
-  }
+  // set_resource<U>(res: Res<U>, resource: U) {
+  //   let res_component = Sig.at(res, 0)
+  //   this.#resources[res_component.id] = resource
+  // }
 
-  get_resource<U>(res: Res<U>): U {
-    let res_component = Type.component_at(res, 0)
-    return Assert.exists(this.#resources[res_component.id] as U)
-  }
+  // get_resource<U>(res: Res<U>): U {
+  //   let res_component = Sig.at(res, 0)
+  //   return Assert.exists(this.#resources[res_component.id] as U)
+  // }
 
   spawn(): Entity.T
-  spawn<U extends Component.T[]>(
-    type: Type.Type<U>,
-    ...values: Component.ValuesOf<U>
-  ): Entity.T
-  spawn(type?: Type.T, ...values: unknown[]): Entity.T {
+  spawn(type: Type.T, values: unknown[]): Entity.T
+  spawn(type?: Type.T, values?: unknown[]): Entity.T {
     let entity = Entities.retain(this.#entity_registry)
     Stage.insert(
       this.#stage,
       this.#tick,
-      Op.spawn(type ?? Type.make(), entity, values as []),
+      Op.spawn(type ?? Type.empty, entity, values as []),
     )
     return entity
   }
@@ -272,17 +264,11 @@ export class World {
     Stage.insert(this.#stage, this.#tick, Op.despawn(entity))
   }
 
-  add<U extends Component.T[]>(
-    entity: Entity.T,
-    type: Type.Type<U>,
-    ...values: Component.ValuesOf<U>
-  ) {
+  add(entity: Entity.T, type: Type.T, values: unknown[]) {
     Entities.check(this.#entity_registry, entity)
-    Stage.insert(this.#stage, this.#tick, Op.add(type, entity, values))
+    Stage.insert(this.#stage, this.#tick, Op.add(type, entity, values as []))
   }
 
-  remove<U extends Component.T[]>(entity: Entity.T, type: Type.T<U>): void
-  remove<U extends Component.T[]>(entity: Entity.T, type: Type.T<U>): void
   remove(entity: Entity.T, type: Type.T) {
     Entities.check(this.#entity_registry, entity)
     Stage.insert(this.#stage, this.#tick, Op.remove(type, entity))
@@ -298,7 +284,7 @@ export class World {
 
   has(entity: Entity.T, type: Type.T): boolean {
     let node = this.get_entity_node(entity)
-    return Type.has(node.type, type)
+    return Type.intersection(node.type, type) === type
   }
 
   get<U extends Component.Ref>(entity: Entity.T, ref: U) {
@@ -399,7 +385,7 @@ export class World {
   single(type: Type.Unitary): Entity.T {
     let node = Graph.find_or_create_node_by_component(
       this.graph,
-      Type.component_at(type, 0),
+      Type.at(type, 0),
     )
     let entity: Entity.T | undefined
     Node.traverse_right(node, visited_node => {
@@ -417,12 +403,14 @@ export class World {
     value: Component.ValueOf<U>,
   ): EntityBuilder.T
   with<U extends Component.Pair>(component: U): EntityBuilder.T
-  with(component: Component.T, value?: unknown) {
-    return EntityBuilder.make(
-      this,
-      Type.make(component),
-      value === undefined ? [] : [value],
-    )
+  with(
+    component: Component.Tag | Component.Ref | Component.Pair,
+    value?: unknown,
+  ) {
+    let builder = EntityBuilder.make(this)
+    return Component.is_ref(component)
+      ? builder.with(component, value)
+      : builder.with(component)
   }
 
   for_each<U extends unknown[]>(

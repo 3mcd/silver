@@ -5,7 +5,7 @@ export enum Kind {
   Tag,
   Ref,
   Rel,
-  RelTarget,
+  RelInverse,
   Pair,
 }
 
@@ -61,8 +61,8 @@ export type ValuesOf<U extends T[] = T[]> = U extends [
 /**
  * A zero-size datatype that describes an entity's relation to another entity.
  */
-export interface RelTarget extends Base<void> {
-  kind: Kind.RelTarget
+export interface RelInverse extends Base<void> {
+  kind: Kind.RelInverse
   topology: Topology
 }
 
@@ -71,7 +71,7 @@ export interface RelTarget extends Base<void> {
  */
 export interface Rel extends Base<void> {
   kind: Kind.Rel
-  target: RelTarget
+  inverse: RelInverse
   topology: Topology
 }
 
@@ -79,7 +79,7 @@ export interface Pair extends Base<void> {
   kind: Kind.Pair
 }
 
-export type T = Tag | Ref | Rel | RelTarget | Pair
+export type T = Tag | Ref | Rel | RelInverse | Pair
 
 let next_component_id = 1
 
@@ -99,7 +99,7 @@ class Component {
   id
   kind
   schema
-  target?: RelTarget
+  target?: RelInverse
   topology
   initialize
 
@@ -122,8 +122,8 @@ class Component {
   }
 }
 
-const make_rel_target = (id: number, topology: Topology): RelTarget => {
-  const rel_target = new Component(id, Kind.RelTarget, topology) as RelTarget
+const make_rel_target = (id: number, topology: Topology): RelInverse => {
+  const rel_target = new Component(id, Kind.RelInverse, topology) as RelInverse
   components.set(id, rel_target)
   return rel_target
 }
@@ -254,7 +254,7 @@ export let rel = (options?: RelOptions): PairFn => {
     options?.exclusive ? Topology.Exclusive : Topology.Inclusive,
   )
   let rel_target = make_rel_target(make_component_id(), rel.topology)
-  rel.target = rel_target
+  rel.inverse = rel_target
   let pair_cache: Pair[] = []
   function pair_fn(): Rel
   function pair_fn(entity: Entity.T): Pair
@@ -296,8 +296,11 @@ export let is_tag = (component: T): component is Tag | Rel =>
 export let is_rel = (component: T): component is Rel =>
   component.kind === Kind.Rel
 
-export let is_rel_target = (component: T): component is RelTarget =>
-  component.kind === Kind.RelTarget
+export let is_rel_exclusive = (component: T): component is Rel =>
+  component.kind === Kind.Rel && component.topology === Topology.Exclusive
+
+export let is_rel_inverse = (component: T): component is RelInverse =>
+  component.kind === Kind.RelInverse
 
 export let is_pair = (component: T): component is Pair =>
   component.kind === Kind.Pair

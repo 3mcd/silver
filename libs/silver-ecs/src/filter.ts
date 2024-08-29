@@ -1,4 +1,4 @@
-import * as Type from "./type"
+import * as Type from "./sig"
 
 export enum Kind {
   Is,

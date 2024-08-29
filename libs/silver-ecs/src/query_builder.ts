@@ -1,6 +1,5 @@
 import * as Component from "./component"
 import * as SparseMap from "./sparse_map"
-import * as Type from "./type"
 
 type WithRef<T extends unknown[], U> = U extends Component.Ref<infer V>
   ? QueryBuilderNode<[...T, V]>
@@ -11,14 +10,14 @@ type Join<U extends unknown[]> = (
 ) => QueryBuilderNode<U>
 
 class QueryBuilderNode<T extends unknown[] = unknown[]> {
-  type: Type.T
+  terms
   joins
   join_on
 
-  constructor(on?: Component.T) {
-    this.type = on ? Type.make(on) : Type.make()
+  constructor(join_on?: Component.T) {
+    this.terms = join_on ? [join_on] : []
     this.joins = SparseMap.make<QueryBuilderNode>()
-    this.join_on = on
+    this.join_on = join_on
   }
 
   with<U extends Component.Ref>(ref: U): WithRef<T, U>
@@ -48,13 +47,13 @@ class QueryBuilderNode<T extends unknown[] = unknown[]> {
           SparseMap.set(
             this.joins,
             component.id,
-            join(new QueryBuilderNode(component.target)),
+            join(new QueryBuilderNode(component.inverse)),
           )
         }
       case Component.Kind.Ref:
       case Component.Kind.Tag:
       case Component.Kind.Rel:
-        this.type = Type.with_component(this.type, component)
+        this.terms.push(component)
         break
     }
     return this

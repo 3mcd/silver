@@ -3,7 +3,7 @@ import * as Entity from "./entity"
 import * as Node from "./node"
 import * as SparseSet from "./sparse_set"
 import * as Transaction from "./transaction"
-import * as Type from "./type"
+import * as Type from "./sig"
 
 type Event<U extends Component.T[]> = (
   // TODO: pass ref values
