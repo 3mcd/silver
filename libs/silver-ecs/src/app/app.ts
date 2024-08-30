@@ -1,18 +1,20 @@
+import * as Effect from "../effect"
+import * as Component from "../component"
 import * as Assert from "../assert"
 import * as World from "../world"
 import * as Schedule from "./schedule"
 import * as System from "./system"
+import * as Type from "../type"
 
 class App {
   #init = true
   #init_schedule
-
-  readonly schedule
-  readonly world
+  #schedule
+  #world
 
   constructor(world = World.make(), schedule = Schedule.make()) {
-    this.world = world
-    this.schedule = schedule
+    this.#world = world
+    this.#schedule = schedule
     this.#init_schedule = Schedule.make()
   }
 
@@ -25,17 +27,17 @@ class App {
 
   run() {
     if (this.#init) {
-      Schedule.run(this.#init_schedule, this.world)
-      this.world.step()
+      Schedule.run(this.#init_schedule, this.#world)
+      this.#world.step()
       this.#init = false
     }
-    Schedule.run(this.schedule, this.world)
-    this.world.step()
+    Schedule.run(this.#schedule, this.#world)
+    this.#world.step()
   }
 
   add_system(system: System.Fn, ...constraints: System.Constraint[]) {
     Schedule.add_system(
-      this.schedule,
+      this.#schedule,
       System.apply_constraints(system, constraints),
     )
     return this
@@ -49,9 +51,14 @@ class App {
     return this
   }
 
-  add_resource<T>(res: World.Res<T>, resource: T) {
-    Assert.ok(this.world.has_resource(res) === false)
-    this.world.set_resource(res, resource)
+  add_resource<U>(res: Component.Ref<U>, resource: U) {
+    Assert.ok(this.#world.has_resource(res) === false)
+    this.#world.set_resource(res, resource)
+    return this
+  }
+
+  add_effect<const U extends Effect.Term[]>(effect: Effect.T<U>) {
+    this.#world.add_effect(effect)
     return this
   }
 }

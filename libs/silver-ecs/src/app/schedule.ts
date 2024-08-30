@@ -4,11 +4,11 @@ import * as System from "./system"
 import * as Range from "./range"
 
 class Schedule {
-  graph_ = SystemGraph.make<System.T>()
-  stale_ = true
+  graph = SystemGraph.make<System.T>()
+  is_stale = true
   system_runs = [] as number[]
   systems = [] as System.T[]
-  explicitly_added_system_fns = new Set<Function>()
+  explicit = new Set<Function>()
 }
 
 export type T = Schedule
@@ -22,69 +22,69 @@ export let add_system = (schedule: Schedule, system: System.T | System.Fn) => {
     system = System.make(system)
   }
   // ensure system exists in graph
-  SystemGraph.edges(schedule.graph_, system)
+  SystemGraph.edges(schedule.graph, system)
   // register system dependencies
-  system.before_.forEach(fn => {
-    SystemGraph.add_edge(schedule.graph_, system, System.make(fn))
+  system.before.forEach(fn => {
+    SystemGraph.add_edge(schedule.graph, system, System.make(fn))
   })
-  system.after_.forEach(fn => {
-    SystemGraph.add_edge(schedule.graph_, System.make(fn), system)
+  system.after.forEach(fn => {
+    SystemGraph.add_edge(schedule.graph, System.make(fn), system)
   })
   // mark schedule stale to be rebuilt on next `run`
-  schedule.stale_ = true
+  schedule.is_stale = true
 
-  schedule.explicitly_added_system_fns.add(system.fn_)
+  schedule.explicit.add(system.fn)
 }
 
 export let remove_system = (schedule: Schedule, system: System.Fn) => {
-  SystemGraph.remove(schedule.graph_, System.make(system))
-  schedule.stale_ = true
+  SystemGraph.remove(schedule.graph, System.make(system))
+  schedule.is_stale = true
 }
 
 export let run = (schedule: Schedule, world: World.T) => {
   // rebuild system schedule when stale
-  if (schedule.stale_) {
-    schedule.systems = SystemGraph.build(schedule.graph_)
-      .filter(s => !Range.is_anchor(s.fn_))
-      .filter(s => schedule.explicitly_added_system_fns.has(s.fn_))
-    schedule.stale_ = false
+  if (schedule.is_stale) {
+    schedule.systems = SystemGraph.build(schedule.graph)
+      .filter(s => !Range.is_anchor(s.fn))
+      .filter(s => schedule.explicit.has(s.fn))
+    schedule.is_stale = false
   }
   // try to execute each system once
-  let runsRemaining = 0
-  systemLoop: for (let i = 0; i < schedule.systems.length; i++) {
+  let total_runs_remaining = 0
+  system_loop: for (let i = 0; i < schedule.systems.length; i++) {
     let system = schedule.systems[i]
     let runs = 0
-    for (let j = 0; j < system.when_.length; j++) {
-      let criteria = system.when_[j]
-      let criteriaResult = criteria(world)
-      if (!criteriaResult) {
-        continue systemLoop
+    for (let j = 0; j < system.when.length; j++) {
+      let criteria = system.when[j]
+      let criteria_res = criteria(world)
+      if (!criteria_res) {
+        continue system_loop
       }
-      if (typeof criteriaResult === "number") {
-        runs = Math.max(runs, criteriaResult)
+      if (typeof criteria_res === "number") {
+        runs = Math.max(runs, criteria_res)
       }
     }
     if (runs > 1) {
-      runsRemaining += schedule.system_runs[i] = runs - 1
+      total_runs_remaining += schedule.system_runs[i] = runs - 1
     }
-    system.fn_(world)
+    system.fn(world)
   }
   // execute additional system runs
-  while (runsRemaining > 0) {
-    systemLoop: for (let i = 0; i < schedule.systems.length; i++) {
+  while (total_runs_remaining > 0) {
+    system_loop: for (let i = 0; i < schedule.systems.length; i++) {
       let system = schedule.systems[i]
       let runs = schedule.system_runs[i]
       if (runs !== undefined && runs > 0) {
-        --runsRemaining
+        --total_runs_remaining
         --schedule.system_runs[i]
-        for (let j = 0; j < system.when_.length; j++) {
-          let criteria = system.when_[j]
-          let criteriaResult = criteria(world)
-          if (!criteriaResult) {
-            continue systemLoop
+        for (let j = 0; j < system.when.length; j++) {
+          let criteria = system.when[j]
+          let criteria_res = criteria(world)
+          if (!criteria_res) {
+            continue system_loop
           }
         }
-        system.fn_(world)
+        system.fn(world)
       }
     }
   }

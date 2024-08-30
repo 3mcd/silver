@@ -25,10 +25,10 @@ export const sort = <T>(
   visited: Set<T>,
 ) => {
   visited.add(vertex)
-  const adjacentVertices = edges(graph, vertex)
-  for (const adjacentVertex of adjacentVertices) {
-    if (!visited.has(adjacentVertex)) {
-      rank = sort(graph, adjacentVertex, rank, ranked, visited)
+  const adj_vertices = edges(graph, vertex)
+  for (const adj_vertex of adj_vertices) {
+    if (!visited.has(adj_vertex)) {
+      rank = sort(graph, adj_vertex, rank, ranked, visited)
     }
   }
   ranked.set(vertex, rank)

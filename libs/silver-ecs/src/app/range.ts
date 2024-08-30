@@ -10,20 +10,20 @@ let make_range_anchor = () => {
 
 class Range {
   #constraints
-  #lo
-  #hi
+  #min_anchor
+  #max_anchor
   constructor(constraints: Constraint[]) {
     this.#constraints = constraints
-    this.#lo = make_range_anchor()
-    this.#hi = make_range_anchor()
+    this.#min_anchor = make_range_anchor()
+    this.#max_anchor = make_range_anchor()
   }
 
-  lo() {
-    return this.#lo
+  min_anchor() {
+    return this.#min_anchor
   }
 
-  hi() {
-    return this.#hi
+  max_anchor() {
+    return this.#max_anchor
   }
 
   constraints() {

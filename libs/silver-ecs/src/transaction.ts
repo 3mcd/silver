@@ -50,7 +50,7 @@ let emit_despawned_entities = (batch: Batch) => {
 
 let emit_moved_entities = (batch: Batch) => {
   // Find the type the source and destination nodes have in common.
-  let intersection = Type.intersection(
+  let intersection = Type.from_intersection(
     Assert.exists(batch.prev_node).type,
     Assert.exists(batch.next_node).type,
   )

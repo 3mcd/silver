@@ -4,52 +4,35 @@ import * as Effect from "./effect"
 import * as Entity from "./entity"
 import * as EntityBuilder from "./entity_builder"
 import * as Entities from "./entity_registry"
-import * as EntityVersions from "./entity_versions"
 import * as Graph from "./graph"
 import * as Node from "./node"
 import * as Op from "./op"
-import * as Query2 from "./query_2"
+import * as Query from "./query"
 import * as QueryBuilder from "./query_builder"
-import * as SparseMap from "./sparse_map"
 import * as SparseSet from "./sparse_set"
-import * as Stage from "./stage"
 import * as Transaction from "./transaction"
 import * as Type from "./type"
 
-// export type Res<U> = Sig.T<[Component.Ref<U>]>
+export const $graph = Symbol("graph")
 
 export class World {
-  #effects
-  #entity_registry
-  #gc
-  #gc_at
-  #nodes_to_prune
+  #entities
+  #entity_data
   #queries
   #resources
   #stage
-  #tick
-  #transaction
+  #transaction;
 
-  readonly entity_data
-  readonly entity_versions
-  readonly graph
-  readonly temp_data
+  [$graph]: Graph.T
 
-  constructor(tick = 0) {
-    this.#effects = [] as Effect.T[]
-    this.#entity_registry = Entities.make()
-    this.#gc = false
-    this.#gc_at = undefined as number | undefined
-    this.#nodes_to_prune = [] as Node.T[]
-    this.#queries = new Map<QueryBuilder.T, Query2.T>()
+  constructor() {
+    this.#entities = Entities.make()
+    this.#entity_data = [] as unknown[][]
+    this.#queries = new Map<QueryBuilder.T, Query.T>()
     this.#resources = [] as unknown[]
-    this.#stage = Stage.make<Op.T>()
-    this.#tick = tick
+    this.#stage = [] as Op.T[]
     this.#transaction = Transaction.make()
-    this.entity_data = [] as unknown[][]
-    this.entity_versions = EntityVersions.make()
-    this.graph = Graph.make()
-    this.temp_data = SparseMap.make<SparseMap.T>()
+    this[$graph] = Graph.make()
   }
 
   get_entity_node(entity: Entity.T) {
@@ -58,63 +41,43 @@ export class World {
     return node
   }
 
-  #bump(entity: Entity.T, component: Component.T) {
-    EntityVersions.bump(this.entity_versions, entity, component.id)
-  }
-
-  #read<U extends Component.T>(entity: Entity.T, component: U) {
+  #get_value(entity: Entity.T, component: Component.Ref) {
     let store = this.store(component.id)
     return store[entity]
   }
 
-  #write<U extends Component.T>(
+  #set_value<U extends Component.T>(
     entity: Entity.T,
     component: U,
     value: Component.ValueOf<U>,
   ) {
     let store = this.store(component.id)
     store[entity] = value
-    this.#bump(entity, component)
   }
 
-  #write_temp<U extends Component.T>(
-    entity: Entity.T,
-    component: U,
-    value: Component.ValueOf<U>,
-  ) {
-    let temp_store = SparseMap.get(this.temp_data, component.id)
-    if (temp_store === undefined) {
-      temp_store = SparseMap.make()
-      SparseMap.set(this.temp_data, component.id, temp_store)
-    }
-    SparseMap.set(temp_store, entity, value)
-    this.#gc = true
-  }
-
-  #write_many(entity: Entity.T, sig: Type.T, values: unknown[]) {
-    for (let i = 0; i < sig.refs.length; i++) {
-      let ref = sig.refs[i]
-      this.#write(entity, ref, values[ref.id])
-    }
-  }
-
-  #clear(entity: Entity.T, component: Component.T) {
-    this.#write_temp(entity, component, this.#read(entity, component))
-    this.#write(entity, component, undefined)
-  }
-
-  #clear_many(entity: Entity.T, type: Type.T) {
+  #set_values(entity: Entity.T, type: Type.T, values: unknown[]) {
     for (let i = 0; i < type.refs.length; i++) {
       let ref = type.refs[i]
-      this.#clear(entity, ref)
+      this.#set_value(entity, ref, values[ref.id])
+    }
+  }
+
+  #unset_value(entity: Entity.T, ref: Component.Ref) {
+    this.#set_value(entity, ref, undefined)
+  }
+
+  #unset_values(entity: Entity.T, type: Type.T) {
+    for (let i = 0; i < type.refs.length; i++) {
+      let ref = type.refs[i]
+      this.#unset_value(entity, ref)
     }
   }
 
   #despawn(entity: Entity.T) {
     let node = this.get_entity_node(entity)
-    this.#clear_many(entity, node.type)
-    this.#remove_relations_outbound(entity, node.type)
-    Entities.release(this.#entity_registry, entity)
+    this.#unset_values(entity, node.type)
+    this.#unset_relations(entity, node.type)
+    Entities.release(this.#entities, entity)
     Transaction.move(this.#transaction, entity)
   }
 
@@ -122,68 +85,75 @@ export class World {
     SparseSet.each(node.entities, entity => this.#despawn(entity))
   }
 
-  #add_relations(source_entity: Entity.T, type: Type.T) {
+  #set_relations(subject: Entity.T, type: Type.T) {
     for (let i = 0; i < type.pairs.length; i++) {
       let pair = type.pairs[i]
-      let pair_rel_id = Entity.parse_hi(pair.id)
-      let pair_rel = Component.find_by_id(pair_rel_id) as Component.Rel
-      let object_entity_id = Entity.parse_lo(pair.id)
-      let object_entity = Entities.hydrate(
-        this.#entity_registry,
-        object_entity_id,
-      )
-      let object_entity_ndoe = this.get_entity_node(object_entity)
-      if (!Type.has_component(object_entity_ndoe.type, pair_rel.inverse)) {
-        // grant the object entity the relation's inverse tag
-        this.#apply_add(
-          Op.add(Type.make([pair_rel.inverse]), object_entity, []),
-        )
+      let rel_id = Entity.parse_hi(pair.id)
+      let rel = Component.find_by_id(rel_id) as Component.Rel
+      let rel_inverse = rel.inverse
+      let object_id = Entity.parse_lo(pair.id)
+      let object = Entities.hydrate(this.#entities, object_id)
+      if (object === subject) {
+        throw new Error("Cannot relate an entity to itself")
       }
-      let next_target_entity_node = this.get_entity_node(object_entity)
-      Node.set_rel_object(
-        next_target_entity_node,
-        pair_rel.inverse.id,
-        source_entity,
-        object_entity,
-      )
+      let object_node = this.get_entity_node(object)
+      // grant the object entity the relation's inverse tag
+      if (!Type.has_component(object_node.type, rel_inverse)) {
+        this.#apply_add(Op.add(Type.make([rel_inverse]), object, []))
+      }
+      let next_object_node = this.get_entity_node(object)
+      Node.set_object(next_object_node, rel_inverse.id, subject, object)
     }
   }
 
-  #remove_relations_outbound(entity: Entity.T, type: Type.T) {
-    // for (let i = 0; i < type.pairs.length; i++) {
-    //   let pair = type.pairs[i]
-    //   let pair_rel_id = Entity.parse_hi(pair.id)
-    //   let pair_rel = Component.find_by_id(pair_rel_id) as Component.Rel
-    //   let pair_entity_id = Entity.parse_lo(pair.id)
-    //   let pair_entity = Entities.hydrate(this.#entity_registry, pair_entity_id)
-    //   let pair_entity_node = this.get_entity_node(pair_entity)
-    //   Node.unset_rel_source(pair_entity_node, pair_rel.target.id, entity)
-    //   if (!Node.has_rel_source(pair_entity_node, pair_rel.target.id, entity)) {
-    //     this.#apply_remove(Op.remove(Type.make(pair_rel.target), pair_entity))
-    //   }
-    // }
+  #unset_relations(entity: Entity.T, type: Type.T) {
+    for (let i = 0; i < type.pairs.length; i++) {
+      let pair = type.pairs[i]
+      let rel_id = Entity.parse_hi(pair.id)
+      let rel = Component.find_by_id(rel_id) as Component.Rel
+      let object_id = Entity.parse_lo(pair.id)
+      let object = Entities.hydrate(this.#entities, object_id)
+      let object_node = this.get_entity_node(object)
+      switch (Node.unpair(object_node, rel.inverse.id, entity, object)) {
+        // Object has no more subjects, so remove the relation's inverse tag.
+        case 2:
+        case 3:
+          this.#apply_remove(Op.remove(Type.make([rel.inverse]), object))
+          break
+        default:
+          break
+      }
+    }
   }
 
+  /**
+   * Move the `object` entity's subjects from `prev_node` to `next_node` for
+   * each relation present in both nodes.
+   */
   #move_relations(object: Entity.T, prev_node: Node.T, next_node: Node.T) {
+    // For every relation type that this entity is an object of.
     for (let i = 0; i < prev_node.type.rels_inverse.length; i++) {
       let rel_inverse = prev_node.type.rels_inverse[i]
-      let rel_inverse_map = prev_node.rel_maps[rel_inverse.id]
-      let rel_subjects = rel_inverse_map.b_to_a[object]
-      if (rel_subjects === undefined) {
+      let rel_map = prev_node.rel_maps[rel_inverse.id]
+      let subjects = rel_map.b_to_a[object]
+      if (subjects === undefined) {
         continue
       }
-      SparseSet.each(rel_subjects, subject => {
-        Node.set_rel_object(next_node, rel_inverse.id, subject, object)
-      })
-      Node.delete_rel_object(prev_node, rel_inverse.id, object)
+      if (Type.has_component(next_node.type, rel_inverse)) {
+        SparseSet.each(subjects, subject => {
+          Node.set_object(next_node, rel_inverse.id, subject, object)
+        })
+      }
+      Node.delete_object(prev_node, rel_inverse.id, object)
     }
   }
 
   #apply_spawn(op: Op.Spawn) {
-    let node = Graph.find_or_create_node_by_type(this.graph, op.type)
-    this.#write_many(op.entity, op.type, op.values)
-    this.#add_relations(op.entity, op.type)
-    Transaction.move(this.#transaction, op.entity, node)
+    let {entity, type, values} = op
+    let node = Graph.find_or_create_node_by_type(this[$graph], type)
+    this.#set_values(entity, type, values)
+    this.#set_relations(entity, type)
+    Transaction.move(this.#transaction, entity, node)
   }
 
   #apply_despawn(op: Op.Despawn) {
@@ -192,21 +162,22 @@ export class World {
 
   #apply_add(op: Op.Add) {
     let {entity, type, values} = op
+    this.#set_values(entity, type, values)
+    this.#set_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
-    let next_type = Type.sum(prev_node.type, type)
-    let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
-    this.#write_many(entity, type, values)
+    let next_type = Type.from_sum(prev_node.type, type)
+    let next_node = Graph.find_or_create_node_by_type(this[$graph], next_type)
     this.#move_relations(entity, prev_node, next_node)
-    this.#add_relations(entity, type)
     Transaction.move(this.#transaction, entity, next_node)
   }
 
   #apply_remove(op: Op.Remove) {
     let {entity, type} = op
+    this.#unset_values(entity, type)
+    this.#unset_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
-    let next_type = Type.difference(prev_node.type, type)
-    let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
-    this.#clear_many(entity, type)
+    let next_type = Type.from_difference(prev_node.type, type)
+    let next_node = Graph.find_or_create_node_by_type(this[$graph], next_type)
     this.#move_relations(entity, prev_node, next_node)
     Transaction.move(this.#transaction, entity, next_node)
   }
@@ -228,106 +199,77 @@ export class World {
     }
   }
 
-  get tick() {
-    return this.#tick
+  has_resource<U>(res: Component.Ref<U>): boolean {
+    return this.#resources[res.id] !== undefined
   }
 
-  // has_resource<U>(res: Res<U>): boolean {
-  //   let res_component = Sig.at(res, 0)
-  //   return this.#resources[res_component.id] !== undefined
-  // }
+  set_resource<U>(res: Component.Ref<U>, resource: U) {
+    this.#resources[res.id] = resource
+  }
 
-  // set_resource<U>(res: Res<U>, resource: U) {
-  //   let res_component = Sig.at(res, 0)
-  //   this.#resources[res_component.id] = resource
-  // }
-
-  // get_resource<U>(res: Res<U>): U {
-  //   let res_component = Sig.at(res, 0)
-  //   return Assert.exists(this.#resources[res_component.id] as U)
-  // }
+  get_resource<U>(res: Component.Ref<U>): U {
+    return Assert.exists(this.#resources[res.id] as U)
+  }
 
   spawn(): Entity.T
   spawn(type: Type.T, values: unknown[]): Entity.T
   spawn(type?: Type.T, values?: unknown[]): Entity.T {
-    let entity = Entities.retain(this.#entity_registry)
-    Stage.insert(
-      this.#stage,
-      this.#tick,
-      Op.spawn(type ?? Type.empty, entity, values as []),
-    )
+    let entity = Entities.retain(this.#entities)
+    this.#stage.push(Op.spawn(type ?? Type.empty, entity, values as []))
     return entity
   }
 
   despawn(entity: Entity.T) {
-    Entities.check(this.#entity_registry, entity)
-    Stage.insert(this.#stage, this.#tick, Op.despawn(entity))
+    Entities.check(this.#entities, entity)
+    this.#stage.push(Op.despawn(entity))
   }
 
-  add(entity: Entity.T, type: Type.T, values: unknown[]) {
-    Entities.check(this.#entity_registry, entity)
-    Stage.insert(this.#stage, this.#tick, Op.add(type, entity, values as []))
+  add<U>(entity: Entity.T, ref: Component.Ref<U>, value: U): void
+  add(entity: Entity.T, pair: Component.Pair): void
+  add(entity: Entity.T, component: Component.T, value?: unknown) {
+    Entities.check(this.#entities, entity)
+    this.#stage.push(
+      Op.add(Type.make([component]), entity, (value ? [value] : []) as any),
+    )
   }
 
-  remove(entity: Entity.T, type: Type.T) {
-    Entities.check(this.#entity_registry, entity)
-    Stage.insert(this.#stage, this.#tick, Op.remove(type, entity))
+  remove(
+    entity: Entity.T,
+    component: Component.Ref | Component.Tag | Component.Pair,
+  ) {
+    Entities.check(this.#entities, entity)
+    this.#stage.push(Op.remove(Type.make([component]), entity))
   }
 
-  change<U extends Component.Ref>(
+  has(entity: Entity.T, component: Component.T): boolean {
+    let node = this.get_entity_node(entity)
+    return Type.has_component(node.type, component)
+  }
+
+  get<U extends Component.Ref>(entity: Entity.T, ref: U) {
+    return this.#get_value(entity, ref) as Component.ValueOf<U>
+  }
+
+  set<U extends Component.Ref>(
     entity: Entity.T,
     ref: U,
     value: Component.ValueOf<U>,
   ) {
-    this.#write(entity, ref, value)
+    this.#set_value(entity, ref, value)
   }
 
-  has(entity: Entity.T, type: Type.T): boolean {
-    let node = this.get_entity_node(entity)
-    return Type.intersection(node.type, type) === type
-  }
-
-  get<U extends Component.Ref>(entity: Entity.T, ref: U) {
-    return this.#read(entity, ref) as Component.ValueOf<U>
-  }
-
-  reset(tick: number) {
-    this.#tick = tick
-    this.#gc_at = undefined
-    this.#gc = false
-    Stage.drain_to(this.#stage, tick)
-    Transaction.drain(this.#transaction)
-    SparseMap.each(this.temp_data, (_, temp_data) => {
-      SparseMap.clear(temp_data)
-    })
-  }
-
-  step(tick: number = this.#tick + 1) {
-    if (this.#gc_at !== undefined && this.#tick >= this.#gc_at) {
-      SparseMap.each(this.temp_data, function gc(_, map) {
-        SparseMap.clear(map)
-      })
-      this.#gc_at = undefined
+  step() {
+    if (this.#stage.length > 0) {
+      for (let i = 0; i < this.#stage.length; i++) {
+        let op = this.#stage[i]
+        this.#apply_op(op)
+      }
+      this.#stage = []
     }
-    // Execute all ops in the stage up to the given tick.
-    while (this.#tick < tick) {
-      Stage.drain_to(this.#stage, tick, this.#apply_op)
-      this.#tick++
-    }
-    if (this.#gc) {
-      this.#gc_at = this.#tick + 1
-      this.#gc = false
-    }
-    // Immediately despawn all entities whose nodes are marked for deletion.
-    for (let i = 0; i < this.#nodes_to_prune.length; i++) {
-      let node = this.#nodes_to_prune[i]
-      Node.traverse_right(node, n => this.#despawn_disposed_node_entities(n))
-    }
-    // Relocate entities.
     Transaction.drain(
       this.#transaction,
       function move_entity_batch(batch, prev_node, next_node) {
-        SparseSet.each(batch, function moveEntity(entity) {
+        SparseSet.each(batch, function move_entity(entity) {
           if (prev_node) {
             Node.remove_entity(prev_node, entity)
           }
@@ -337,58 +279,50 @@ export class World {
         })
       },
     )
-    // Drop all nodes marked for deletion.
-    let node: Node.T | undefined
-    while ((node = this.#nodes_to_prune.pop())) {
-      Graph.prune(this.graph, node)
-    }
   }
 
-  get_exclusive_relative<U extends Component.Rel>(
-    entity: Entity.T,
-    rel: Type.Unitary<U>,
-  ) {
+  get_exclusive_relative(entity: Entity.T, rel: Component.Rel) {
     let node = this.get_entity_node(entity)
-    let rel_component = rel.vec[0] as Component.Rel
-    if (rel_component.topology !== Component.Topology.Exclusive) {
-      throw new Error("Expected exclusive relation")
+    if (rel.topology !== Component.Topology.Exclusive) {
+      throw new Error("Cannot get exclusive relative of inclusive relation")
     }
-    if (!Type.has(node.type, rel)) {
+    if (!Type.has_component(node.type, rel)) {
       return undefined
     }
     for (let i = 0; i < node.type.pairs.length; i++) {
       let pair = node.type.pairs[i]
-      let pair_id = Entity.parse_hi(pair.id)
-      if (pair_id === rel_component.id) {
-        return Entities.hydrate(this.#entity_registry, Entity.parse_lo(pair.id))
+      let rel_id = Entity.parse_hi(pair.id)
+      if (rel_id === rel.id) {
+        let object = Entity.parse_lo(pair.id)
+        return Entities.hydrate(this.#entities, object)
       }
     }
-    throw new Error("Unexpected")
+    throw new Error(
+      "Unexpected error: entity has exclusive relation component without a pair",
+    )
   }
 
   is_alive(entity: Entity.T) {
-    return Entities.check_fast(this.#entity_registry, entity)
+    return Entities.check_fast(this.#entities, entity)
   }
 
   hydrate(entity_id: number) {
-    return Entities.hydrate(this.#entity_registry, entity_id)
+    return Entities.hydrate(this.#entities, entity_id)
   }
 
   store(component_id: number) {
-    let store = (this.entity_data[component_id] ??= [])
-    if (!SparseMap.has(this.temp_data, component_id)) {
-      SparseMap.set(this.temp_data, component_id, SparseMap.make())
-    }
+    let store = (this.#entity_data[component_id] ??= [])
     return store
   }
 
-  single(type: Type.Unitary): Entity.T {
-    let node = Graph.find_or_create_node_by_component(
-      this.graph,
-      Type.at(type, 0),
-    )
+  single(ref: Component.Ref): Entity.T {
+    let node = Graph.find_or_create_node_by_component(this[$graph], ref)
     let entity: Entity.T | undefined
     Node.traverse_right(node, visited_node => {
+      // TODO: implement a better way to terminate traversal
+      if (entity !== undefined) {
+        return false
+      }
       if (SparseSet.size(visited_node.entities) > 0) {
         entity = SparseSet.at(visited_node.entities, 0)
         return false
@@ -397,7 +331,7 @@ export class World {
     return Assert.exists(entity)
   }
 
-  with<U extends Component.Tag>(component: U): EntityBuilder.T
+  with<U extends Component.Tag>(tag: U): EntityBuilder.T
   with<U extends Component.Ref>(
     ref: U,
     value: Component.ValueOf<U>,
@@ -415,18 +349,62 @@ export class World {
 
   for_each<U extends unknown[]>(
     query: QueryBuilder.T<U>,
-    iteratee: Query2.ForEachIteratee<U>,
+    iteratee: Query.ForEachIteratee<U>,
   ) {
-    let compiled_query = this.#queries.get(query) as Query2.T<U>
+    let compiled_query = this.#queries.get(query) as Query.T<U>
     if (compiled_query === undefined) {
-      compiled_query = Query2.make(query, this)
+      compiled_query = Query.make(query, this)
       this.#queries.set(query, compiled_query)
     }
     compiled_query.for_each(iteratee)
   }
+
+  add_effect<const U extends Effect.Term[]>(effect: Effect.T<U>) {
+    let components = effect.terms.map(c => (typeof c === "function" ? c() : c))
+    let type = Type.make(components)
+    let node = Graph.find_or_create_node_by_type(this[$graph], type)
+    Node.add_listener(node, effect, true)
+  }
 }
 export type T = World
 
-export let make = (tick = 0): World => {
-  return new World(tick)
+export let make = (): World => {
+  return new World()
+}
+
+if (import.meta.vitest) {
+  let {test, expect} = await import("vitest")
+
+  test("relations", () => {
+    let world = make()
+    let Likes = Component.rel()
+    let Likes_tag = Likes()
+    let Likes_tag_inverse = Likes().inverse
+    let a = world.spawn()
+    let b = world.spawn()
+    let c = world.spawn()
+    world.step()
+    world.add(a, Likes(b))
+    world.add(a, Likes(c))
+    world.step()
+    expect(world.has(a, Likes_tag)).to.equal(true)
+    expect(world.has(a, Likes(b))).to.equal(true)
+    expect(world.has(a, Likes(c))).to.equal(true)
+    expect(world.has(b, Likes_tag_inverse)).to.equal(true)
+    expect(world.has(c, Likes_tag_inverse)).to.equal(true)
+    world.remove(a, Likes(b))
+    world.step()
+    expect(world.has(a, Likes_tag)).to.equal(true)
+    expect(world.has(a, Likes(b))).to.equal(false)
+    expect(world.has(a, Likes(c))).to.equal(true)
+    expect(world.has(b, Likes_tag_inverse)).to.equal(false)
+    expect(world.has(c, Likes_tag_inverse)).to.equal(true)
+    world.remove(a, Likes(c))
+    world.step()
+    expect(world.has(a, Likes_tag)).to.equal(false)
+    expect(world.has(a, Likes(b))).to.equal(false)
+    expect(world.has(a, Likes(c))).to.equal(false)
+    expect(world.has(b, Likes_tag_inverse)).to.equal(false)
+    expect(world.has(c, Likes_tag_inverse)).to.equal(false)
+  })
 }

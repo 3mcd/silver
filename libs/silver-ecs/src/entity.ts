@@ -1,5 +1,4 @@
 import * as Assert from "./assert"
-import {Opaque} from "./types"
 
 /**
  * The maximum number of spawned (alive) entities.

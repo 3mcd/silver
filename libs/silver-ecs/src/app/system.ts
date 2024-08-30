@@ -18,14 +18,14 @@ export let apply_constraints = (
 }
 
 class System {
-  after_ = new Set<Fn>()
-  before_ = new Set<Fn>()
-  when_: Criteria[] = []
-  fn_
-  name_
+  after = new Set<Fn>()
+  before = new Set<Fn>()
+  when: Criteria[] = []
+  fn
+  name
   constructor(fn: Fn) {
-    this.fn_ = fn
-    this.name_ = fn.name
+    this.fn = fn
+    this.name = fn.name
   }
 }
 
@@ -54,9 +54,9 @@ export let _after = (a: Fn | System, b: Fn | Range.T): System => {
     a = make(a)
   }
   if (Range.is(b)) {
-    a.after_.add(b.hi())
+    a.after.add(b.max_anchor())
   } else {
-    a.after_.add(b!)
+    a.after.add(b!)
   }
   return a
 }
@@ -66,9 +66,9 @@ export let _before = (a: Fn | System, b: Fn | Range.T): System => {
     a = make(a)
   }
   if (Range.is(b)) {
-    a.before_.add(b.lo())
+    a.before.add(b.min_anchor())
   } else {
-    a.before_.add(b!)
+    a.before.add(b!)
   }
   return a
 }
@@ -78,11 +78,11 @@ export let _when = (a: Fn | System, b: Criteria | Range.T): System => {
     a = make(a)
   }
   if (Range.is(b)) {
-    a.after_.add(b.lo())
-    a.before_.add(b.hi())
+    a.after.add(b.min_anchor())
+    a.before.add(b.max_anchor())
     a = apply_constraints(a, b.constraints())
   } else {
-    a.when_.push(b)
+    a.when.push(b)
   }
   return a
 }

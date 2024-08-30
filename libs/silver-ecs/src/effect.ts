@@ -3,21 +3,18 @@ import * as Entity from "./entity"
 import * as Node from "./node"
 import * as SparseSet from "./sparse_set"
 import * as Transaction from "./transaction"
-import * as Type from "./sig"
 
-type Event<U extends Component.T[]> = (
-  // TODO: pass ref values
-  // ...args: Parameters<Query.ForEachIteratee<U>>
-  entity: Entity.T,
-) => boolean
+export type Term = Component.T | Component.PairFn
 
-class Effect<U extends Component.T[]> implements Node.Listener {
-  type
+export type Event<U extends Term[]> = (entity: Entity.T) => void
+
+class Effect<U extends Term[]> implements Node.Listener {
+  terms
   on_match
   on_unmatch
 
-  constructor(type: Type.T<U>, on_match: Event<U>, on_unmatch: Event<U>) {
-    this.type = type
+  constructor(terms: U, on_match: Event<U>, on_unmatch: Event<U>) {
+    this.terms = terms
     this.on_match = on_match
     this.on_unmatch = on_unmatch
   }
@@ -35,12 +32,12 @@ class Effect<U extends Component.T[]> implements Node.Listener {
   }
 }
 
-export type T<U extends Component.T[] = Component.T[]> = Effect<U>
+export type T<U extends Term[] = Term[]> = Effect<U>
 
-export let make = <U extends Component.T[]>(
-  type: Type.T<U>,
+export let make = <U extends Term[]>(
+  terms: U,
   on_match: Event<U>,
   on_unmatch: Event<U>,
 ): T<U> => {
-  return new Effect(type, on_match, on_unmatch)
+  return new Effect(terms, on_match, on_unmatch)
 }

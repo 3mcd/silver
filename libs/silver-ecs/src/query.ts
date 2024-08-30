@@ -1,7 +1,6 @@
 import * as Type from "./type"
 import * as World from "./world"
 import * as Component from "./component"
-import * as Entity from "./entity"
 import * as Graph from "./graph"
 import * as Node from "./node"
 import * as QueryBuilder from "./query_builder"
@@ -10,9 +9,7 @@ import * as SparseMap from "./sparse_map"
 export type ForEach<U extends unknown[]> = (
   iteratee: ForEachIteratee<U>,
 ) => void
-export type ForEachIteratee<U extends unknown[]> = (
-  ...args: [...value: U, entity: Entity.T]
-) => void
+export type ForEachIteratee<U extends unknown[]> = (...value: U) => void
 
 let build_for_each_join = (query: T, join_index: number) => {
   let i = `i${join_index}` // current node index
@@ -25,7 +22,7 @@ let build_for_each_join = (query: T, join_index: number) => {
   if (join_index > 0) {
     exp += `let r=${n}.rel_maps[${q}.join_on.id],`
     exp += `rt=r.a_to_b[e${join_index - 1}]?.dense;`
-    exp += `if(rt===undefined)continue;`
+    exp += "if(rt===undefined)continue;"
     exp += `for(let ${j}=0;${j}<rt.length;${j}++){`
     exp += `let e${join_index}=rt[${j}];`
   } else {
@@ -34,12 +31,14 @@ let build_for_each_join = (query: T, join_index: number) => {
   }
   if (join_index === query.joins.length - 1) {
     exp += "$("
+    let fetch: string[] = []
     for (let join_index = 0; join_index < query.joins.length; join_index++) {
       let join = query.joins[join_index]
-      exp += join.type.refs.map(
-        (_, ref_index) => `w${join_index}${ref_index}[e${join_index}],`,
-      )
+      join.terms.filter(Component.is_ref).forEach((_, ref_index) => {
+        fetch.push(`w${join_index}${ref_index}[e${join_index}]`)
+      })
     }
+    exp += fetch.join(",")
     exp += ")"
   } else {
     exp += build_for_each_join(query, join_index + 1)
@@ -59,7 +58,8 @@ let compile_for_each = <U extends unknown[]>(
     .join("")
   body += query.joins
     .map((join, join_index) =>
-      join.type.refs
+      join.terms
+        .filter(Component.is_ref)
         .map(
           (ref, ref_index) =>
             `let w${join_index}${ref_index}=W.store(${ref.id});`,
@@ -89,12 +89,12 @@ export type T<U extends unknown[] = unknown[]> = Query<U>
 class Join implements Node.Listener {
   join_on
   nodes
-  type
+  terms
 
-  constructor(type: Type.T, join_on?: Component.T) {
+  constructor(terms: Component.T[], join_on?: Component.T) {
     this.join_on = join_on
     this.nodes = [] as Node.T[]
-    this.type = type
+    this.terms = terms
   }
 
   on_node_created(node: Node.T): void {
@@ -107,9 +107,11 @@ let init_query_joins = (
   world: World.T,
   joins: Join[] = [],
 ) => {
-  let type = Type.make(query_builder_node.terms)
-  let node = Graph.find_or_create_node_by_type(world.graph, type)
-  let join = new Join(type, query_builder_node.join_on)
+  let join = new Join(query_builder_node.terms, query_builder_node.join_on)
+  let node = Graph.find_or_create_node_by_type(
+    world[World.$graph],
+    Type.make(query_builder_node.terms),
+  )
   Node.add_listener(node, join, true)
   joins.push(join)
   SparseMap.each_value(query_builder_node.joins, query_builder_inner => {

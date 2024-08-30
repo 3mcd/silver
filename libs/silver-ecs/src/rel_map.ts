@@ -23,26 +23,49 @@ class RelMap<U extends number> implements RelMap<U> {
     SparseSet.add(a, source)
   }
 
-  has_subject(source: U): boolean {
-    return this.a_to_b[source] !== undefined
+  has_subject(subject: U): boolean {
+    return this.a_to_b[subject] !== undefined
   }
 
-  delete_object(target: U) {
-    let a = this.b_to_a[target]
+  delete(subject: U, object: U) {
+    let b = this.a_to_b[subject]
+    if (b === undefined) {
+      return 0
+    }
+    let a = this.b_to_a[object]
+    if (a === undefined) {
+      return 0
+    }
+    let res = 0
+    SparseSet.delete(b, object)
+    if (SparseSet.size(b) === 0) {
+      delete this.a_to_b[subject]
+      res |= 1
+    }
+    SparseSet.delete(a, subject)
+    if (SparseSet.size(a) === 0) {
+      delete this.b_to_a[object]
+      res |= 2
+    }
+    return res
+  }
+
+  delete_object(object: U) {
+    let a = this.b_to_a[object]
     if (a === undefined) {
       return
     }
-    SparseSet.each(a, source => {
-      let b = this.a_to_b[source]
+    SparseSet.each(a, subject => {
+      let b = this.a_to_b[subject]
       if (b === undefined) {
         return
       }
-      SparseSet.delete(b, target)
+      SparseSet.delete(b, object)
       if (SparseSet.size(b) === 0) {
-        delete this.a_to_b[source]
+        delete this.a_to_b[subject]
       }
     })
-    delete this.b_to_a[target]
+    delete this.b_to_a[object]
   }
 
   delete_subject(source: U) {

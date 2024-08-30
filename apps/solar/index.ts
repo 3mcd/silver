@@ -1,129 +1,94 @@
-import * as S from "silver-ecs"
-import {makeDebugAliases, mount} from "silver-inspector"
-import {DebugHighlighted, DebugSelected, Name} from "silver-lib"
-import {arc, canvas, circle, clear, context, rect, transform} from "./canvas"
-import {Body, Color, Orbits, Position, Radius, seed} from "./data"
+import {after, App, before, effect, query} from "silver-ecs"
+import {canvas, circle, clear, context, transform} from "./canvas"
+import {Color, Name, Orbits, Position, Radius} from "./data"
 
-const world = S.makeWorld()
-seed(world)
+let FONT_SIZE = 12 * window.devicePixelRatio
 
-const FONT_SIZE = 12 * window.devicePixelRatio
+let satellites = query()
+  .with(Position)
+  .with(Orbits, body => body.with(Position))
 
-const moveBodiesSystem: S.System = world => {
-  const bodies = S.query(world, Position)
-  const satellites = S.query(world, S.type(Position, Orbits))
-  return function moveBodies() {
-    bodies.each(function moveBodySatellites(body, bodyPos) {
-      satellites.each(body, function moveBodySatellite(_, satellitePos, orbit) {
-        let {radius, period} = orbit
-        const a = ((Math.PI / 180) * world.tick * period) / 100
-        radius *= 1_000
-        satellitePos.x = bodyPos.x + radius * Math.cos(a)
-        satellitePos.y = bodyPos.y + radius * Math.sin(a)
-      })
-    })
-  }
+let tick = 0
+
+let move_satellites: App.System = world => {
+  world.for_each(satellites, (satellite_pos, orbiting_pos) => {
+    let period = 0.1
+    let a = ((Math.PI / 180) * tick) / period / 100
+    satellite_pos.x = orbiting_pos.x + 30 * Math.cos(a)
+    satellite_pos.y = orbiting_pos.y + 30 * Math.sin(a)
+  })
+  tick++
 }
 
-const drawBodiesSystem: S.System = world => {
-  const bodies = S.query(world, Body)
-  return function drawBodies() {
+let bodies = query().with(Name).with(Color).with(Position).with(Radius)
+
+let draw_bodies: App.System = world => {
+  context.save()
+  context.font = `${FONT_SIZE * transform.scale}px monospace`
+  context.translate(canvas.width / 2, canvas.height / 2)
+  world.for_each(bodies, (name, color, position, radius) => {
     context.save()
-    context.font = `${FONT_SIZE * transform.scale}px monospace`
-    context.translate(canvas.width / 2, canvas.height / 2)
-    bodies.each(function drawBody(_, name, color, radius, position) {
-      context.save()
-      context.translate(position.x, position.y)
-      circle(color, radius)
-      context.fillStyle = "#ccc"
-      context.fillText(name, radius + 2, radius + 2)
-      context.restore()
-    })
+    context.translate(position.x, position.y)
+    circle(color, radius)
+    context.fillStyle = "#ccc"
+    context.fillText(name, radius + 2, radius + 2)
     context.restore()
-  }
+  })
+  context.restore()
 }
 
-const drawOrbitsSystem: S.System = world => {
-  const bodies = S.query(world, Position)
-  const satellites = S.query(world, Orbits)
-  return function drawBodiesOrbits() {
-    context.save()
-    context.translate(canvas.width / 2, canvas.height / 2)
-    bodies.each(function drawBodyOrbits(body, position) {
-      context.save()
-      context.translate(position.x, position.y)
-      satellites.each(body, function drawBodySatelliteOrbit(_, orbit) {
-        arc("#bbb", orbit.radius * 1_000, 0, 2 * Math.PI, 0.1)
-      })
-      context.restore()
-    })
-    context.restore()
-  }
+let clear_canvas: App.System = () => {
+  clear()
 }
 
-const clearCanvasSystem: S.System = () => {
-  return function clearCanvas() {
-    clear()
-  }
-}
+let log_orbits = effect(
+  [Orbits],
+  e => {
+    console.log("in", e)
+  },
+  e => {
+    console.log("out", e)
+  },
+)
 
-const debugSystem: S.System = world => {
-  const highlighted = S.query(world, S.type(Position, Radius, DebugHighlighted))
-  const selected = S.query(world, S.type(Position, Radius, DebugSelected))
-  return function debug() {
-    context.save()
-    context.translate(canvas.width / 2, canvas.height / 2)
-    highlighted.each(function highlightEntity(entity, position, radius) {
-      context.save()
-      context.translate(position.x - radius, position.y - radius)
-      rect("#ffffff", radius * 2, radius * 2, 1)
-      context.restore()
-    })
-    selected.each(function selectEntity(entity, position, radius) {
-      context.save()
-      context.translate(position.x - radius, position.y - radius)
-      rect("#00ff00", radius * 2, radius * 2, 1)
-      context.restore()
-    })
-    context.restore()
-  }
-}
+let app = App.make()
+  .add_init_system(world => {
+    let sun = world
+      .with(Name, "Sun")
+      .with(Color, "#fff")
+      .with(Position, {x: 0, y: 0})
+      .with(Radius, 10)
+      .spawn()
+    let earth = world
+      .with(Name, "Earth")
+      .with(Color, "#00f")
+      .with(Position, {x: 50, y: 0})
+      .with(Radius, 5)
+      .with(Orbits(sun))
+      .spawn()
+    world
+      .with(Name, "Moon")
+      .with(Color, "#aaa")
+      .with(Position, {x: 0, y: 0})
+      .with(Radius, 2)
+      .with(Orbits(earth))
+      .spawn()
 
-const testThingSystem: S.System = world => {
-  const bodiesOut = S.query(world, S.type(Position, Radius), S.Out(Position))
-  return () => {
-    bodiesOut.each(function testThing(body, position, radius) {
-      console.log(body, position, radius)
-    })
-  }
-}
+    setTimeout(() => {
+      world.remove(earth, Orbits(sun))
+      setTimeout(() => {
+        world.add(earth, Orbits(sun))
+      }, 5000)
+    }, 5000)
+  })
+  .add_system(move_satellites, before(clear_canvas))
+  .add_system(clear_canvas)
+  .add_system(draw_bodies, after(clear_canvas))
+  .add_effect(log_orbits)
 
-const loop = () => {
-  S.run(world, testThingSystem)
-  world.step()
-
-  S.run(world, moveBodiesSystem)
-  S.run(world, clearCanvasSystem)
-  S.run(world, drawOrbitsSystem)
-  S.run(world, drawBodiesSystem)
-  S.run(world, debugSystem)
-
+let loop = () => {
+  app.run()
   requestAnimationFrame(loop)
 }
 
 loop()
-
-mount(
-  world,
-  document.getElementById("inspector")!,
-  makeDebugAliases()
-    .set(Name, "Name")
-    .set(Color, "Color")
-    .set(Position, "Position")
-    .set(Orbits, "Orbits")
-    .set(Radius, "Radius")
-    .set(Body, "Body"),
-  {
-    bodies: S.query(world, Body),
-  },
-)

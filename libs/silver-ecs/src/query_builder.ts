@@ -41,21 +41,14 @@ class QueryBuilderNode<T extends unknown[] = unknown[]> {
     if (component instanceof Function) {
       component = component()
     }
-    switch (component.kind) {
-      case Component.Kind.Rel:
-        if (join !== undefined) {
-          SparseMap.set(
-            this.joins,
-            component.id,
-            join(new QueryBuilderNode(component.inverse)),
-          )
-        }
-      case Component.Kind.Ref:
-      case Component.Kind.Tag:
-      case Component.Kind.Rel:
-        this.terms.push(component)
-        break
+    if (Component.is_rel(component) && join !== undefined) {
+      SparseMap.set(
+        this.joins,
+        component.id,
+        join(new QueryBuilderNode(component.inverse)),
+      )
     }
+    this.terms.push(component)
     return this
   }
 }

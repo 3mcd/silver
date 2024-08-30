@@ -115,7 +115,7 @@ export let remove_entity = (node: T, entity: Entity.T): void => {
   }
 }
 
-export let set_rel_object = (
+export let set_object = (
   node: T,
   rel_id: number,
   subject: Entity.T,
@@ -128,7 +128,20 @@ export let set_rel_object = (
   rel_map.set_object(subject, object)
 }
 
-export let delete_rel_object = (node: T, rel_id: number, object: Entity.T) => {
+export let unpair = (
+  node: T,
+  rel_id: number,
+  subject: Entity.T,
+  object: Entity.T,
+) => {
+  let rel_map = node.rel_maps[rel_id]
+  if (rel_map === undefined) {
+    return
+  }
+  return rel_map.delete(subject, object)
+}
+
+export let delete_object = (node: T, rel_id: number, object: Entity.T) => {
   let rel_map = node.rel_maps[rel_id]
   if (rel_map === undefined) {
     return
@@ -136,11 +149,7 @@ export let delete_rel_object = (node: T, rel_id: number, object: Entity.T) => {
   rel_map.delete_object(object)
 }
 
-export let delete_rel_subject = (
-  node: T,
-  rel_id: number,
-  subject: Entity.T,
-) => {
+export let delete_subject = (node: T, rel_id: number, subject: Entity.T) => {
   let rel_map = node.rel_maps[rel_id]
   if (rel_map === undefined) {
     return
@@ -148,7 +157,7 @@ export let delete_rel_subject = (
   rel_map.delete_subject(subject)
 }
 
-export let has_rel_subject = (node: T, rel_id: number, subject: Entity.T) => {
+export let has_subject = (node: T, rel_id: number, subject: Entity.T) => {
   let rel_map = node.rel_maps[rel_id]
   if (rel_map === undefined) {
     return false

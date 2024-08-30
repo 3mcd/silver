@@ -32,6 +32,7 @@ let to_vec = (components: Component.T[]) => {
  */
 class Type {
   pairs
+  pair_counts
   refs
   rels
   rels_inverse
@@ -43,12 +44,18 @@ class Type {
     this.pairs = vec.filter(Component.is_pair)
     this.refs = vec.filter(Component.is_ref)
     this.rels = vec.filter(Component.is_rel)
+    this.pair_counts = [] as number[]
     this.rels_inverse = vec.filter(Component.is_rel_inverse)
     this.set = new Set<number>()
     this.vec = vec
     this.vec_hash = vec_hash
     for (let i = 0; i < vec.length; i++) {
       this.set.add(vec[i].id)
+    }
+    for (let i = 0; i < this.pairs.length; i++) {
+      let pair = this.pairs[i]
+      let pair_rel_id = Entity.parse_hi(pair.id)
+      this.pair_counts[pair_rel_id] = (this.pair_counts[pair_rel_id] ?? 0) + 1
     }
   }
 }
@@ -61,8 +68,9 @@ let cache_vec: Type[] = []
 /**
  * Create a type from an unrestricted array of components.
  *
- * This function returns the same type instance for the same set of components,
- * meaning types created with this function can be compared by reference.
+ * This function returns the same type instance for the same array of
+ * components, meaning types created with this function can be compared by
+ * reference.
  */
 export let make = (components: Component.T[]) => {
   let components_hash = Hash.hash_words(components.map(c => c.id))
@@ -81,7 +89,7 @@ export let make = (components: Component.T[]) => {
 export let empty = make([])
 
 /**
- * Check if set `a` contains every component of set `b`.
+ * Check if type `a` contains every component of type `b`.
  */
 export let is_superset = (a: T, b: T): boolean => {
   // This type is an empty type.
@@ -114,8 +122,8 @@ export let is_superset = (a: T, b: T): boolean => {
 }
 
 /**
- * Compute a unique integer that represents the difference between sets `a` and
- * `b`.
+ * Compute a unique integer that represents the difference between types `a`
+ * and `b`.
  */
 export let xor_hash = (a: T, b: T): number => {
   if (a.vec_hash === b.vec_hash) {
@@ -150,26 +158,49 @@ export let xor_hash = (a: T, b: T): number => {
 }
 
 /**
- * Compute a unique unsigned integer that represents the difference between sets
- * `a` and `b`.
+ * Compute a unique unsigned integer that represents the difference between
+ * types `a` and `b`.
  */
 export let xor_hash_u = (a: T, b: T): number => {
   return xor_hash(a, b) >>> 0
 }
 
 /**
- * Compute the type that contains all components from sets `a` and `b`.
+ * Compute the type that contains all components from types `a` and `b`.
  */
-export let sum = (a: T, b: T) => make(a.vec.concat(b.vec))
+export let from_sum = (a: T, b: T) => {
+  let components = a.vec.concat(b.vec)
+  // add relations when the sum would add a new pair of that relation
+  for (let i = 0; i < b.pairs.length; i++) {
+    let pair = b.pairs[i]
+    let pair_rel_id = Entity.parse_hi(pair.id)
+    if (has_component_id(a, pair_rel_id) === false) {
+      let pair_rel = Component.find_by_id(pair_rel_id)!
+      components.push(pair_rel)
+    }
+  }
+  return make(components)
+}
 
 /**
- * Compute the type that contains all components that are unique to set `a`.
+ * Compute the type that contains all components that are unique to type `a`.
  */
-export let difference = (a: T, b: T) => {
+export let from_difference = (a: T, b: T) => {
   let components: Component.T[] = []
-  for (let i = 0; i < a.vec.length; i++) {
+  outer: for (let i = 0; i < a.vec.length; i++) {
     let component = a.vec[i]
     if (has_component(b, component) === false) {
+      // strip relations when the difference would remove all pairs of that
+      // relation
+      if (Component.is_rel(component)) {
+        for (let j = 0; j < a.pairs.length; j++) {
+          let pair = a.pairs[j]
+          let pair_rel_id = Entity.parse_hi(pair.id)
+          if (a.pair_counts[pair_rel_id] === b.pair_counts[pair_rel_id]) {
+            continue outer
+          }
+        }
+      }
       components.push(component)
     }
   }
@@ -177,10 +208,10 @@ export let difference = (a: T, b: T) => {
 }
 
 /**
- * Compute the type that contains all components that are common to both sets `a`
+ * Compute the type that contains all components that are common to both types `a`
  * and `b`.
  */
-export let intersection = (a: T, b: T) => {
+export let from_intersection = (a: T, b: T) => {
   let common: Component.T[] = []
   for (let i = 0; i < a.vec.length; i++) {
     let component = a.vec[i]
@@ -192,27 +223,27 @@ export let intersection = (a: T, b: T) => {
 }
 
 /**
- * Check if set `a` contains component `component`.
+ * Check if type `a` contains component `component`.
  */
 export let has_component = (a: T, component: Component.T): boolean => {
   return a.set.has(component.id)
 }
 
 /**
- * Check if set `a` contains component with id `component_id`.
+ * Check if type `a` contains component with id `component_id`.
  */
 export let has_component_id = (a: T, component_id: number): boolean => {
   return a.set.has(component_id)
 }
 
 /**
- * Add component `component` to set `a`.
+ * Add component `component` to type `a`.
  */
 export let with_component = (a: T, component: Component.T) =>
   make(a.vec.concat(component))
 
 /**
- * Remove component `component` from set `a`.
+ * Remove component `component` from type `a`.
  */
 export let without_component = (a: T, component: Component.T) =>
   make(a.vec.filter(c => c.id !== component.id))
@@ -265,11 +296,11 @@ if (import.meta.vitest) {
     let ab = make([A, B])
     let bc = make([B, C])
     let abc = make([A, B, C])
-    expect(intersection(ab, bc)).toEqual(b)
-    expect(intersection(ab, abc)).toEqual(ab)
-    expect(intersection(bc, abc)).toEqual(bc)
-    expect(intersection(a, b)).toEqual(empty)
-    expect(intersection(a, c)).toEqual(empty)
+    expect(from_intersection(ab, bc)).toEqual(b)
+    expect(from_intersection(ab, abc)).toEqual(ab)
+    expect(from_intersection(bc, abc)).toEqual(bc)
+    expect(from_intersection(a, b)).toEqual(empty)
+    expect(from_intersection(a, c)).toEqual(empty)
   })
 
   test("has_component", () => {

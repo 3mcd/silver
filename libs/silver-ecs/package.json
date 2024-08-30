@@ -11,7 +11,6 @@
     "mog"
   ],
   "scripts": {
-    "bench": "silver-bench",
     "test": "vitest run"
   },
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
@@ -23,8 +22,5 @@
   "main": "dist/silver-ecs.cjs.js",
   "module": "dist/silver-ecs.esm.js",
   "source": "./src/index.ts",
-  "types": "./dist/silver-ecs.cjs.d.ts",
-  "devDependencies": {
-    "silver-bench": "workspace:*"
-  }
+  "types": "./dist/silver-ecs.cjs.d.ts"
 }
