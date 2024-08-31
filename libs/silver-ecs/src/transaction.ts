@@ -93,7 +93,7 @@ class Transaction {
 }
 export type T = Transaction
 
-export let drain = (transaction: T, iteratee?: Iteratee) => {
+export let apply = (transaction: T, iteratee?: Iteratee) => {
   let emit_entity_batch = (batch: Batch) => {
     let {entities, prev_node, next_node} = batch
     // Invoke the iteratee for this batch.

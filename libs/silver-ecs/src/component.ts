@@ -45,7 +45,6 @@ export interface Tag extends Base<void> {
 export interface Ref<U = unknown> extends Base<U> {
   kind: Kind.Ref
   schema?: Schema.SchemaOf<U>
-  initialize?: Initialize<any>
 }
 
 export type ValueOf<U extends T> = U extends Ref<infer V> ? V : never
@@ -101,51 +100,36 @@ class Component {
   schema
   target?: RelInverse
   topology
-  initialize
 
-  constructor(
-    id: number,
-    kind: Kind,
-    topology?: Topology,
-    schema?: Schema.T,
-    initialize?: Initialize,
-  ) {
+  constructor(id: number, kind: Kind, topology?: Topology, schema?: Schema.T) {
     this.id = id
     this.kind = kind
     this.schema = schema
     this.topology = topology
-    if (initialize) {
-      this.initialize = initialize
-    } else if (kind === Kind.Ref && schema) {
-      this.initialize = Schema.initialize.bind(schema)
-    }
   }
-}
-
-const make_rel_target = (id: number, topology: Topology): RelInverse => {
-  const rel_target = new Component(id, Kind.RelInverse, topology) as RelInverse
-  components.set(id, rel_target)
-  return rel_target
 }
 
 export function make(id: number, kind: Kind.Tag, topology?: Topology): Tag
 export function make(id: number, kind: Kind.Rel, topology?: Topology): Rel
+export function make(
+  id: number,
+  kind: Kind.RelInverse,
+  topology?: Topology,
+): RelInverse
 export function make(id: number, kind: Kind.Pair, topology?: Topology): Pair
 export function make(
   id: number,
   kind: Kind.Ref,
   topology?: Topology,
   schema?: Schema.T,
-  initialize?: Initialize,
 ): Ref
 export function make(
   id: number,
   kind: Kind,
   topology?: Topology,
   schema?: Schema.T,
-  initialize?: Initialize,
 ): T {
-  let component = new Component(id, kind, topology, schema, initialize) as T
+  let component = new Component(id, kind, topology, schema) as T
   components.set(id, component)
   return component
 }
@@ -165,13 +149,10 @@ type RecursivePartial<T> = {
  * auto-initialization.
  *
  * @example <caption>Define a component with a schema and add it to an entity.</caption>
- * let Position = S.ref({x: "f32", y: "f32"})
+ * let Position = ref({x: "f32", y: "f32"})
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function ref<U extends Schema.T>(
-  schema: U,
-  initialize?: Initialize<Schema.Express<U>>,
-): Ref<Schema.Express<U>>
+export function ref<U extends Schema.T>(schema: U): Ref<Schema.Express<U>>
 /**
  * Define a component using a generic type and schema. The schema must satisfy
  * the type provided to the generic parameter.
@@ -180,24 +161,18 @@ export function ref<U extends Schema.T>(
  * auto-initialization.
  *
  * @example <caption>Define a component with a type-constrained schema and add it to an entity.</caption>
- * type Position = {
- *   x: number,
- *   y: number,
- * }
- * let Position = S.ref<Position>({x: "f32", y: "f32"}) // Value<Position>
+ * type Position = {x: number, y: number}
+ * let Position = ref<Position>({x: "f32", y: "f32"})
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
-export function ref<U>(
-  schema: Schema.SchemaOf<RecursivePartial<U>>,
-  initialize?: Initialize<U>,
-): Ref<U>
+export function ref<U>(schema: Schema.SchemaOf<RecursivePartial<U>>): Ref<U>
 /**
  * Define a schemaless component with a statically-typed shape.
  *
  * The component is not eligible for serialization and auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
- * let Position = S.ref<Position>()
+ * let Position = ref<Position>()
  * let entity = world.spawn(Position, {x: 0, y: 0})
  */
 export function ref<U>(): Ref<U>
@@ -209,23 +184,19 @@ export function ref<U>(): Ref<U>
  * auto-initialization.
  *
  * @example <caption>Define a schemaless component and add it to an entity.</caption>
- * let Anything = S.ref() // Value<unknown>
+ * let Anything = ref() // Value<unknown>
  * let entity = world.spawn(Anything, [[[]]])
  */
 export function ref(): Ref<unknown>
-export function ref(schema?: Schema.T | Initialize, initialize?: Initialize) {
-  if (typeof schema === "function") {
-    initialize = schema
-    schema = undefined
-  }
-  return make(make_component_id(), Kind.Ref, undefined, schema, initialize)
+export function ref(schema?: Schema.T) {
+  return make(make_component_id(), Kind.Ref, undefined, schema)
 }
 
 /**
  * Define a tag. Tags are components with no data.
  *
  * @example <caption>Define a tag and add it to an entity.</caption>
- * let RedTeam = S.tag()
+ * let RedTeam = tag()
  * let entity = world.spawn(RedTeam)
  */
 export let tag = (): Tag => make(make_component_id(), Kind.Tag)
@@ -244,8 +215,9 @@ export interface PairFn {
  * Relations are used to describe an entity's relationship to another entity.
  *
  * @example <caption>Define a relation with no data and add it to an entity.</caption>
- * let ChildOf = S.tag_relation()
- * let entity = world.spawn(ChildOf, [relative])
+ * let ChildOf = rel()
+ * let parent = world.spawn()
+ * let child = world.spawn(ChildOf(parent))
  */
 export let rel = (options?: RelOptions): PairFn => {
   let rel = make(
@@ -253,8 +225,12 @@ export let rel = (options?: RelOptions): PairFn => {
     Kind.Rel,
     options?.exclusive ? Topology.Exclusive : Topology.Inclusive,
   )
-  let rel_target = make_rel_target(make_component_id(), rel.topology)
-  rel.inverse = rel_target
+  let rel_inverse = make(
+    make_component_id(),
+    Kind.RelInverse,
+    rel.topology,
+  ) as RelInverse
+  rel.inverse = rel_inverse
   let pair_cache: Pair[] = []
   function pair_fn(): Rel
   function pair_fn(entity: Entity.T): Pair
@@ -275,16 +251,6 @@ export let rel = (options?: RelOptions): PairFn => {
 export let make_pair = (component: Rel, entity: Entity.T): Pair => {
   let component_id = Entity.make(Entity.parse_lo(entity), component.id)
   return make(component_id, Kind.Pair)
-}
-
-export let is_initialized = (component: T): boolean => {
-  switch (component.kind) {
-    case Kind.Ref:
-    case Kind.Rel:
-      return true
-    default:
-      return false
-  }
 }
 
 export let is_ref = (component: T): component is Ref =>

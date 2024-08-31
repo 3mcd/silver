@@ -1,29 +1,29 @@
 import type {Constraint} from "./system"
 
-const $is_range_anchor = Symbol()
+const $is_anchor = Symbol()
 
-let make_range_anchor = () => {
-  function range_anchor() {}
-  range_anchor[$is_range_anchor] = true
-  return range_anchor
+let anchor = () => {
+  function anchor() {}
+  anchor[$is_anchor] = true
+  return anchor
 }
 
 class Range {
   #constraints
-  #min_anchor
-  #max_anchor
+  #min
+  #max
   constructor(constraints: Constraint[]) {
     this.#constraints = constraints
-    this.#min_anchor = make_range_anchor()
-    this.#max_anchor = make_range_anchor()
+    this.#min = anchor()
+    this.#max = anchor()
   }
 
-  min_anchor() {
-    return this.#min_anchor
+  min() {
+    return this.#min
   }
 
-  max_anchor() {
-    return this.#max_anchor
+  max() {
+    return this.#max
   }
 
   constraints() {
@@ -39,4 +39,4 @@ export let make = (...constraints: Constraint[]) => {
 }
 
 export let is = (object: unknown): object is Range => object instanceof Range
-export let is_anchor = (object: Function): boolean => $is_range_anchor in object
+export let is_anchor = (object: Function): boolean => $is_anchor in object

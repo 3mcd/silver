@@ -4,10 +4,9 @@ import * as Assert from "../assert"
 import * as World from "../world"
 import * as Schedule from "./schedule"
 import * as System from "./system"
-import * as Type from "../type"
 
 class App {
-  #init = true
+  #init
   #init_schedule
   #schedule
   #world
@@ -15,6 +14,7 @@ class App {
   constructor(world = World.make(), schedule = Schedule.make()) {
     this.#world = world
     this.#schedule = schedule
+    this.#init = true
     this.#init_schedule = Schedule.make()
   }
 

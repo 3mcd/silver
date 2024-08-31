@@ -1,28 +1,13 @@
 import * as Assert from "./assert"
 
 /**
- * The maximum number of spawned (alive) entities.
- */
-export let MAX_EID = (1 << 19) - 1
-
-// Entities are 31-bit unsigned integers with the following layout:
-//
-//   | 11-bit | 20-bit |
-//   |--------|--------|
-//   | gen    | id     |
-//   |--------|--------|
-//
-// Entities are packed into 31 bits to fit into V8's Small Integer (SMI)
-// type, which are not heap allocated.
-//
-// The entity id is used to index into component storage arrays, while the
-// generation is used to invalidate destroyed entity "pointers".
-
-/**
  * A unique identifier for a thing in the game world.
  */
 export type T = number & {readonly _Entity__: true}
 
+/**
+ * The maximum number of spawned (alive) entities.
+ */
 export let LO_EXTENT = 20
 export let LO = (1 << LO_EXTENT) - 1
 export let HI_EXTENT = 31 - LO_EXTENT
@@ -32,8 +17,10 @@ export let EXTENT = Math.pow(2, 31) - 1
 /**
  * Makes a new 31-bit entity from the given 20-bit id and 11-bit `hi` integer.
  */
-export let make = (entity_id: number, hi: number): T => {
-  return (((hi & HI) << LO_EXTENT) | entity_id) as T
+export let make = (id: number, hi: number): T => {
+  assert_valid_id(id)
+  assert_valid_hi(hi)
+  return (((hi & HI) << LO_EXTENT) | id) as T
 }
 
 /**
@@ -47,9 +34,9 @@ export let assert_valid = (entity: number) => {
 /**
  * Performs a bounds check on the given entity id.
  */
-export let assert_valid_id = (entityId: number) => {
-  Assert.ok(entityId >= 0)
-  Assert.ok(entityId <= LO)
+export let assert_valid_id = (id: number) => {
+  Assert.ok(id >= 0)
+  Assert.ok(id <= LO)
 }
 
 /**

@@ -3,40 +3,42 @@ import * as Component from "./component"
 import * as Effect from "./effect"
 import * as Entity from "./entity"
 import * as EntityBuilder from "./entity_builder"
-import * as Entities from "./entity_registry"
+import * as EntityRegistry from "./entity_registry"
 import * as Graph from "./graph"
 import * as Node from "./node"
 import * as Op from "./op"
 import * as Query from "./query"
 import * as QueryBuilder from "./query_builder"
 import * as SparseSet from "./sparse_set"
-import * as Transaction from "./transaction"
+import * as Tx from "./transaction"
 import * as Type from "./type"
 
-export const $graph = Symbol("graph")
+export const $graph = Symbol()
 
-export class World {
-  #entities
+class World {
+  #id
+  #entity_registry
   #entity_data
   #queries
   #resources
   #stage
-  #transaction;
+  #tx;
 
   [$graph]: Graph.T
 
-  constructor() {
-    this.#entities = Entities.make()
+  constructor(id = 1) {
+    this.#id = id
+    this.#entity_registry = EntityRegistry.make()
     this.#entity_data = [] as unknown[][]
     this.#queries = new Map<QueryBuilder.T, Query.T>()
     this.#resources = [] as unknown[]
     this.#stage = [] as Op.T[]
-    this.#transaction = Transaction.make()
+    this.#tx = Tx.make()
     this[$graph] = Graph.make()
   }
 
   get_entity_node(entity: Entity.T) {
-    let node = Transaction.get_next_entity_node(this.#transaction, entity)
+    let node = Tx.get_next_entity_node(this.#tx, entity)
     Assert.ok(node !== undefined)
     return node
   }
@@ -77,12 +79,8 @@ export class World {
     let node = this.get_entity_node(entity)
     this.#unset_values(entity, node.type)
     this.#unset_relations(entity, node.type)
-    Entities.release(this.#entities, entity)
-    Transaction.move(this.#transaction, entity)
-  }
-
-  #despawn_disposed_node_entities(node: Node.T) {
-    SparseSet.each(node.entities, entity => this.#despawn(entity))
+    EntityRegistry.free(this.#entity_registry, entity)
+    Tx.move(this.#tx, entity)
   }
 
   #set_relations(subject: Entity.T, type: Type.T) {
@@ -92,7 +90,7 @@ export class World {
       let rel = Component.find_by_id(rel_id) as Component.Rel
       let rel_inverse = rel.inverse
       let object_id = Entity.parse_lo(pair.id)
-      let object = Entities.hydrate(this.#entities, object_id)
+      let object = Entity.make(object_id, this.#id)
       if (object === subject) {
         throw new Error("Cannot relate an entity to itself")
       }
@@ -112,7 +110,7 @@ export class World {
       let rel_id = Entity.parse_hi(pair.id)
       let rel = Component.find_by_id(rel_id) as Component.Rel
       let object_id = Entity.parse_lo(pair.id)
-      let object = Entities.hydrate(this.#entities, object_id)
+      let object = Entity.make(object_id, this.#id)
       let object_node = this.get_entity_node(object)
       switch (Node.unpair(object_node, rel.inverse.id, entity, object)) {
         // Object has no more subjects, so remove the relation's inverse tag.
@@ -153,7 +151,7 @@ export class World {
     let node = Graph.find_or_create_node_by_type(this[$graph], type)
     this.#set_values(entity, type, values)
     this.#set_relations(entity, type)
-    Transaction.move(this.#transaction, entity, node)
+    Tx.move(this.#tx, entity, node)
   }
 
   #apply_despawn(op: Op.Despawn) {
@@ -168,7 +166,7 @@ export class World {
     let next_type = Type.from_sum(prev_node.type, type)
     let next_node = Graph.find_or_create_node_by_type(this[$graph], next_type)
     this.#move_relations(entity, prev_node, next_node)
-    Transaction.move(this.#transaction, entity, next_node)
+    Tx.move(this.#tx, entity, next_node)
   }
 
   #apply_remove(op: Op.Remove) {
@@ -179,10 +177,10 @@ export class World {
     let next_type = Type.from_difference(prev_node.type, type)
     let next_node = Graph.find_or_create_node_by_type(this[$graph], next_type)
     this.#move_relations(entity, prev_node, next_node)
-    Transaction.move(this.#transaction, entity, next_node)
+    Tx.move(this.#tx, entity, next_node)
   }
 
-  #apply_op = (op: Op.T) => {
+  #apply_op(op: Op.T) {
     switch (op.kind) {
       case Op.Kind.Spawn:
         this.#apply_spawn(op)
@@ -214,20 +212,20 @@ export class World {
   spawn(): Entity.T
   spawn(type: Type.T, values: unknown[]): Entity.T
   spawn(type?: Type.T, values?: unknown[]): Entity.T {
-    let entity = Entities.retain(this.#entities)
+    let entity = EntityRegistry.alloc(this.#entity_registry, this.#id)
     this.#stage.push(Op.spawn(type ?? Type.empty, entity, values as []))
     return entity
   }
 
   despawn(entity: Entity.T) {
-    Entities.check(this.#entities, entity)
+    EntityRegistry.check(this.#entity_registry, entity)
     this.#stage.push(Op.despawn(entity))
   }
 
   add<U>(entity: Entity.T, ref: Component.Ref<U>, value: U): void
   add(entity: Entity.T, pair: Component.Pair): void
   add(entity: Entity.T, component: Component.T, value?: unknown) {
-    Entities.check(this.#entities, entity)
+    EntityRegistry.check(this.#entity_registry, entity)
     this.#stage.push(
       Op.add(Type.make([component]), entity, (value ? [value] : []) as any),
     )
@@ -237,7 +235,7 @@ export class World {
     entity: Entity.T,
     component: Component.Ref | Component.Tag | Component.Pair,
   ) {
-    Entities.check(this.#entities, entity)
+    EntityRegistry.check(this.#entity_registry, entity)
     this.#stage.push(Op.remove(Type.make([component]), entity))
   }
 
@@ -259,6 +257,7 @@ export class World {
   }
 
   step() {
+    let stage = this.#stage
     if (this.#stage.length > 0) {
       for (let i = 0; i < this.#stage.length; i++) {
         let op = this.#stage[i]
@@ -266,19 +265,17 @@ export class World {
       }
       this.#stage = []
     }
-    Transaction.drain(
-      this.#transaction,
-      function move_entity_batch(batch, prev_node, next_node) {
-        SparseSet.each(batch, function move_entity(entity) {
-          if (prev_node) {
-            Node.remove_entity(prev_node, entity)
-          }
-          if (next_node) {
-            Node.insert_entity(next_node, entity)
-          }
-        })
-      },
-    )
+    Tx.apply(this.#tx, function move_entity_batch(batch, prev_node, next_node) {
+      SparseSet.each(batch, function move_entity(entity) {
+        if (prev_node) {
+          Node.remove_entity(prev_node, entity)
+        }
+        if (next_node) {
+          Node.insert_entity(next_node, entity)
+        }
+      })
+    })
+    return stage
   }
 
   get_exclusive_relative(entity: Entity.T, rel: Component.Rel) {
@@ -293,8 +290,8 @@ export class World {
       let pair = node.type.pairs[i]
       let rel_id = Entity.parse_hi(pair.id)
       if (rel_id === rel.id) {
-        let object = Entity.parse_lo(pair.id)
-        return Entities.hydrate(this.#entities, object)
+        let object_id = Entity.parse_lo(pair.id)
+        return Entity.make(object_id, this.#id)
       }
     }
     throw new Error(
@@ -303,11 +300,7 @@ export class World {
   }
 
   is_alive(entity: Entity.T) {
-    return Entities.check_fast(this.#entities, entity)
-  }
-
-  hydrate(entity_id: number) {
-    return Entities.hydrate(this.#entities, entity_id)
+    return EntityRegistry.is_alive(this.#entity_registry, entity)
   }
 
   store(component_id: number) {
@@ -364,6 +357,7 @@ export class World {
     let type = Type.make(components)
     let node = Graph.find_or_create_node_by_type(this[$graph], type)
     Node.add_listener(node, effect, true)
+    effect.world = this
   }
 }
 export type T = World

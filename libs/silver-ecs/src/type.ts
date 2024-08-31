@@ -212,14 +212,14 @@ export let from_difference = (a: T, b: T) => {
  * and `b`.
  */
 export let from_intersection = (a: T, b: T) => {
-  let common: Component.T[] = []
+  let components: Component.T[] = []
   for (let i = 0; i < a.vec.length; i++) {
     let component = a.vec[i]
     if (has_component(b, component)) {
-      common.push(component)
+      components.push(component)
     }
   }
-  return make(common)
+  return make(components)
 }
 
 /**
