@@ -22,7 +22,7 @@ let timestep = {
 let world = mock_world()
   .set_resource(Time.res, time)
   .set_resource(Timestep.res, timestep)
-  .to_world()
+  .build()
 
 it("advances using t_control when controlled", () => {
   timestep.is_controlled.mockReturnValueOnce(true)

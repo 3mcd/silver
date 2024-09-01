@@ -7,7 +7,7 @@ let timestep = {
   increment_step: vi.fn(),
 }
 
-let world = mock_world().set_resource(Timestep.res, timestep).to_world()
+let world = mock_world().set_resource(Timestep.res, timestep).build()
 
 it("calls Timestep.increment_step", () => {
   increment_step(world)

@@ -12,7 +12,7 @@ export let mock_world = () => {
     get_resource(res: Component.Ref) {
       return Assert.exists(resources.get(res) as U)
     },
-    to_world() {
+    build() {
       return this as unknown as World.T
     },
   }
