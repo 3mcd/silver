@@ -57,9 +57,18 @@ class App {
     return this
   }
 
+  set_resource<U>(res: Component.Ref<U>, resource: U) {
+    this.#world.set_resource(res, resource)
+    return this
+  }
+
   add_effect<const U extends Effect.Term[]>(effect: Effect.T<U>) {
     this.#world.add_effect(effect)
     return this
+  }
+
+  world() {
+    return this.#world
   }
 }
 

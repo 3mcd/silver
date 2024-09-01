@@ -1,4 +1,4 @@
-import {after, Plugin, range, when, App} from "../../app"
+import {after, App, before, range, when} from "../../app"
 import * as World from "../../world"
 import * as Time from "../time"
 import * as systems from "./systems"
@@ -7,7 +7,7 @@ import * as Timestepper from "./timestepper"
 
 export type Config = Timestepper.Config
 
-let steps = (world: World.T) => world.get_resource(Timestep.res).steps()
+export let steps = (world: World.T) => world.get_resource(Timestep.res).steps()
 
 let default_config: Config = {
   period: 1 / 60,
@@ -21,13 +21,18 @@ export let plugin = (app: App, config?: Partial<Config>) => {
   let timestep = Timestep.make(timestep_config)
   app
     .add_resource(Timestep.res, timestep)
-    .add_system(systems.advance_timestep)
-    .add_system(systems.increment_step, when(Time.read), when(steps))
+    .add_system(systems.advance_timestep, when(Time.read))
+    .add_system(
+      systems.increment_step,
+      after(systems.advance_timestep),
+      when(Time.read),
+      when(steps),
+    )
 }
 
 export let logical = range(
   after(systems.advance_timestep),
-  after(systems.increment_step),
+  before(systems.increment_step),
   when(steps),
 )
 

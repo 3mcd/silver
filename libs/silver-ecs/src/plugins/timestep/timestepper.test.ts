@@ -1,16 +1,14 @@
 import {expect, test} from "vitest"
 import * as Stepper from "./timestepper"
 
-type CartesianProduct<T> = {
+type Product<T> = {
   [K in keyof T]: T[K] extends (infer _)[] ? _ : never
 }[]
 
-let cartesianProduct = <T extends unknown[][]>(
-  ...arr: T
-): CartesianProduct<T> => {
+let product = <T extends unknown[][]>(...arr: T) => {
   return arr.reduce((arr, b) =>
     arr.flatMap(d => b.map(e => [d, e].flat())),
-  ) as CartesianProduct<T>
+  ) as Product<T>
 }
 
 let PERIOD = 1 / 60
@@ -25,37 +23,37 @@ function test_termination(overshoot: boolean, frames = 1) {
   return timestep.advance(PERIOD * frames, PERIOD * frames)
 }
 
-test("LastUndershoot exact", () => {
+test("exact", () => {
   let steps = test_termination(false)
   expect(steps).toBe(1)
 })
 
-test("LastUndershoot below", () => {
+test("below", () => {
   let steps = test_termination(false, 0.5)
   expect(steps).toBe(0)
 })
 
-test("LastUndershoot above", () => {
+test("above", () => {
   let steps = test_termination(false, 1.5)
   expect(steps).toBe(1)
 })
 
-test("FirstOvershoot exact", () => {
+test("overshoot exact", () => {
   let steps = test_termination(true)
   expect(steps).toBe(1)
 })
 
-test("FirstOvershoot below", () => {
+test("overshoot below", () => {
   let steps = test_termination(true, 0.5)
   expect(steps).toBe(1)
 })
 
-test("FirstOvershoot above", () => {
+test("overshoot above", () => {
   let steps = test_termination(true, 1.5)
   expect(steps).toBe(2)
 })
 
-let interestingTimes = [
+let times = [
   PERIOD,
   -PERIOD,
   PERIOD * 2,
@@ -64,8 +62,8 @@ let interestingTimes = [
   -PERIOD * 100,
 ]
 
-let interestingFramesPerUpdate = [1, 1.7, 0.5, 2.5, 2]
-let defaultConfig = {
+let frames_per_update = [1, 1.7, 0.5, 2.5, 2]
+let default_config = {
   period: PERIOD,
   max_update_delta_t: 0.25,
   max_drift_t: 1,
@@ -78,10 +76,10 @@ let update = (
   time: number,
   drift: number,
 ) => {
-  let deltaTime = PERIOD * frames
-  let targetTime = time + deltaTime - drift
+  let t_delta = PERIOD * frames
+  let t_target = time + t_delta - drift
 
-  return [targetTime, timestep.advance(deltaTime, targetTime)]
+  return [t_target, timestep.advance(t_delta, t_target)]
 }
 
 test("ignores drift when timestep drifts within the frame", () => {
@@ -92,78 +90,66 @@ test("ignores drift when timestep drifts within the frame", () => {
     PERIOD * 0.499,
     -PERIOD * 0.499,
   ]
-  for (let [drift, time, frames] of cartesianProduct(
-    drifts,
-    interestingTimes,
-    interestingFramesPerUpdate,
-  )) {
-    let timestep = Stepper.make(defaultConfig)
+  for (let [drift, time, frames] of product(drifts, times, frames_per_update)) {
+    let timestep = Stepper.make(default_config)
     timestep.reset(time)
     expect(timestep.measure_drift(time)).toBeCloseTo(0)
     expect(timestep.measure_drift(time - drift)).toBeCloseTo(drift)
 
-    let [targetTime, steps] = update(timestep, frames, time, drift)
-    expect(timestep.measure_drift(targetTime)).toBeCloseTo(drift)
+    let [t_target, steps] = update(timestep, frames, time, drift)
+    expect(timestep.measure_drift(t_target)).toBeCloseTo(drift)
     expect(steps).toEqual(Math.ceil(frames))
   }
 })
 
 test("corrects timestamp when timestep drifts beyond a frame", () => {
   let drifts = [PERIOD * 0.5, -PERIOD * 0.5]
-  for (let [drift, time, frames] of cartesianProduct(
-    drifts,
-    interestingTimes,
-    interestingFramesPerUpdate,
-  )) {
-    let timestep = Stepper.make(defaultConfig)
+  for (let [drift, time, frames] of product(drifts, times, frames_per_update)) {
+    let timestep = Stepper.make(default_config)
     timestep.reset(time)
     expect(timestep.measure_drift(time)).toBeCloseTo(0)
     expect(timestep.measure_drift(time - drift)).toBeCloseTo(drift)
 
-    let [targetTime, steps] = update(timestep, frames, time, drift)
-    expect(timestep.measure_drift(targetTime)).toBeCloseTo(0)
+    let [t_target, steps] = update(timestep, frames, time, drift)
+    expect(timestep.measure_drift(t_target)).toBeCloseTo(0)
     expect(steps).toEqual(Math.round((timestep.t() - time) / PERIOD))
   }
 })
 
 test("skips timestamps when drift is beyond threshold", () => {
-  let maxDrift = 1
-  let maxUpdateDelta = 0.25
-  let maxSkipDelta = maxDrift + maxUpdateDelta
+  let max_drift_t = 1
+  let max_update_delta_t = 0.25
+  let max_skip_delta_t = max_drift_t + max_update_delta_t
   let drifts = [
-    maxSkipDelta,
-    -maxSkipDelta,
-    maxSkipDelta * 2,
-    -maxSkipDelta * 2,
+    max_skip_delta_t,
+    -max_skip_delta_t,
+    max_skip_delta_t * 2,
+    -max_skip_delta_t * 2,
   ]
-  for (let [drift, time, frames] of cartesianProduct(
-    drifts,
-    interestingTimes,
-    interestingFramesPerUpdate,
-  )) {
-    let expectedStepCount =
-      drift >= 0 ? 0 : Math.ceil(maxUpdateDelta / PERIOD) + 1
+  for (let [drift, time, frames] of product(drifts, times, frames_per_update)) {
+    let steps_expected =
+      drift >= 0 ? 0 : Math.ceil(max_update_delta_t / PERIOD) + 1
     let timestep = Stepper.make({
       period: PERIOD,
-      max_update_delta_t: maxUpdateDelta,
-      max_drift_t: maxDrift,
+      max_update_delta_t,
+      max_drift_t,
       overshoot: true,
     })
     timestep.reset(time)
     expect(timestep.measure_drift(time)).toBeCloseTo(0)
 
-    let [targetTime, steps] = update(timestep, frames, time, drift)
-    expect(timestep.measure_drift(targetTime)).toBeCloseTo(0)
-    expect(steps).toBe(expectedStepCount)
+    let [t_target, steps] = update(timestep, frames, time, drift)
+    expect(timestep.measure_drift(t_target)).toBeCloseTo(0)
+    expect(steps).toBe(steps_expected)
   }
 })
 
 test("should not drift while delta is changing", () => {
-  for (let time of interestingTimes) {
-    let timestep = Stepper.make(defaultConfig)
+  for (let time of times) {
+    let timestep = Stepper.make(default_config)
     timestep.reset(time)
     expect(timestep.measure_drift(time)).toBeCloseTo(0)
-    for (let frames of interestingFramesPerUpdate) {
+    for (let frames of frames_per_update) {
       let delta = PERIOD * frames
       time += delta
       timestep.advance(delta, time)

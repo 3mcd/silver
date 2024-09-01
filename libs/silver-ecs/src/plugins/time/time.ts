@@ -13,9 +13,9 @@ class Time {
     return this.#t_monotonic - this.#t_monotonic_prev
   }
 
-  advance() {
+  advance(t: number) {
     this.#t_monotonic_prev = this.#t_monotonic
-    this.#t_monotonic = performance.now() / 1_000
+    this.#t_monotonic = t
   }
 
   t_monotonic() {
@@ -30,3 +30,5 @@ export let make = () => {
 }
 
 export let res = ref<Time>()
+
+export let time = ref<number>()

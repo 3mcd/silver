@@ -212,7 +212,11 @@ class World {
   }
 
   get_resource<U>(res: Component.Ref<U>): U {
-    return Assert.exists(this.#resources[res.id] as U, err_missing_res)
+    return Assert.exists(this.get_resource_opt(res), err_missing_res)
+  }
+
+  get_resource_opt<U>(res: Component.Ref<U>): U | undefined {
+    return this.#resources[res.id] as U | undefined
   }
 
   spawn(): Entity.T
