@@ -1,5 +1,5 @@
 import {expect, it, vi} from "vitest"
-import {mock_world} from "../../../../mocks/mock_world"
+import {mock_world} from "../../../test"
 import * as Time from "../../time"
 import * as Timestep from "../timestep"
 import {advance_timestep} from "./advance_timestep"

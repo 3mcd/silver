@@ -1,5 +1,5 @@
 import {it, expect, vi, Mock} from "vitest"
-import {after, app, when} from "../../app"
+import {after, app, when, System} from "../../app"
 import * as Time from "../time"
 import * as Timestep from "./index"
 import {increment_step} from "./systems"
@@ -74,22 +74,20 @@ it("uses performance.now when time resource not set", () => {
 it("increments the step counter after Timestep.logical", () => {
   let steps_before: number[] = []
   let steps_after: number[] = []
+  let sys_before: System = world => {
+    steps_before.push(Timestep.steps(world))
+  }
+  let sys_after: System = world => {
+    steps_after.push(Timestep.steps(world))
+  }
   let game = app()
     .use(Time.plugin)
     .use(Timestep.plugin, {
       period: PERIOD,
       overshoot: false,
     })
-    .add_system(world => {
-      steps_before.push(world.get_resource(Timestep.res).step())
-    }, when(Timestep.logical))
-    .add_system(
-      world => {
-        steps_after.push(world.get_resource(Timestep.res).step())
-      },
-      when(Timestep.steps),
-      after(increment_step),
-    )
+    .add_system(sys_before, when(Timestep.logical))
+    .add_system(sys_after, when(Timestep.steps), after(increment_step))
   game.set_resource(Time.time, PERIOD * 5 - Number.EPSILON).run()
   expect(steps_before).toEqual([0, 1, 2, 3])
   expect(steps_after).toEqual([1, 2, 3, 4])

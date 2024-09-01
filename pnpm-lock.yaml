@@ -47,6 +47,8 @@ importers:
 
   libs/silver-ecs/plugins: {}
 
+  libs/silver-ecs/test: {}
+
 packages:
 
   /@ampproject/remapping@2.3.0:

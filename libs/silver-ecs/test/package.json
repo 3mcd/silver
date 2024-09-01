@@ -1,0 +1,4 @@
+{
+  "main": "dist/silver-ecs-test.cjs.js",
+  "module": "dist/silver-ecs-test.esm.js"
+}

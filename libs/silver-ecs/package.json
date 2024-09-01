@@ -17,7 +17,8 @@
   "license": "MIT",
   "files": [
     "dist",
-    "plugins"
+    "plugins",
+    "test"
   ],
   "main": "dist/silver-ecs.cjs.js",
   "module": "dist/silver-ecs.esm.js",
@@ -26,7 +27,8 @@
   "preconstruct": {
     "entrypoints": [
       "index.ts",
-      "plugins/index.ts"
+      "plugins/index.ts",
+      "test/index.ts"
     ]
   }
 }
