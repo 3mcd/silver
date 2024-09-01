@@ -1,7 +1,7 @@
 import {System} from "../../../app/index"
-import * as Clock from "../time"
+import * as Time from "../time"
 
 export let advance_time: System = world => {
-  let clock = world.get_resource(Clock.res)
-  clock.advance()
+  let time = world.get_resource(Time.res)
+  time.advance()
 }

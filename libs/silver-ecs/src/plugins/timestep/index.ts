@@ -1,6 +1,6 @@
 import {after, Plugin, range, when, App} from "../../app"
 import * as World from "../../world"
-import * as Clock from "../time"
+import * as Time from "../time"
 import * as systems from "./systems"
 import * as Timestep from "./timestep"
 import * as Timestepper from "./timestepper"
@@ -22,7 +22,7 @@ export let plugin = (app: App, config?: Partial<Config>) => {
   app
     .add_resource(Timestep.res, timestep)
     .add_system(systems.advance_timestep)
-    .add_system(systems.increment_step, when(Clock.read), when(steps))
+    .add_system(systems.increment_step, when(Time.read), when(steps))
 }
 
 export let logical = range(

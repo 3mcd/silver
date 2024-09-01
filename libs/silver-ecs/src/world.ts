@@ -13,6 +13,11 @@ import * as SparseSet from "./sparse_set"
 import * as Tx from "./transaction"
 import * as Type from "./type"
 
+let err_missing_res = "missing resource"
+let err_missing_entity = "missing entity"
+let err_missing_entity_single = "no entity found for single"
+let err_missing_entity_exclusive = "missing exclusive relative"
+
 export const $graph = Symbol()
 
 class World {
@@ -38,9 +43,10 @@ class World {
   }
 
   get_entity_node(entity: Entity.T) {
-    let node = Tx.get_next_entity_node(this.#tx, entity)
-    Assert.ok(node !== undefined)
-    return node
+    return Assert.exists(
+      Tx.get_next_entity_node(this.#tx, entity),
+      err_missing_entity,
+    )
   }
 
   #get_value(entity: Entity.T, component: Component.Ref) {
@@ -206,7 +212,7 @@ class World {
   }
 
   get_resource<U>(res: Component.Ref<U>): U {
-    return Assert.exists(this.#resources[res.id] as U)
+    return Assert.exists(this.#resources[res.id] as U, err_missing_res)
   }
 
   spawn(): Entity.T
@@ -278,7 +284,7 @@ class World {
     return stage
   }
 
-  get_exclusive_relative(entity: Entity.T, rel: Component.Rel) {
+  get_exclusive_relative_opt(entity: Entity.T, rel: Component.Rel) {
     let node = this.get_entity_node(entity)
     if (rel.topology !== Component.Topology.Exclusive) {
       throw new Error("Cannot get exclusive relative of inclusive relation")
@@ -296,6 +302,19 @@ class World {
     }
     throw new Error(
       "Unexpected error: entity has exclusive relation component without a pair",
+    )
+  }
+
+  get_exclusive_relative(
+    entity: Entity.T,
+    rel: Component.Rel | Component.PairFn,
+  ) {
+    if (typeof rel === "function") {
+      rel = rel()
+    }
+    return Assert.exists(
+      this.get_exclusive_relative_opt(entity, rel),
+      err_missing_entity_exclusive,
     )
   }
 
@@ -321,7 +340,7 @@ class World {
         return false
       }
     })
-    return Assert.exists(entity)
+    return Assert.exists(entity, err_missing_entity_single)
   }
 
   with<U extends Component.Tag>(tag: U): EntityBuilder.T

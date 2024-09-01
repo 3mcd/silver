@@ -10,22 +10,26 @@ import {
 } from "silver-ecs"
 import {Time, Timestep} from "silver-ecs/plugins"
 import {canvas, circle, clear, context, transform} from "./canvas"
-import {Color, Name, Orbits, Position, Radius} from "./data"
+import {Color, Name, Orbits, Angvel, Position, Radius} from "./data"
 
 let FONT_SIZE = 12 * window.devicePixelRatio
 
 let satellites = query()
   .with(Position)
+  .with(Angvel)
   .with(Orbits, body => body.with(Position))
 
 let move_satellites: System = world => {
   let step = world.get_resource(Timestep.res).step()
-  world.for_each(satellites, (satellite_pos, orbiting_pos) => {
-    let period = 0.1
-    let a = ((Math.PI / 180) * step) / period / 100
-    satellite_pos.x = orbiting_pos.x + 30 * Math.cos(a)
-    satellite_pos.y = orbiting_pos.y + 30 * Math.sin(a)
-  })
+  world.for_each(
+    satellites,
+    (satellite_pos, satellite_angvel, orbiting_pos) => {
+      let period = 0.1
+      let a = ((Math.PI / 180) * step * satellite_angvel) / period / 100
+      satellite_pos.x = orbiting_pos.x + 30 * Math.cos(a)
+      satellite_pos.y = orbiting_pos.y + 30 * Math.sin(a)
+    },
+  )
 }
 
 let bodies = query().with(Name).with(Color).with(Position).with(Radius)
@@ -49,15 +53,10 @@ let clear_canvas: System = () => {
   clear()
 }
 
-let log_orbits = effect(
-  [Orbits],
-  e => {
-    console.log("in", e)
-  },
-  e => {
-    console.log("out", e)
-  },
-)
+let log_orbits = effect([Orbits], (world, entity) => {
+  let orbits = world.get_exclusive_relative(entity, Orbits)
+  console.log(world.get(entity, Name), "orbits", world.get(orbits, Name))
+})
 
 let body = (
   world: World,
@@ -65,21 +64,25 @@ let body = (
   color: string,
   x: number,
   y: number,
-  radius: number,
+  r: number,
+  av: number,
 ) =>
   world
     .with(Name, name)
     .with(Color, color)
     .with(Position, {x, y})
-    .with(Radius, radius)
+    .with(Radius, r)
+    .with(Angvel, av)
 
 let game = app()
   .use(Time.plugin)
   .use(Timestep.plugin)
   .add_init_system(world => {
-    let sun = body(world, "Sun", "#ff0", 0, 0, 10).spawn()
-    let earth = body(world, "Earth", "#00f", 30, 0, 3).with(Orbits(sun)).spawn()
-    body(world, "Moon", "#aaa", 5, 0, 1).with(Orbits(earth)).spawn()
+    let sun = body(world, "sun", "#ff0", 0, 0, 10, 0).spawn()
+    let earth = body(world, "earth", "#00f", 30, 0, 3, 2)
+      .with(Orbits(sun))
+      .spawn()
+    body(world, "moon", "#aaa", 5, 0, 1, 10).with(Orbits(earth)).spawn()
   })
   .add_system(move_satellites, before(clear_canvas), when(Timestep.logical))
   .add_system(clear_canvas)
