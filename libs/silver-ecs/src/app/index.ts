@@ -1,3 +1,6 @@
-export * from "./app"
-export * as Range from "./range"
+export {make as app} from "./app"
+export type {Plugin} from "./app"
+export {make as range} from "./range"
+export {after, before, when} from "./system"
 export type {Fn as System} from "./system"
+export type {T as App} from "./app"

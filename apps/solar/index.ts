@@ -1,4 +1,14 @@
-import {after, app, before, effect, query, System, World} from "silver-ecs"
+import {
+  after,
+  app,
+  before,
+  effect,
+  query,
+  System,
+  when,
+  World,
+} from "silver-ecs"
+import {Time, Timestep} from "silver-ecs/plugins"
 import {canvas, circle, clear, context, transform} from "./canvas"
 import {Color, Name, Orbits, Position, Radius} from "./data"
 
@@ -8,16 +18,14 @@ let satellites = query()
   .with(Position)
   .with(Orbits, body => body.with(Position))
 
-let tick = 0
-
 let move_satellites: System = world => {
+  let step = world.get_resource(Timestep.res).step()
   world.for_each(satellites, (satellite_pos, orbiting_pos) => {
     let period = 0.1
-    let a = ((Math.PI / 180) * tick) / period / 100
+    let a = ((Math.PI / 180) * step) / period / 100
     satellite_pos.x = orbiting_pos.x + 30 * Math.cos(a)
     satellite_pos.y = orbiting_pos.y + 30 * Math.sin(a)
   })
-  tick++
 }
 
 let bodies = query().with(Name).with(Color).with(Position).with(Radius)
@@ -66,19 +74,14 @@ let body = (
     .with(Radius, radius)
 
 let game = app()
+  .use(Time.plugin)
+  .use(Timestep.plugin)
   .add_init_system(world => {
     let sun = body(world, "Sun", "#ff0", 0, 0, 10).spawn()
     let earth = body(world, "Earth", "#00f", 30, 0, 3).with(Orbits(sun)).spawn()
-    let moon = body(world, "Moon", "#aaa", 5, 0, 1).with(Orbits(earth)).spawn()
-
-    setTimeout(() => {
-      world.remove(earth, Orbits(sun))
-      setTimeout(() => {
-        world.add(earth, Orbits(sun))
-      }, 5000)
-    }, 5000)
+    body(world, "Moon", "#aaa", 5, 0, 1).with(Orbits(earth)).spawn()
   })
-  .add_system(move_satellites, before(clear_canvas))
+  .add_system(move_satellites, before(clear_canvas), when(Timestep.logical))
   .add_system(clear_canvas)
   .add_system(draw_bodies, after(clear_canvas))
   .add_effect(log_orbits)

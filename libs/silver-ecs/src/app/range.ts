@@ -1,10 +1,10 @@
 import type {Constraint} from "./system"
 
-const $is_anchor = Symbol()
+let anchors = new WeakSet<Function>()
 
 let anchor = () => {
   function anchor() {}
-  anchor[$is_anchor] = true
+  anchors.add(anchor)
   return anchor
 }
 
@@ -39,4 +39,4 @@ export let make = (...constraints: Constraint[]) => {
 }
 
 export let is = (object: unknown): object is Range => object instanceof Range
-export let is_anchor = (object: Function): boolean => $is_anchor in object
+export let is_anchor = (object: Function): boolean => anchors.has(object)

@@ -17,10 +17,16 @@
   "license": "MIT",
   "files": [
     "dist",
-    "debug"
+    "plugins"
   ],
   "main": "dist/silver-ecs.cjs.js",
   "module": "dist/silver-ecs.esm.js",
   "source": "./src/index.ts",
-  "types": "./dist/silver-ecs.cjs.d.ts"
+  "types": "./dist/silver-ecs.cjs.d.ts",
+  "preconstruct": {
+    "entrypoints": [
+      "index.ts",
+      "plugins/index.ts"
+    ]
+  }
 }

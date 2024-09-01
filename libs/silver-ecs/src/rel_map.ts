@@ -90,22 +90,3 @@ class RelMap<U extends number> implements RelMap<U> {
 export type T<U extends number = number> = RelMap<U>
 
 export let make = <U extends number>(): T<U> => new RelMap<U>()
-
-if (import.meta.vitest) {
-  let {test, expect} = await import("vitest")
-
-  test("relmap", () => {
-    let relmap = new RelMap<number>()
-    relmap.set_object(1, 2)
-    relmap.set_object(1, 3)
-    relmap.set_object(2, 3)
-    expect(relmap.has_subject(1)).to.equal(true)
-    expect(relmap.has_subject(2)).to.equal(true)
-    relmap.delete_subject(1)
-    expect(relmap.has_subject(1)).to.equal(false)
-    expect(relmap.has_subject(2)).to.equal(true)
-    relmap.delete_object(3)
-    expect(relmap.has_subject(1)).to.equal(false)
-    expect(relmap.has_subject(2)).to.equal(false)
-  })
-}

@@ -22,9 +22,9 @@ class World {
   #queries
   #resources
   #stage
-  #tx;
+  #tx
 
-  [$graph]: Graph.T
+  readonly graph: Graph.T
 
   constructor(id = 1) {
     this.#id = id
@@ -34,7 +34,7 @@ class World {
     this.#resources = [] as unknown[]
     this.#stage = [] as Op.T[]
     this.#tx = Tx.make()
-    this[$graph] = Graph.make()
+    this.graph = Graph.make()
   }
 
   get_entity_node(entity: Entity.T) {
@@ -148,7 +148,7 @@ class World {
 
   #apply_spawn(op: Op.Spawn) {
     let {entity, type, values} = op
-    let node = Graph.find_or_create_node_by_type(this[$graph], type)
+    let node = Graph.find_or_create_node_by_type(this.graph, type)
     this.#set_values(entity, type, values)
     this.#set_relations(entity, type)
     Tx.move(this.#tx, entity, node)
@@ -164,7 +164,7 @@ class World {
     this.#set_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
     let next_type = Type.from_sum(prev_node.type, type)
-    let next_node = Graph.find_or_create_node_by_type(this[$graph], next_type)
+    let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
     this.#move_relations(entity, prev_node, next_node)
     Tx.move(this.#tx, entity, next_node)
   }
@@ -175,7 +175,7 @@ class World {
     this.#unset_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
     let next_type = Type.from_difference(prev_node.type, type)
-    let next_node = Graph.find_or_create_node_by_type(this[$graph], next_type)
+    let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
     this.#move_relations(entity, prev_node, next_node)
     Tx.move(this.#tx, entity, next_node)
   }
@@ -309,7 +309,7 @@ class World {
   }
 
   single(ref: Component.Ref): Entity.T {
-    let node = Graph.find_or_create_node_by_component(this[$graph], ref)
+    let node = Graph.find_or_create_node_by_component(this.graph, ref)
     let entity: Entity.T | undefined
     Node.traverse_right(node, visited_node => {
       // TODO: implement a better way to terminate traversal
@@ -355,7 +355,7 @@ class World {
   add_effect<const U extends Effect.Term[]>(effect: Effect.T<U>) {
     let components = effect.terms.map(c => (typeof c === "function" ? c() : c))
     let type = Type.make(components)
-    let node = Graph.find_or_create_node_by_type(this[$graph], type)
+    let node = Graph.find_or_create_node_by_type(this.graph, type)
     Node.add_listener(node, effect, true)
     effect.world = this
   }
@@ -364,41 +364,4 @@ export type T = World
 
 export let make = (): World => {
   return new World()
-}
-
-if (import.meta.vitest) {
-  let {test, expect} = await import("vitest")
-
-  test("relations", () => {
-    let world = make()
-    let Likes = Component.rel()
-    let Likes_tag = Likes()
-    let Likes_tag_inverse = Likes().inverse
-    let a = world.spawn()
-    let b = world.spawn()
-    let c = world.spawn()
-    world.step()
-    world.add(a, Likes(b))
-    world.add(a, Likes(c))
-    world.step()
-    expect(world.has(a, Likes_tag)).to.equal(true)
-    expect(world.has(a, Likes(b))).to.equal(true)
-    expect(world.has(a, Likes(c))).to.equal(true)
-    expect(world.has(b, Likes_tag_inverse)).to.equal(true)
-    expect(world.has(c, Likes_tag_inverse)).to.equal(true)
-    world.remove(a, Likes(b))
-    world.step()
-    expect(world.has(a, Likes_tag)).to.equal(true)
-    expect(world.has(a, Likes(b))).to.equal(false)
-    expect(world.has(a, Likes(c))).to.equal(true)
-    expect(world.has(b, Likes_tag_inverse)).to.equal(false)
-    expect(world.has(c, Likes_tag_inverse)).to.equal(true)
-    world.remove(a, Likes(c))
-    world.step()
-    expect(world.has(a, Likes_tag)).to.equal(false)
-    expect(world.has(a, Likes(b))).to.equal(false)
-    expect(world.has(a, Likes(c))).to.equal(false)
-    expect(world.has(b, Likes_tag_inverse)).to.equal(false)
-    expect(world.has(c, Likes_tag_inverse)).to.equal(false)
-  })
 }

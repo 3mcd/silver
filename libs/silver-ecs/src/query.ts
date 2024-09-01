@@ -109,7 +109,7 @@ let init_query_joins = (
 ) => {
   let join = new Join(query_builder_node.terms, query_builder_node.join_on)
   let node = Graph.find_or_create_node_by_type(
-    world[World.$graph],
+    world.graph,
     Type.make(query_builder_node.terms),
   )
   Node.add_listener(node, join, true)
