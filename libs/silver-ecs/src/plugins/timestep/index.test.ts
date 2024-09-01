@@ -10,12 +10,12 @@ let PERIOD_MS = PERIOD * 1000
 let test_advance_time = (
   game: ReturnType<typeof app>,
   t: number,
-  mock: Mock,
+  system: Mock,
   steps: number,
 ) => {
   game.set_resource(Time.time, t).run()
-  expect(mock).toHaveBeenCalledTimes(steps)
-  mock.mockClear()
+  expect(system).toHaveBeenCalledTimes(steps)
+  system.mockClear()
 }
 
 let test_advance_timers = (
@@ -39,35 +39,35 @@ it("throws an error when Time is not installed", () => {
 it.todo("advances the timestep after Time.read")
 
 it("steps at a fixed interval", () => {
-  let mock = vi.fn()
+  let system = vi.fn()
   let game = app()
     .use(Time.plugin)
     .use(Timestep.plugin, {
       period: PERIOD,
       overshoot: false,
     })
-    .add_system(mock, when(Timestep.logical))
+    .add_system(system, when(Timestep.logical))
   let t = 0
-  test_advance_time(game, (t += PERIOD), mock, 1)
-  test_advance_time(game, (t += PERIOD), mock, 1)
-  test_advance_time(game, (t += PERIOD / 2), mock, 0)
-  test_advance_time(game, (t += PERIOD / 2 + Number.EPSILON), mock, 1)
+  test_advance_time(game, (t += PERIOD), system, 1)
+  test_advance_time(game, (t += PERIOD), system, 1)
+  test_advance_time(game, (t += PERIOD / 2), system, 0)
+  test_advance_time(game, (t += PERIOD / 2 + Number.EPSILON), system, 1)
 })
 
 it("uses performance.now when time resource not set", () => {
   vi.useFakeTimers()
-  let mock = vi.fn()
+  let system = vi.fn()
   let game = app()
     .use(Time.plugin)
     .use(Timestep.plugin, {
       period: PERIOD,
       overshoot: false,
     })
-    .add_system(mock, when(Timestep.logical))
-  test_advance_timers(game, PERIOD_MS, mock, 1)
-  test_advance_timers(game, PERIOD_MS, mock, 1)
-  test_advance_timers(game, PERIOD_MS / 2, mock, 0)
-  test_advance_timers(game, PERIOD_MS / 2, mock, 1)
+    .add_system(system, when(Timestep.logical))
+  test_advance_timers(game, PERIOD_MS, system, 1)
+  test_advance_timers(game, PERIOD_MS, system, 1)
+  test_advance_timers(game, PERIOD_MS / 2, system, 0)
+  test_advance_timers(game, PERIOD_MS / 2, system, 1)
   vi.useRealTimers()
 })
 

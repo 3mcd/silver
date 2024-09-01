@@ -3,7 +3,7 @@ import * as Timestepper from "./timestepper"
 
 export type Config = Timestepper.Config
 
-interface TControlled {
+export interface TControlled {
   t_control(): number
 }
 

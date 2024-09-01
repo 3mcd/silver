@@ -1,8 +1,8 @@
 import {expect, it, vi} from "vitest"
-import {advance_timestep} from "./advance_timestep"
+import {mock_world} from "../../../../mocks/mock_world"
 import * as Time from "../../time"
 import * as Timestep from "../timestep"
-import * as World from "../../../world"
+import {advance_timestep} from "./advance_timestep"
 
 let T_DELTA = 1 / 60
 let T_CONTROL = 1.1
@@ -15,31 +15,24 @@ let time = {
 
 let timestep = {
   advance: vi.fn(),
-  is_controlled: vi.fn(),
+  is_controlled: vi.fn(() => false),
   t_control: vi.fn().mockReturnValue(T_CONTROL),
 }
 
-let world = {
-  get_resource: vi.fn(res => {
-    switch (res) {
-      case Time.res:
-        return time
-      case Timestep.res:
-        return timestep
-    }
-  }),
-}
+let world = mock_world()
+  .set_resource(Time.res, time)
+  .set_resource(Timestep.res, timestep)
+  .to_world()
 
 it("advances using t_control when controlled", () => {
   timestep.is_controlled.mockReturnValueOnce(true)
-  advance_timestep(world as unknown as World.T)
+  advance_timestep(world)
   expect(timestep.advance).toHaveBeenCalledWith(T_DELTA, T_CONTROL)
   timestep.advance.mockClear()
 })
 
 it("advances using the monotonic time when not controlled", () => {
-  timestep.is_controlled.mockReturnValueOnce(false)
-  advance_timestep(world as unknown as World.T)
+  advance_timestep(world)
   expect(timestep.advance).toHaveBeenCalledWith(T_DELTA, T_MONOTONIC)
   timestep.advance.mockClear()
 })

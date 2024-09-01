@@ -209,6 +209,7 @@ class World {
 
   set_resource<U>(res: Component.Ref<U>, resource: U) {
     this.#resources[res.id] = resource
+    return this
   }
 
   get_resource<U>(res: Component.Ref<U>): U {

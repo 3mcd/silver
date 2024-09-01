@@ -1,5 +1,5 @@
 import {expect, it, vi} from "vitest"
-import * as World from "../../../world"
+import {mock_world} from "../../../../mocks/mock_world"
 import * as Timestep from "../timestep"
 import {increment_step} from "./increment_step"
 
@@ -7,16 +7,9 @@ let timestep = {
   increment_step: vi.fn(),
 }
 
-let world = {
-  get_resource: vi.fn(res => {
-    switch (res) {
-      case Timestep.res:
-        return timestep
-    }
-  }),
-}
+let world = mock_world().set_resource(Timestep.res, timestep).to_world()
 
 it("calls Timestep.increment_step", () => {
-  increment_step(world as unknown as World.T)
+  increment_step(world)
   expect(timestep.increment_step).toHaveBeenCalledOnce()
 })
