@@ -6,5 +6,6 @@ export default defineConfig({
     fakeTimers: {
       toFake: [...(configDefaults.fakeTimers.toFake ?? []), "performance"],
     },
+    clearMocks: true,
   },
 })

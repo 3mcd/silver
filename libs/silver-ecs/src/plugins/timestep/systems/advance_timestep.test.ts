@@ -28,11 +28,9 @@ it("advances using t_control when controlled", () => {
   timestep.is_controlled.mockReturnValueOnce(true)
   advance_timestep(world)
   expect(timestep.advance).toHaveBeenCalledWith(T_DELTA, T_CONTROL)
-  timestep.advance.mockClear()
 })
 
 it("advances using the monotonic time when not controlled", () => {
   advance_timestep(world)
   expect(timestep.advance).toHaveBeenCalledWith(T_DELTA, T_MONOTONIC)
-  timestep.advance.mockClear()
 })
