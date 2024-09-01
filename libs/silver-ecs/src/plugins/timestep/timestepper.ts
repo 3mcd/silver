@@ -8,7 +8,7 @@ export type Config = {
 let round_up = (x: number, t: number) => Math.ceil(x / t) * t
 let round_down = (x: number, t: number) => Math.floor(x / t) * t
 
-class Stepper {
+class Timestepper {
   #config
   #t
   #t_overshot
@@ -89,8 +89,8 @@ class Stepper {
   }
 }
 
-export type T = Stepper
+export type T = Timestepper
 
 export let make = (config: Config) => {
-  return new Stepper(config)
+  return new Timestepper(config)
 }
