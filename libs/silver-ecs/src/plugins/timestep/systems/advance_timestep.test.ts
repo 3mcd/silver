@@ -20,7 +20,7 @@ let timestep = {
 }
 
 let world = {
-  get_resource: vi.fn().mockImplementation(res => {
+  get_resource: vi.fn(res => {
     switch (res) {
       case Time.res:
         return time
@@ -34,10 +34,12 @@ it("advances using t_control when controlled", () => {
   timestep.is_controlled.mockReturnValueOnce(true)
   advance_timestep(world as unknown as World.T)
   expect(timestep.advance).toHaveBeenCalledWith(T_DELTA, T_CONTROL)
+  timestep.advance.mockClear()
 })
 
 it("advances using the monotonic time when not controlled", () => {
   timestep.is_controlled.mockReturnValueOnce(false)
   advance_timestep(world as unknown as World.T)
   expect(timestep.advance).toHaveBeenCalledWith(T_DELTA, T_MONOTONIC)
+  timestep.advance.mockClear()
 })
