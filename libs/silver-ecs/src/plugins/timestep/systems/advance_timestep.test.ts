@@ -9,8 +9,8 @@ let T_CONTROL = 1.1
 let T_MONOTONIC = 1
 
 let time = {
-  delta: vi.fn().mockReturnValue(T_DELTA),
-  t_monotonic: vi.fn().mockReturnValue(T_MONOTONIC),
+  t_delta: vi.fn().mockReturnValue(T_DELTA),
+  t_mono: vi.fn().mockReturnValue(T_MONOTONIC),
 }
 
 let timestep = {

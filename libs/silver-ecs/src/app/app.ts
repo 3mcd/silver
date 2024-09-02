@@ -33,6 +33,7 @@ class App {
     }
     Schedule.run(this.#schedule, this.#world)
     this.#world.step()
+    return this
   }
 
   add_system(system: System.Fn, ...constraints: System.Constraint[]) {
@@ -69,6 +70,10 @@ class App {
 
   world() {
     return this.#world
+  }
+
+  print_schedule() {
+    return this.#schedule.systems.map(system => system.name).join("\n")
   }
 }
 

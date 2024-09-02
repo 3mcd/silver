@@ -1,25 +1,25 @@
 import {ref} from "../../component"
 
 class Time {
-  #t_monotonic
-  #t_monotonic_prev
+  #t_mono
+  #t_mono_prev
 
   constructor() {
-    this.#t_monotonic = 0
-    this.#t_monotonic_prev = 0
+    this.#t_mono = 0
+    this.#t_mono_prev = 0
   }
 
-  delta() {
-    return this.#t_monotonic - this.#t_monotonic_prev
+  advance(t_monotonic: number) {
+    this.#t_mono_prev = this.#t_mono
+    this.#t_mono = t_monotonic
   }
 
-  advance(t: number) {
-    this.#t_monotonic_prev = this.#t_monotonic
-    this.#t_monotonic = t
+  t_mono() {
+    return this.#t_mono
   }
 
-  t_monotonic() {
-    return this.#t_monotonic
+  t_delta() {
+    return this.#t_mono - this.#t_mono_prev
   }
 }
 

@@ -10,13 +10,13 @@ let time = {
 let world = mock_world().set_resource(Time.res, time).build()
 
 it("advances time using performance.now", () => {
-  let t = 0.5
-  let t_ms = t * 1000
+  let t_mono = 0.5
+  let t_mono_ms = t_mono * 1000
   vi.useFakeTimers()
-  vi.advanceTimersByTime(t_ms)
+  vi.advanceTimersByTime(t_mono_ms)
   world.set_resource(Time.time, undefined)
   advance_time(world)
-  expect(time.advance).toHaveBeenCalledWith(t)
+  expect(time.advance).toHaveBeenCalledWith(t_mono)
   vi.useRealTimers()
 })
 

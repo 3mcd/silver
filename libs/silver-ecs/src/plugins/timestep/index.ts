@@ -21,18 +21,20 @@ export let plugin = (app: App, config?: Partial<Config>) => {
   let timestep = Timestep.make(timestep_config)
   app
     .add_resource(Timestep.res, timestep)
-    .add_system(systems.advance_timestep, when(Time.read))
+    .add_system(systems.advance_timestep, when(update))
     .add_system(
       systems.increment_step,
       after(systems.advance_timestep),
-      when(Time.read),
+      when(update),
       when(steps),
     )
 }
 
-export let logical = range(
+export let update = range(when(Time.read))
+export let fixed = range(
   after(systems.advance_timestep),
   before(systems.increment_step),
+  when(update),
   when(steps),
 )
 
