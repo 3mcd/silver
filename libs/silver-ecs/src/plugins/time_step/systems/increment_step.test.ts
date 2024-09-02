@@ -1,6 +1,6 @@
 import {expect, it, vi} from "vitest"
 import {mock_world} from "../../../test"
-import * as Timestep from "../timestep"
+import * as Timestep from "../time_step"
 import {increment_step} from "./increment_step"
 
 let timestep = {

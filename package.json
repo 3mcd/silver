@@ -13,7 +13,8 @@
     "reset:bench": "find ./libs -type f -name '*.bench-results' -delete",
     "reset:dist": "find ./libs -type d -name 'dist' -prune -exec rm -rf {} \\;",
     "release": "pnpm build && pnpm publish -r",
-    "test": "pnpm -r --parallel test"
+    "test": "pnpm -r --parallel test",
+    "test:coverage": "pnpm -r --parallel --filter \"./libs/**\" exec vitest run --coverage"
   },
   "keywords": [],
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
@@ -24,6 +25,7 @@
     "@babel/preset-typescript": "^7.24.7",
     "@preconstruct/cli": "^2.8.7",
     "@types/node": "^22.5.1",
+    "@vitest/coverage-v8": "^2.0.5",
     "esbuild": "^0.23.1",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"

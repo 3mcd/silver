@@ -1,6 +1,6 @@
 import {System} from "../../../app"
-import * as Time from "../../time"
-import * as Timestep from "../timestep"
+import * as Time from "../../time/plugin"
+import * as Timestep from "../time_step"
 
 export let advance_timestep: System = world => {
   let timestep = world.get_resource(Timestep.res)

@@ -1,8 +1,8 @@
 import {it, expect, vi, Mock} from "vitest"
 import {after, app, when, System, before} from "../../app"
-import * as Time from "../time"
-import * as Timestep from "./index"
-import {increment_step} from "./systems"
+import * as Time from "../time/plugin"
+import * as Timestep from "./plugin"
+import {increment_step} from "./systems/increment_step"
 
 let PERIOD = 1 / 60
 let PERIOD_MS = PERIOD * 1000
@@ -51,8 +51,8 @@ it("computes step count before Timestep.logical", () => {
   app()
     .use(Time.plugin)
     .use(Timestep.plugin, config)
-    .add_system(sys_before, before(Timestep.update))
-    .add_system(sys_after, after(Timestep.update))
+    .add_system(sys_before, before(Timestep.advance))
+    .add_system(sys_after, after(Timestep.advance))
     .set_resource(Time.time, PERIOD * 2)
     .run()
   expect(steps_before).toBe(0)
@@ -64,7 +64,7 @@ it("steps at a fixed interval", () => {
   let game = app()
     .use(Time.plugin)
     .use(Timestep.plugin, config)
-    .add_system(system, when(Timestep.fixed))
+    .add_system(system, when(Timestep.logical))
   let t = 0
   test_advance_time(game, (t += PERIOD), system, 1)
   test_advance_time(game, (t += PERIOD), system, 1)
@@ -78,7 +78,7 @@ it("uses performance.now when time resource not set", () => {
   let game = app()
     .use(Time.plugin)
     .use(Timestep.plugin, config)
-    .add_system(system, when(Timestep.fixed))
+    .add_system(system, when(Timestep.logical))
   test_advance_timers(game, PERIOD_MS, system, 1)
   test_advance_timers(game, PERIOD_MS, system, 1)
   test_advance_timers(game, PERIOD_MS / 2, system, 0)
@@ -98,7 +98,7 @@ it("increments the step counter after Timestep.logical", () => {
   app()
     .use(Time.plugin)
     .use(Timestep.plugin, config)
-    .add_system(sys_before, when(Timestep.fixed))
+    .add_system(sys_before, when(Timestep.logical))
     .add_system(sys_after, when(Timestep.steps), after(increment_step))
     .set_resource(Time.time, PERIOD * 5 - Number.EPSILON)
     .run()
