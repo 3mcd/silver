@@ -4,12 +4,12 @@ import * as Timestep from "../time_step"
 import {increment_step} from "./increment_step"
 
 let timestep = {
-  increment_step: vi.fn(),
+  increment: vi.fn(),
 }
 
 let world = mock_world().set_resource(Timestep.res, timestep).build()
 
 it("calls Timestep.increment_step", () => {
   increment_step(world)
-  expect(timestep.increment_step).toHaveBeenCalledOnce()
+  expect(timestep.increment).toHaveBeenCalledOnce()
 })

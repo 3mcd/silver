@@ -10,39 +10,35 @@ let round_down = (x: number, t: number) => Math.floor(x / t) * t
 
 class Timestepper {
   #config
-  #t
-  #t_overshot
+  #t_quantized
+  #t_overshoot
 
   constructor(config: Config) {
     this.#config = config
-    this.#t = 0
-    this.#t_overshot = 0
+    this.#t_quantized = 0
+    this.#t_overshoot = 0
   }
 
   #should_terminate(t_overshot: number) {
     if (this.#config.overshoot) {
-      return this.#t_overshot >= 0
+      return this.#t_overshoot >= 0
     }
     return t_overshot > 0
   }
 
   #advance(t_delta: number) {
     let steps = 0
-    this.#t_overshot -= t_delta
+    this.#t_overshoot -= t_delta
     while (true) {
-      let t_overshot = this.#t_overshot + this.#config.period
+      let t_overshot = this.#t_overshoot + this.#config.period
       if (this.#should_terminate(t_overshot)) {
         break
       }
-      this.#t_overshot = t_overshot
-      this.#t += this.#config.period
+      this.#t_overshoot = t_overshot
+      this.#t_quantized += this.#config.period
       steps++
     }
     return steps
-  }
-
-  measure_drift(t_target: number) {
-    return this.#t - this.#t_overshot - t_target
   }
 
   #comp_delta_t(t_delta: number, t_target: number) {
@@ -56,6 +52,10 @@ class Timestepper {
         ? this.#config.max_update_delta_t
         : t_delta_comp_uncapped
     return t_delta_comp
+  }
+
+  measure_drift(t_target: number) {
+    return this.#t_quantized - this.#t_overshoot - t_target
   }
 
   advance(t_delta: number, t_target: number) {
@@ -75,9 +75,8 @@ class Timestepper {
     } else {
       t_target_decomp = round_down(t_target, this.#config.period)
     }
-    this.#t = t_target_decomp
-    this.#t_overshot = t_target_decomp - t_target
-    // this.#step = t_target_decomp / this.#config.period
+    this.#t_quantized = t_target_decomp
+    this.#t_overshoot = t_target_decomp - t_target
   }
 
   period() {
@@ -85,7 +84,7 @@ class Timestepper {
   }
 
   t() {
-    return this.#t
+    return this.#t_quantized
   }
 }
 

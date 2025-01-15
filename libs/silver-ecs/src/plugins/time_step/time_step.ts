@@ -9,7 +9,7 @@ export interface TControlled {
 
 export interface T {
   advance(delta_t: number, t: number): void
-  increment_step(): void
+  increment(): void
   step(): number
   steps(): number
   control(t_target: number): void
@@ -33,7 +33,7 @@ class Timestep implements T {
     this.#steps = this.#stepper.advance(delta_t, t)
   }
 
-  increment_step() {
+  increment() {
     this.#step++
   }
 

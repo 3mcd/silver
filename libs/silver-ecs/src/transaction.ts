@@ -83,12 +83,12 @@ let emit_moved_entities = (batch: Batch) => {
 class Transaction {
   batches_by_key
   batches_by_entity
-  locations
+  targets_by_entity
 
   constructor() {
     this.batches_by_key = SparseMap.make<Batch>()
     this.batches_by_entity = SparseMap.make<Batch>()
-    this.locations = SparseMap.make<Node.T>()
+    this.targets_by_entity = SparseMap.make<Node.T>()
   }
 }
 export type T = Transaction
@@ -104,14 +104,14 @@ export let apply = (transaction: T, iteratee?: Iteratee) => {
       emit_despawned_entities(batch)
       // Stop tracking the despawned entities' nodes.
       SparseSet.each(entities, function clear_entity_node(entity) {
-        SparseMap.delete(transaction.locations, entity)
+        SparseMap.delete(transaction.targets_by_entity, entity)
       })
       return
     }
     // Otherwise, the batch contains entities that were spawned or moved. Track
     // their new nodes.
     SparseSet.each(entities, function finalize_entity_node(entity) {
-      SparseMap.set(transaction.locations, entity, next_node)
+      SparseMap.set(transaction.targets_by_entity, entity, next_node)
     })
     if (prev_node === undefined) {
       emit_spawned_entities(batch)
@@ -129,7 +129,7 @@ export let apply = (transaction: T, iteratee?: Iteratee) => {
 export let get_prev_entity_node = (
   transaction: T,
   entity: Entity.T,
-): Node.T | undefined => SparseMap.get(transaction.locations, entity)
+): Node.T | undefined => SparseMap.get(transaction.targets_by_entity, entity)
 
 export let get_next_entity_node = (
   transaction: T,

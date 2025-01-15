@@ -1,4 +1,5 @@
 import * as Entity from "./entity"
+import * as Buffer from "./buffer"
 
 class EntityRegistry {
   next_entity_id = 0
@@ -40,4 +41,32 @@ export const check = (registry: T, entity: Entity.T) => {
   if (!is_alive(registry, entity)) {
     throw new Error(`Entity ${entity} is not alive`)
   }
+}
+
+export const encode = (registry: T, buffer?: Buffer.T) => {
+  let size = 4 + 4 + 4 + registry.dense.length * 4
+  if (buffer === undefined) {
+    buffer = Buffer.make(size)
+  } else {
+    Buffer.grow(buffer, size)
+  }
+  Buffer.write_u32(buffer, registry.next_entity_id)
+  Buffer.write_u32(buffer, registry.alive_count)
+  Buffer.write_u32(buffer, registry.dense.length)
+  for (let i = 0; i < registry.dense.length; i++) {
+    Buffer.write_u32(buffer, registry.dense[i])
+  }
+}
+
+export const decode = (buffer: Buffer.T) => {
+  let registry = make()
+  registry.next_entity_id = Buffer.read_u32(buffer)
+  registry.alive_count = Buffer.read_u32(buffer)
+  let count = Buffer.read_u32(buffer)
+  for (let i = 0; i < count; i++) {
+    let entity = Buffer.read_u32(buffer) as Entity.T
+    registry.dense.push(entity)
+    registry.sparse[entity] = i
+  }
+  return registry
 }

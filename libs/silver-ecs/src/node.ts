@@ -58,8 +58,8 @@ export let add_listener = (
     emit_existing_nodes_as_created &&
     listener.on_node_created !== undefined
   ) {
-    traverse_right(node, function add_emit_node_created(visit) {
-      listener.on_node_created?.(visit)
+    traverse_right(node, function add_emit_node_created(right_node) {
+      listener.on_node_created?.(right_node)
     })
   }
 }
@@ -96,15 +96,15 @@ export let emit_entities_out = (node: T, batch: Transaction.Batch): void => {
 
 export let insert_entity = (node: T, entity: Entity.T): void => {
   SparseSet.add(node.entities, entity)
-  traverse_left(node, function insert_emit_node_entities_changed(visit) {
-    emit_node_entities_changed(visit)
+  traverse_left(node, function insert_emit_node_entities_changed(left_node) {
+    emit_node_entities_changed(left_node)
   })
 }
 
 export let remove_entity = (node: T, entity: Entity.T): void => {
   SparseSet.delete(node.entities, entity)
-  traverse_left(node, function remove_emit_node_entities_changed(visit) {
-    emit_node_entities_changed(visit)
+  traverse_left(node, function remove_emit_node_entities_changed(left_node) {
+    emit_node_entities_changed(left_node)
   })
   for (let i = 0; i < node.type.rels.length; i++) {
     let rel_map = node.rel_maps[i]

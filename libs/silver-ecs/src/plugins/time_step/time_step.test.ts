@@ -13,7 +13,7 @@ it("increments step", () => {
   let timestepper = Timestepper.make(default_config)
   let timestep = Timestep.make(timestepper)
   expect(timestep.step()).toEqual(0)
-  timestep.increment_step()
+  timestep.increment()
   expect(timestep.step()).toEqual(1)
 })
 
