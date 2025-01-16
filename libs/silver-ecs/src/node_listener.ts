@@ -1,4 +1,4 @@
-import * as Transaction from "./transaction"
+import * as Transaction from "./stage"
 import * as Node from "./node"
 
 export interface NodeListener {

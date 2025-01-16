@@ -10,7 +10,7 @@ import * as Op from "./op"
 import * as Query from "./query"
 import * as QueryBuilder from "./query_builder"
 import * as SparseSet from "./sparse_set"
-import * as Tx from "./transaction"
+import * as Stage from "./stage"
 import * as Type from "./type"
 
 let err_missing_res = "missing resource"
@@ -21,30 +21,30 @@ let err_missing_entity_exclusive = "missing exclusive relative"
 export const $graph = Symbol()
 
 class World {
-  #id
   #entity_registry
   #entity_data
+  #id
+  #ops
   #queries
   #resources
   #stage
-  #tx
 
   readonly graph: Graph.T
 
-  constructor(id = 1) {
-    this.#id = id
-    this.#entity_registry = EntityRegistry.make()
+  constructor(id = 0) {
     this.#entity_data = [] as unknown[][]
+    this.#entity_registry = EntityRegistry.make()
+    this.#id = id
+    this.#ops = [] as Op.T[]
     this.#queries = new Map<QueryBuilder.T, Query.T>()
     this.#resources = [] as unknown[]
-    this.#stage = [] as Op.T[]
-    this.#tx = Tx.make()
+    this.#stage = Stage.make()
     this.graph = Graph.make()
   }
 
   get_entity_node(entity: Entity.T) {
     return Assert.exists(
-      Tx.get_next_entity_node(this.#tx, entity),
+      Stage.get_next_entity_node(this.#stage, entity),
       err_missing_entity,
     )
   }
@@ -86,16 +86,16 @@ class World {
     this.#unset_values(entity, node.type)
     this.#unset_relations(entity, node.type)
     EntityRegistry.free(this.#entity_registry, entity)
-    Tx.move(this.#tx, entity)
+    Stage.move(this.#stage, entity)
   }
 
   #set_relations(subject: Entity.T, type: Type.T) {
     for (let i = 0; i < type.pairs.length; i++) {
       let pair = type.pairs[i]
-      let rel_id = Entity.parse_hi(pair.id)
+      let rel_id = Component.parse_pair_rel_id(pair)
       let rel = Component.find_by_id(rel_id) as Component.Rel
       let rel_inverse = rel.inverse
-      let object_id = Entity.parse_lo(pair.id)
+      let object_id = Component.parse_pair_entity(pair)
       let object = Entity.make(object_id, this.#id)
       if (object === subject) {
         throw new Error("Cannot relate an entity to itself")
@@ -113,9 +113,9 @@ class World {
   #unset_relations(entity: Entity.T, type: Type.T) {
     for (let i = 0; i < type.pairs.length; i++) {
       let pair = type.pairs[i]
-      let rel_id = Entity.parse_hi(pair.id)
+      let rel_id = Component.parse_pair_rel_id(pair)
       let rel = Component.find_by_id(rel_id) as Component.Rel
-      let object_id = Entity.parse_lo(pair.id)
+      let object_id = Component.parse_pair_entity(pair)
       let object = Entity.make(object_id, this.#id)
       let object_node = this.get_entity_node(object)
       switch (Node.unpair(object_node, rel.inverse.id, entity, object)) {
@@ -157,7 +157,7 @@ class World {
     let node = Graph.find_or_create_node_by_type(this.graph, type)
     this.#set_values(entity, type, values)
     this.#set_relations(entity, type)
-    Tx.move(this.#tx, entity, node)
+    Stage.move(this.#stage, entity, node)
   }
 
   #apply_despawn(op: Op.Despawn) {
@@ -172,7 +172,7 @@ class World {
     let next_type = Type.from_sum(prev_node.type, type)
     let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
     this.#move_relations(entity, prev_node, next_node)
-    Tx.move(this.#tx, entity, next_node)
+    Stage.move(this.#stage, entity, next_node)
   }
 
   #apply_remove(op: Op.Remove) {
@@ -183,7 +183,7 @@ class World {
     let next_type = Type.from_difference(prev_node.type, type)
     let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
     this.#move_relations(entity, prev_node, next_node)
-    Tx.move(this.#tx, entity, next_node)
+    Stage.move(this.#stage, entity, next_node)
   }
 
   #apply_op(op: Op.T) {
@@ -201,6 +201,10 @@ class World {
         this.#apply_remove(op)
         break
     }
+  }
+
+  identify(id: number) {
+    this.#id = id
   }
 
   has_resource<U>(res: Component.Ref<U>): boolean {
@@ -224,20 +228,20 @@ class World {
   spawn(type: Type.T, values: unknown[]): Entity.T
   spawn(type?: Type.T, values?: unknown[]): Entity.T {
     let entity = EntityRegistry.alloc(this.#entity_registry, this.#id)
-    this.#stage.push(Op.spawn(type ?? Type.empty, entity, values as []))
+    this.#ops.push(Op.spawn(type ?? Type.empty, entity, values as []))
     return entity
   }
 
   despawn(entity: Entity.T) {
     EntityRegistry.check(this.#entity_registry, entity)
-    this.#stage.push(Op.despawn(entity))
+    this.#ops.push(Op.despawn(entity))
   }
 
   add<U>(entity: Entity.T, ref: Component.Ref<U>, value: U): void
   add(entity: Entity.T, pair: Component.Pair): void
   add(entity: Entity.T, component: Component.T, value?: unknown) {
     EntityRegistry.check(this.#entity_registry, entity)
-    this.#stage.push(
+    this.#ops.push(
       Op.add(Type.make([component]), entity, (value ? [value] : []) as any),
     )
   }
@@ -247,7 +251,7 @@ class World {
     component: Component.Ref | Component.Tag | Component.Pair,
   ) {
     EntityRegistry.check(this.#entity_registry, entity)
-    this.#stage.push(Op.remove(Type.make([component]), entity))
+    this.#ops.push(Op.remove(Type.make([component]), entity))
   }
 
   has(entity: Entity.T, component: Component.T): boolean {
@@ -268,24 +272,27 @@ class World {
   }
 
   step() {
-    let stage = this.#stage
-    if (this.#stage.length > 0) {
-      for (let i = 0; i < this.#stage.length; i++) {
-        let op = this.#stage[i]
+    let stage = this.#ops
+    if (this.#ops.length > 0) {
+      for (let i = 0; i < this.#ops.length; i++) {
+        let op = this.#ops[i]
         this.#apply_op(op)
       }
-      this.#stage = []
+      this.#ops = []
     }
-    Tx.apply(this.#tx, function move_entity_batch(batch, prev_node, next_node) {
-      SparseSet.each(batch, function move_entity(entity) {
-        if (prev_node) {
-          Node.remove_entity(prev_node, entity)
-        }
-        if (next_node) {
-          Node.insert_entity(next_node, entity)
-        }
-      })
-    })
+    Stage.apply(
+      this.#stage,
+      function move_entity_batch(batch, prev_node, next_node) {
+        SparseSet.each(batch, function move_entity(entity) {
+          if (prev_node) {
+            Node.remove_entity(prev_node, entity)
+          }
+          if (next_node) {
+            Node.insert_entity(next_node, entity)
+          }
+        })
+      },
+    )
     return stage
   }
 

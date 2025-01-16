@@ -2,7 +2,7 @@ import * as Component from "./component"
 import * as Entity from "./entity"
 import * as Node from "./node"
 import * as SparseSet from "./sparse_set"
-import * as Transaction from "./transaction"
+import * as Transaction from "./stage"
 import * as World from "./world"
 
 export type Term = Component.T | Component.PairFn

@@ -2,7 +2,7 @@ import * as Type from "./type"
 import * as Entity from "./entity"
 import * as SparseMap from "./sparse_map"
 import * as SparseSet from "./sparse_set"
-import * as Transaction from "./transaction"
+import * as Transaction from "./stage"
 import * as RelMap from "./rel_map"
 
 type NodeIteratee = (node: T) => boolean | void

@@ -18,6 +18,7 @@
   "files": [
     "dist",
     "plugins",
+    "net",
     "test"
   ],
   "main": "dist/silver-ecs.cjs.js",
@@ -28,6 +29,7 @@
     "entrypoints": [
       "index.ts",
       "plugins/index.ts",
+      "net/index.ts",
       "test/index.ts"
     ]
   }

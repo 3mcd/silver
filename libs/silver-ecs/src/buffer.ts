@@ -1,4 +1,4 @@
-import {ok} from "./assert"
+import {assert} from "./assert"
 
 const GROW_FACTOR = 1.5
 
@@ -52,8 +52,8 @@ export function make(init: number | ArrayBuffer, maxLength?: number) {
     // both a length and max length were provided; reuse or create a
     // growable ArrayBuffer of the appropriate size
     DEV: {
-      ok(maxLength <= 0x40000000)
-      ok(maxLength >= init)
+      assert(maxLength <= 0x40000000)
+      assert(maxLength >= init)
     }
     const i = ceil_log_2(Math.max(2, maxLength | 0))
     return new Buffer(
@@ -72,7 +72,7 @@ export const readable = (buffer: Buffer) => {
 export const grow = (buffer: Buffer, bytes: number) => {
   const length = bytes + buffer.write_offset
   if (length > buffer.buffer.byteLength) {
-    ok(buffer.buffer.resizable)
+    assert(buffer.buffer.resizable)
     buffer.buffer.resize(length * GROW_FACTOR)
   }
 }
@@ -152,6 +152,11 @@ export const read_i32 = (buffer: Buffer) => {
 export const read_u8 = (buffer: Buffer) => {
   const n = buffer.view.getUint8(buffer.read_offset)
   buffer.read_offset += 1
+  return n
+}
+
+export const peek_u8 = (buffer: Buffer) => {
+  const n = buffer.view.getUint32(buffer.read_offset, true)
   return n
 }
 

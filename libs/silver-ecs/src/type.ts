@@ -15,7 +15,7 @@ let to_vec = (components: Component.T[]) => {
     }
     unique.add(component)
     if (Component.is_pair(component)) {
-      let rel_id = Entity.parse_hi(component.id)
+      let rel_id = Component.parse_pair_rel_id(component)
       let rel = Component.find_by_id(rel_id)!
       if (unique.has(rel)) {
         continue
@@ -54,7 +54,7 @@ class Type {
     }
     for (let i = 0; i < this.pairs.length; i++) {
       let pair = this.pairs[i]
-      let pair_rel_id = Entity.parse_hi(pair.id)
+      let pair_rel_id = Component.parse_pair_rel_id(pair)
       this.pair_counts[pair_rel_id] = (this.pair_counts[pair_rel_id] ?? 0) + 1
     }
   }

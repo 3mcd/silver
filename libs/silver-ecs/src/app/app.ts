@@ -53,7 +53,7 @@ class App {
   }
 
   add_resource<U>(res: Component.Ref<U>, resource: U) {
-    Assert.ok(this.#world.has_resource(res) === false)
+    Assert.assert(this.#world.has_resource(res) === false)
     this.#world.set_resource(res, resource)
     return this
   }

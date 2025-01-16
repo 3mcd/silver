@@ -4,7 +4,7 @@ export class AssertionError extends Error {
   name = "AssertionError"
 }
 
-export function ok(
+export function assert(
   condition: boolean,
   message: string = ERR_INTERNAL,
 ): asserts condition {

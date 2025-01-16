@@ -1,0 +1,22 @@
+{
+  "name": "dunk",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "vite"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fails-components/webtransport": "^1.1.4",
+    "@fails-components/webtransport-transport-http3-quiche": "^1.1.4",
+    "silver-ecs": "workspace:*",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.2"
+  }
+}

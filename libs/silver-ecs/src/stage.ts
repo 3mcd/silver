@@ -1,442 +1,170 @@
-type BTreeMapCompare<K> = (a: K, b: K) => number
+import * as Assert from "./assert"
+import * as Type from "./type"
+import * as Entity from "./entity"
+import * as Hash from "./hash"
+import * as SparseMap from "./sparse_map"
+import * as SparseSet from "./sparse_set"
+import * as Node from "./node"
 
-type BTreeMapForEachIterator<K extends number, V> = (
-  values: V[],
-  key: K,
+export type Iteratee = (
+  batch: SparseSet.T<Entity.T>,
+  prev_node?: Node.T,
+  next_node?: Node.T,
 ) => void
 
-type BTreeMapOptions<K> = {
-  compare?: BTreeMapCompare<K>
-  order?: number
+let make_batch_key = (prev_node_id: number, next_node_id: number) => {
+  return Hash.as_uint(
+    Hash.hash_word(Hash.hash_word(undefined, prev_node_id), next_node_id),
+  )
 }
 
-let compare = (a: number, b: number): number => (a < b ? -1 : a > b ? 1 : 0)
+export class Batch {
+  entities
+  prev_node
+  next_node
 
-export class BTreeMap<V, K extends number = number> {
-  compare: BTreeMapCompare<K> = compare
-  values: V[][] = []
-  order: number = 3
-  root: NodeBase<K>
-  size = 0
-
-  constructor(options: BTreeMapOptions<K> = {}) {
-    if (options.compare !== undefined) {
-      this.compare = options.compare
-    }
-    if (options.order !== undefined) {
-      this.order = options.order
-    }
-    this.root = new Leaf(this.order, this.compare)
+  constructor(prev_node?: Node.T, next_node?: Node.T) {
+    this.entities = SparseSet.make<Entity.T>()
+    this.prev_node = prev_node
+    this.next_node = next_node
   }
+}
 
-  get lo(): K {
-    return this.root.lo
-  }
+let emit_spawned_entities = (batch: Batch) => {
+  Node.traverse_left(
+    Assert.exists(batch.next_node),
+    function emit_spawned_entities(visit: Node.T) {
+      Node.emit_entities_in(visit, batch)
+    },
+  )
+}
 
-  get hi(): K {
-    return this.root.hi
-  }
+let emit_despawned_entities = (batch: Batch) => {
+  Node.traverse_left(
+    Assert.exists(batch.prev_node),
+    function emit_despawned_entities_inner(visit: Node.T) {
+      Node.emit_entities_out(visit, batch)
+    },
+  )
+}
 
-  has(key: K): boolean {
-    return this.values[key] !== undefined
-  }
-
-  set(key: K, value: V): BTreeMap<V, K> {
-    let values = this.values[key]
-    if (values !== undefined) {
-      values.push(value)
-    } else {
-      this.values[key] = [value]
-      this.root.set(key)
-      if (this.root.keys.length > this.root.max) {
-        let root = new Node(this.order, this.compare)
-        let node = this.root.split()
-        root.keys.push(node.lo)
-        root.children.push(this.root, node)
-        this.root = root
-      }
-    }
-    this.size++
-    return this
-  }
-
-  get(lo: K): V[] {
-    return this.values[lo]
-  }
-
-  delete(lo: K, hi?: K, inclusive?: boolean): boolean {
-    if (hi) {
-      let count = 0
-      let leaf: Leaf<K> | null = this.root.findLeaf(lo)
-      do {
-        let keys = leaf.keys
-        for (let i = 0, length = keys.length; i < length; i++) {
-          let key = keys[i]
-          if (
-            this.compare(key, lo) >= 0 &&
-            (inclusive ? this.compare(key, hi) <= 0 : this.compare(key, hi) < 0)
-          ) {
-            if (this.delete(key)) {
-              count++
-              this.size--
-            }
-          }
-          if (this.compare(key, hi) > 0) break
-        }
-        leaf = leaf.next
-      } while (leaf !== null)
-      return count > 0 ? true : false
-    } else {
-      if (this.has(lo)) {
-        this.values[lo] = undefined!
-        this.root.delete(lo)
-        if (this.root.keys.length === 0) {
-          this.root = this.root.shrink()
-        }
-        return true
-      } else {
+let emit_moved_entities = (batch: Batch) => {
+  // Find the type the source and destination nodes have in common.
+  let intersection = Type.from_intersection(
+    Assert.exists(batch.prev_node).type,
+    Assert.exists(batch.next_node).type,
+  )
+  Node.traverse_left(
+    Assert.exists(batch.next_node),
+    function emit_upgraded_entities(visit: Node.T) {
+      if (
+        intersection.vec_hash === visit.type.vec_hash ||
+        Type.is_superset(intersection, visit.type)
+      ) {
         return false
       }
-    }
-  }
-
-  clear(): void {
-    this.values = []
-    this.root = new Leaf(this.order, this.compare)
-  }
-
-  forEach(
-    iteratee: BTreeMapForEachIterator<K, V>,
-    lo = this.lo,
-    hi = this.hi,
-    inclusive: boolean = true,
-  ): void {
-    if (this.size === 0) return
-    let leaf: Leaf<K> | null = this.root.findLeaf(lo)
-    do {
-      let keys = leaf.keys
-      for (let i = 0, length = keys.length; i < length; i++) {
-        let key = keys[i]
-        if (
-          this.compare(key, lo) >= 0 &&
-          (inclusive ? this.compare(key, hi) <= 0 : this.compare(key, hi) < 0)
-        )
-          iteratee(this.values[key], key)
-        if (this.compare(key, hi) > 0) break
+      Node.emit_entities_in(visit, batch)
+    },
+  )
+  Node.traverse_left(
+    Assert.exists(batch.prev_node),
+    function emit_downgraded_entities(node: Node.T) {
+      if (
+        intersection.vec_hash === node.type.vec_hash ||
+        Type.is_superset(intersection, node.type)
+      ) {
+        return false
       }
-      leaf = leaf.next
-    } while (leaf !== null)
-  }
+      Node.emit_entities_out(node, batch)
+    },
+  )
 }
 
-abstract class NodeBase<K extends number> {
-  keys: K[]
-  constructor(
-    public readonly order: number,
-    public readonly compare: BTreeMapCompare<K>,
-    public readonly min = Math.ceil(order / 2) - 1,
-    public readonly max = order - 1,
-  ) {
-    this.keys = []
+class Stage {
+  batches_by_key
+  batches_by_entity
+  targets_by_entity
+
+  constructor() {
+    this.batches_by_key = SparseMap.make<Batch>()
+    this.batches_by_entity = SparseMap.make<Batch>()
+    this.targets_by_entity = SparseMap.make<Node.T>()
   }
-  abstract get lo(): K
-  abstract get hi(): K
-  abstract borrowLeft(source: NodeBase<K>): void
-  abstract borrowRight(source: NodeBase<K>): void
-  abstract delete(key: K): void
-  abstract findLeaf(key: K): Leaf<K>
-  abstract merge(source: NodeBase<K>): void
-  abstract set(key: K): void
-  abstract shrink(): NodeBase<K>
-  abstract split(): NodeBase<K>
 }
+export type T = Stage
 
-class Node<V, K extends number> extends NodeBase<K> {
-  children: NodeBase<K>[]
-
-  constructor(order: number, compare: BTreeMapCompare<K>) {
-    super(order, compare)
-    this.children = []
-  }
-
-  get lo(): K {
-    return this.children[0].lo
-  }
-
-  get hi(): K {
-    return this.children[this.children.length - 1].hi
-  }
-
-  set(key: K): void {
-    let slot = this.slotOf(key, this.keys, this.compare)
-    let child = this.children[slot]
-    if (child.keys.length > child.max) {
-      let sibling
-      if (slot > 0) {
-        sibling = this.children[slot - 1]
-        if (sibling.keys.length < sibling.max) {
-          sibling.borrowRight(child)
-          this.keys[slot - 1] = child.lo
-        } else if (slot < this.children.length - 1) {
-          sibling = this.children[slot + 1]
-          if (sibling.keys.length < sibling.max) {
-            sibling.borrowLeft(child)
-            this.keys[slot] = sibling.lo
-          } else {
-            this.splitChild(child, slot)
-          }
-        } else {
-          this.splitChild(child, slot)
-        }
-      } else {
-        sibling = this.children[1]
-        if (sibling.keys.length < sibling.max) {
-          sibling.borrowLeft(child)
-          this.keys[slot] = sibling.lo
-        } else {
-          this.splitChild(child, slot)
-        }
-      }
+export let apply = (stage: T, iteratee?: Iteratee) => {
+  let emit_entity_batch = (batch: Batch) => {
+    let {entities, prev_node, next_node} = batch
+    // Invoke the iteratee for this batch.
+    iteratee?.(entities, prev_node, next_node)
+    // If the next node is undefined, the batch contains entities that were
+    // despawned.
+    if (next_node === undefined) {
+      emit_despawned_entities(batch)
+      // Stop tracking the despawned entities' nodes.
+      SparseSet.each(entities, function clear_entity_node(entity) {
+        SparseMap.delete(stage.targets_by_entity, entity)
+      })
+      return
     }
-  }
-
-  delete(key: K): void {
-    let keys = this.keys
-    let slot = this.slotOf(key, keys, this.compare)
-    let child = this.children[slot]
-    child.delete(key)
-    if (slot > 0) keys[slot - 1] = child.lo
-    if (child.keys.length < child.min) this.consolidateChild(child, slot)
-  }
-
-  findLeaf(key: K): Leaf<K> {
-    let slot = this.slotOf(key, this.keys, this.compare)
-    return this.children[slot].findLeaf(key)
-  }
-
-  split(): Node<V, K> {
-    let node = new Node(this.order, this.compare)
-    node.keys = this.keys.splice(this.min)
-    node.keys.shift()
-    node.children = this.children.splice(this.min + 1)
-    return node
-  }
-
-  shrink(): NodeBase<K> {
-    return this.children[0]
-  }
-
-  borrowLeft(source: Node<V, K>): void {
-    this.keys.unshift(this.lo)
-    source.keys.pop()
-    this.children.unshift(source.children.pop()!)
-  }
-
-  borrowRight(source: Node<V, K>): void {
-    this.keys.push(source.lo)
-    source.keys.shift()
-    this.children.push(source.children.shift()!)
-  }
-
-  merge(source: Node<V, K>): void {
-    this.keys.push(source.lo)
-    for (let i = 0; i < source.keys.length; i++) {
-      this.keys.push(source.keys[i])
-    }
-    for (let i = 0; i < source.children.length; i++) {
-      this.children.push(source.children[i])
-    }
-  }
-
-  splitChild(child: NodeBase<K>, slot: number): void {
-    let newChild = child.split()
-    this.keys.splice(slot, 0, newChild.lo)
-    this.children.splice(slot + 1, 0, newChild)
-  }
-
-  consolidateChild(child: NodeBase<K>, slot: number): void {
-    let keys = this.keys
-    let children = this.children
-    let sibling
-    if (slot > 0) {
-      sibling = children[slot - 1]
-      if (sibling.keys.length > sibling.min) {
-        child.borrowLeft(sibling)
-        keys[slot - 1] = child.lo
-      } else if (slot < this.children.length - 1) {
-        sibling = children[slot + 1]
-        if (sibling.keys.length > sibling.min) {
-          child.borrowRight(sibling)
-          keys[slot] = sibling.lo
-        } else {
-          children[slot - 1].merge(child)
-          keys.splice(slot - 1, 1)
-          children.splice(slot, 1)
-        }
-      } else {
-        children[slot - 1].merge(child)
-        keys.splice(slot - 1, 1)
-        children.splice(slot, 1)
-      }
+    // Otherwise, the batch contains entities that were spawned or moved. Track
+    // their new nodes.
+    SparseSet.each(entities, function finalize_entity_node(entity) {
+      SparseMap.set(stage.targets_by_entity, entity, next_node)
+    })
+    if (prev_node === undefined) {
+      emit_spawned_entities(batch)
     } else {
-      sibling = children[slot + 1]
-      if (sibling.keys.length > sibling.min) {
-        child.borrowRight(sibling)
-        keys[slot] = sibling.lo
-      } else {
-        child.merge(children[1])
-        keys.splice(0, 1)
-        children.splice(1, 1)
-      }
+      emit_moved_entities(batch)
     }
   }
-
-  slotOf(element: K, array: K[], compare: BTreeMapCompare<K>): number {
-    let top = array.length
-    let middle = top >>> 1
-    let bottom = 0
-    while (bottom < top) {
-      let comparison = compare(element, array[middle])
-      if (comparison === 0) {
-        return middle + 1
-      } else if (comparison < 0) {
-        top = middle
-      } else {
-        bottom = middle + 1
-      }
-      middle = bottom + ((top - bottom) >>> 1)
-    }
-    return middle
-  }
+  // Emit all batches to interested nodes.
+  SparseMap.each_value(stage.batches_by_key, emit_entity_batch)
+  // Clear the stage.
+  SparseMap.clear(stage.batches_by_key)
+  SparseMap.clear(stage.batches_by_entity)
 }
 
-class Leaf<K extends number> extends NodeBase<K> {
-  next: Leaf<K> | null
+export let get_prev_entity_node = (
+  stage: T,
+  entity: Entity.T,
+): Node.T | undefined => SparseMap.get(stage.targets_by_entity, entity)
 
-  constructor(order: number, compare: BTreeMapCompare<K>) {
-    super(order, compare, Math.ceil(order / 2), order)
-    this.next = null
-  }
+export let get_next_entity_node = (
+  stage: T,
+  entity: Entity.T,
+): Node.T | undefined =>
+  SparseMap.get(stage.batches_by_entity, entity)?.next_node ??
+  get_prev_entity_node(stage, entity)
 
-  get lo() {
-    return this.keys[0]
+export let move = (stage: T, entity: Entity.T, next_node?: Node.T) => {
+  let prev_batch = SparseMap.get(stage.batches_by_entity, entity)
+  // If the entity was already moved since the last drain, remove it from its
+  // previous batch.
+  if (prev_batch !== undefined) {
+    SparseSet.delete(prev_batch.entities, entity)
   }
-
-  get hi() {
-    return this.keys[this.keys.length - 1]
+  // If the entity is being moved to the same node it was already in,
+  // do nothing.
+  let prev_node = get_prev_entity_node(stage, entity)
+  if (prev_node === next_node) {
+    return
   }
-
-  set(key: K): void {
-    if (this.keys.length === 0) {
-      this.keys.push(key)
-    } else {
-      let slot = this.slotOf(key, this.keys, this.compare)
-      this.keys.splice(slot, 0, key)
-    }
+  // Construct the next batch key using the previous node id, or `0`, which
+  // implies deletion.
+  let next_batch_key = make_batch_key(prev_node?.id ?? 0, next_node?.id ?? 0)
+  // Get or create the next batch.
+  let next_batch = SparseMap.get(stage.batches_by_key, next_batch_key)
+  if (next_batch === undefined) {
+    next_batch = new Batch(prev_node, next_node)
+    SparseMap.set(stage.batches_by_key, next_batch_key, next_batch)
   }
-
-  delete(key: K): void {
-    this.keys.splice(this.keys.indexOf(key), 1)
-  }
-
-  findLeaf(): Leaf<K> {
-    return this
-  }
-
-  split(): Leaf<K> {
-    let leaf = new Leaf<K>(this.order, this.compare)
-    leaf.keys = this.keys.splice(this.min)
-    leaf.next = this.next
-    this.next = leaf
-    return leaf
-  }
-
-  shrink(): Leaf<K> {
-    return new Leaf<K>(this.order, this.compare)
-  }
-
-  borrowLeft(source: Leaf<K>): void {
-    this.keys.unshift(source.keys.pop()!)
-  }
-
-  borrowRight(source: Leaf<K>): void {
-    this.keys.push(source.keys.shift()!)
-  }
-
-  merge(source: Leaf<K>): void {
-    for (let i = 0; i < source.keys.length; i++) {
-      this.keys.push(source.keys[i])
-    }
-    this.next = source.next
-  }
-
-  slotOf(element: K, array: K[], compare: BTreeMapCompare<K>): number {
-    let top = array.length
-    let middle = top >>> 1
-    let bottom = 0
-    while (bottom < top) {
-      let comparison = compare(element, array[middle])
-      if (comparison === 0) {
-        return middle + 1
-      } else if (comparison < 0) {
-        top = middle
-      } else {
-        bottom = middle + 1
-      }
-      middle = bottom + ((top - bottom) >>> 1)
-    }
-    return middle
-  }
+  // Add the entity to the next batch and store its key.
+  SparseSet.add(next_batch.entities, entity)
+  SparseMap.set(stage.batches_by_entity, entity, next_batch)
 }
 
-export class Stage<U> {
-  map = new BTreeMap<U>()
-  min = 0
-  max = 0
-}
-export type T<U> = Stage<U>
-
-export function make<U>(): T<U> {
+export let make = (): T => {
   return new Stage()
-}
-
-export let insert = <U>(buffer: T<U>, time: number, event: U) => {
-  buffer.map.set(time, event)
-  if (time < buffer.min) {
-    buffer.min = time
-  } else if (time > buffer.max) {
-    buffer.max = time
-  }
-}
-
-export let _delete = <U>(buffer: T<U>, time: number) => {
-  buffer.map.delete(buffer.min, time, true)
-  buffer.min = time
-}
-export {_delete as delete}
-
-export let delete_range = <U>(buffer: T<U>, time: number) => {
-  buffer.map.delete(buffer.min, time, true)
-  buffer.min = time
-}
-
-export let drain_to = <U>(
-  buffer: T<U>,
-  time: number,
-  iteratee?: (value: U, key: number) => void,
-) => {
-  if (iteratee) {
-    buffer.map.forEach(
-      (events: U[], key: number) => {
-        for (let i = 0; i < events.length; i++) {
-          iteratee(events[i], key)
-        }
-      },
-      buffer.min,
-      time,
-      true,
-    )
-  }
-  buffer.map.delete(buffer.min, time)
-  buffer.min = time
 }

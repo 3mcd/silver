@@ -12,33 +12,10 @@
         height: 100vh;
         display: block;
       }
-      #inspector {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        overflow: auto;
-      }
     </style>
-    <link
-      rel="stylesheet"
-      href="../../node_modules/silver-inspector/dist.css"
-    />
   </head>
   <body>
-    <div id="inspector"></div>
     <canvas></canvas>
-    <script>
-      if (window.matchMedia) {
-        const mode = window.matchMedia("(prefers-color-scheme: dark)")
-        const onChange = event =>
-          document.documentElement.classList.add(
-            event.matches ? "dark" : "light",
-          )
-        onChange(mode)
-        mode.addEventListener("change", onChange)
-      }
-    </script>
     <script src="./index.ts" type="module"></script>
   </body>
 </html>
