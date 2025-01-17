@@ -1,7 +1,8 @@
 import {app} from "silver-ecs"
-import {Time, Timestep, Timesync} from "silver-ecs/plugins"
 import {Client, Remote, Transport} from "silver-ecs/net"
-import {io, Socket} from "socket.io-client"
+import {Time, Timestep, Timesync} from "silver-ecs/plugins"
+import {io} from "socket.io-client"
+import {SocketIOTransport} from "./transport"
 
 let socket = io({
   transportOptions: {
@@ -10,27 +11,6 @@ let socket = io({
     },
   },
 })
-
-class SocketIOTransport implements Transport {
-  #socket
-  #inbox
-
-  constructor(socket: Socket) {
-    this.#inbox = [] as ArrayBuffer[]
-    this.#socket = socket
-    this.#socket.on("message", (_, ab: ArrayBuffer) => {
-      this.#inbox.push(ab)
-    })
-  }
-
-  send(ab: ArrayBuffer) {
-    this.#socket.send("message", ab)
-  }
-
-  recv() {
-    return this.#inbox.shift()!
-  }
-}
 
 let game = app()
   .use(Time.plugin)

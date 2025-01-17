@@ -2,39 +2,17 @@ import {Http3Server} from "@fails-components/webtransport"
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
 import {app} from "silver-ecs"
-import {Time} from "silver-ecs/plugins"
 import {Remote, Server, Transport} from "silver-ecs/net"
-import {Socket, Server as SocketIOServer} from "socket.io"
-
-class SocketIOTransport implements Transport {
-  #socket
-  #inbox
-
-  constructor(socket: Socket) {
-    this.#inbox = [] as ArrayBuffer[]
-    this.#socket = socket
-    this.#socket.on("message", (_, data: Buffer) => {
-      let ab = new ArrayBuffer(data.byteLength)
-      data.copy(new Uint8Array(ab))
-      this.#inbox.push(ab)
-    })
-  }
-
-  send(ab: ArrayBuffer) {
-    this.#socket.send("message", ab)
-  }
-
-  recv() {
-    return this.#inbox.shift()!
-  }
-}
+import {Time} from "silver-ecs/plugins"
+import {Server as SocketIOServer} from "socket.io"
+import {SocketIOTransport} from "./transport"
 
 let key = await readFile("./key.pem", {encoding: "utf8"})
 let cert = await readFile("./cert.pem", {encoding: "utf8"})
 
 let https_server = createServer({key, cert}, async (req, res) => {
-  if (req.method === "GET" && req.url === "/dist/client.js") {
-    let content = await readFile("./dist/client.js")
+  if (req.method === "GET" && req.url === "/dist/index.js") {
+    let content = await readFile("./dist/index.js")
     res.writeHead(200, {"content-type": "text/javascript"}).write(content)
   } else if (req.method === "GET" && req.url === "/") {
     let content = await readFile("./index.html")

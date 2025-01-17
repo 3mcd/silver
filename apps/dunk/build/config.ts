@@ -1,7 +1,7 @@
 import {BuildOptions} from "esbuild"
 import {parseArgs} from "util"
 
-const {values: args} = parseArgs({
+let {values: args} = parseArgs({
   args: process.argv,
   options: {
     mangle: {
@@ -24,8 +24,8 @@ const {values: args} = parseArgs({
   allowPositionals: true,
 })
 
-export const config: BuildOptions = {
-  entryPoints: args.entry ? [args.entry] : ["./client.ts"],
+export let config: BuildOptions = {
+  entryPoints: args.entry ? [args.entry] : ["./client/index.ts"],
   bundle: true,
   dropLabels: Boolean(args.optimize) ? ["DEV", "DEBUG"] : undefined,
   outdir: "dist",
