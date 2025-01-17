@@ -25,7 +25,7 @@ export let is_exists_error = (error: unknown): error is ExistsError =>
 //   return value!
 // }
 
-export function exists<T>(
+export function assert_exists<T>(
   value: T | null | undefined,
   message: string = ERR_INTERNAL,
 ): T {

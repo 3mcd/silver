@@ -1,53 +1,72 @@
+import {Http3Server} from "@fails-components/webtransport"
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
-import {Server} from "socket.io"
-import {Http3Server} from "@fails-components/webtransport"
+import {app} from "silver-ecs"
+import {Time} from "silver-ecs/plugins"
+import {Remote, Server, Transport} from "silver-ecs/net"
+import {Socket, Server as SocketIOServer} from "socket.io"
 
-const key = await readFile("./key.pem", {encoding: "utf8"})
-const cert = await readFile("./cert.pem", {encoding: "utf8"})
+class SocketIOTransport implements Transport {
+  #socket
+  #inbox
 
-const httpsServer = createServer(
-  {
-    key,
-    cert,
-  },
-  async (req, res) => {
-    if (req.method === "GET" && req.url === "/") {
-      const content = await readFile("./index.html")
-      res.writeHead(200, {
-        "content-type": "text/html",
-      })
-      res.write(content)
-      res.end()
-    } else {
-      res.writeHead(404).end()
-    }
-  },
-)
+  constructor(socket: Socket) {
+    this.#inbox = [] as ArrayBuffer[]
+    this.#socket = socket
+    this.#socket.on("message", (_, data: Buffer) => {
+      let ab = new ArrayBuffer(data.byteLength)
+      data.copy(new Uint8Array(ab))
+      this.#inbox.push(ab)
+    })
+  }
 
-const port = process.env.PORT || 3000
+  send(ab: ArrayBuffer) {
+    this.#socket.send("message", ab)
+  }
 
-httpsServer.listen(port, () => {
+  recv() {
+    return this.#inbox.shift()!
+  }
+}
+
+let key = await readFile("./key.pem", {encoding: "utf8"})
+let cert = await readFile("./cert.pem", {encoding: "utf8"})
+
+let https_server = createServer({key, cert}, async (req, res) => {
+  if (req.method === "GET" && req.url === "/dist/client.js") {
+    let content = await readFile("./dist/client.js")
+    res.writeHead(200, {"content-type": "text/javascript"}).write(content)
+  } else if (req.method === "GET" && req.url === "/") {
+    let content = await readFile("./index.html")
+    res.writeHead(200, {"content-type": "text/html"}).write(content)
+  } else {
+    res.writeHead(404)
+  }
+  res.end()
+})
+
+let port = process.env.PORT || 3000
+
+https_server.listen(port, () => {
   console.log(`server listening at https://localhost:${port}`)
 })
 
-const io = new Server(httpsServer, {
+let socket_io_server = new SocketIOServer(https_server, {
   transports: ["polling", "websocket", "webtransport"],
 })
 
-io.on("connection", socket => {
-  console.log(`connected with transport ${socket.conn.transport.name}`)
-
-  socket.conn.on("upgrade", transport => {
-    console.log(`transport upgraded to ${transport.name}`)
-  })
-
-  socket.on("disconnect", reason => {
-    console.log(`disconnected due to ${reason}`)
+socket_io_server.on("connection", socket => {
+  let client = game
+    .world()
+    .with(Remote)
+    .with(Transport, new SocketIOTransport(socket))
+    .spawn()
+  socket.on("disconnect", () => {
+    game.world().despawn(client)
   })
 })
 
-const h3Server = new Http3Server({
+let http3_server = new Http3Server({
   port,
   host: "0.0.0.0",
   secret: "changeit",
@@ -55,25 +74,22 @@ const h3Server = new Http3Server({
   privKey: key,
 })
 
-h3Server.startServer()
+http3_server.startServer()
 ;(async () => {
-  const stream = await h3Server.sessionStream("/socket.io/")
-  const sessionReader = stream.getReader()
+  let session_stream = http3_server.sessionStream("/socket.io/")
+  let session_reader = session_stream.getReader()
 
   while (true) {
-    const {done, value} = await sessionReader.read()
+    let {done, value} = await session_reader.read()
     if (done) {
       break
     }
-    io.engine.onWebTransportSession(value)
+    socket_io_server.engine.onWebTransportSession(value)
   }
 })()
 
-// import {app} from "silver-ecs"
-// import {Server, Remote, Transport, WebSocketTransport} from "silver-ecs/net"
+let game = app().use(Time.plugin).use(Server.plugin)
 
-// let game = app().use(Server.plugin)
-
-// setInterval(() => {
-//   game.run()
-// }, 1000 / 60)
+setInterval(() => {
+  game.run()
+}, 1000 / 60)

@@ -1,4 +1,4 @@
-import * as Assert from "./assert"
+import {assert_exists} from "./assert"
 import * as Component from "./component"
 import * as Effect from "./effect"
 import * as Entity from "./entity"
@@ -43,7 +43,7 @@ class World {
   }
 
   get_entity_node(entity: Entity.T) {
-    return Assert.exists(
+    return assert_exists(
       Stage.get_next_entity_node(this.#stage, entity),
       err_missing_entity,
     )
@@ -83,7 +83,7 @@ class World {
 
   #despawn(entity: Entity.T) {
     let node = this.get_entity_node(entity)
-    this.#unset_values(entity, node.type)
+    // this.#unset_values(entity, node.type)
     this.#unset_relations(entity, node.type)
     EntityRegistry.free(this.#entity_registry, entity)
     Stage.move(this.#stage, entity)
@@ -161,6 +161,8 @@ class World {
   }
 
   #apply_despawn(op: Op.Despawn) {
+    let node = this.get_entity_node(op.entity)
+    op.type = node.type
     this.#despawn(op.entity)
   }
 
@@ -177,7 +179,7 @@ class World {
 
   #apply_remove(op: Op.Remove) {
     let {entity, type} = op
-    this.#unset_values(entity, type)
+    // this.#unset_values(entity, type)
     this.#unset_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
     let next_type = Type.from_difference(prev_node.type, type)
@@ -217,7 +219,7 @@ class World {
   }
 
   get_resource<U>(res: Component.Ref<U>): U {
-    return Assert.exists(this.get_resource_opt(res), err_missing_res)
+    return assert_exists(this.get_resource_opt(res), err_missing_res)
   }
 
   get_resource_opt<U>(res: Component.Ref<U>): U | undefined {
@@ -242,7 +244,17 @@ class World {
   add(entity: Entity.T, component: Component.T, value?: unknown) {
     EntityRegistry.check(this.#entity_registry, entity)
     this.#ops.push(
-      Op.add(Type.make([component]), entity, (value ? [value] : []) as any),
+      Op.add(
+        Type.make([component]),
+        entity,
+        (value
+          ? (() => {
+              let arr = []
+              arr[component.id] = value
+              return arr
+            })()
+          : []) as any,
+      ),
     )
   }
 
@@ -250,8 +262,9 @@ class World {
     entity: Entity.T,
     component: Component.Ref | Component.Tag | Component.Pair,
   ) {
-    EntityRegistry.check(this.#entity_registry, entity)
-    this.#ops.push(Op.remove(Type.make([component]), entity))
+    if (EntityRegistry.is_alive(this.#entity_registry, entity)) {
+      this.#ops.push(Op.remove(Type.make([component]), entity))
+    }
   }
 
   has(entity: Entity.T, component: Component.T): boolean {
@@ -272,7 +285,7 @@ class World {
   }
 
   step() {
-    let stage = this.#ops
+    let ops = this.#ops
     if (this.#ops.length > 0) {
       for (let i = 0; i < this.#ops.length; i++) {
         let op = this.#ops[i]
@@ -280,20 +293,17 @@ class World {
       }
       this.#ops = []
     }
-    Stage.apply(
-      this.#stage,
-      function move_entity_batch(batch, prev_node, next_node) {
-        SparseSet.each(batch, function move_entity(entity) {
-          if (prev_node) {
-            Node.remove_entity(prev_node, entity)
-          }
-          if (next_node) {
-            Node.insert_entity(next_node, entity)
-          }
-        })
-      },
-    )
-    return stage
+    Stage.apply(this.#stage)
+    for (let i = 0; i < ops.length; i++) {
+      let op = ops[i]
+      switch (op.kind) {
+        case Op.Kind.Remove:
+        case Op.Kind.Despawn:
+          this.#unset_values(op.entity, assert_exists(op.type))
+          break
+      }
+    }
+    return ops
   }
 
   get_exclusive_relative_opt(entity: Entity.T, rel: Component.Rel) {
@@ -324,7 +334,7 @@ class World {
     if (typeof rel === "function") {
       rel = rel()
     }
-    return Assert.exists(
+    return assert_exists(
       this.get_exclusive_relative_opt(entity, rel),
       err_missing_entity_exclusive,
     )
@@ -352,7 +362,7 @@ class World {
         return false
       }
     })
-    return Assert.exists(entity, err_missing_entity_single)
+    return assert_exists(entity, err_missing_entity_single)
   }
 
   with<U extends Component.Tag>(tag: U): EntityBuilder.T

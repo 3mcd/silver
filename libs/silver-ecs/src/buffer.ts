@@ -41,21 +41,21 @@ class Buffer {
 
 export type T = Buffer
 
-export function make(length: number, maxLength?: number): Buffer
+export function make(length: number, max_length?: number): Buffer
 export function make(ab: ArrayBuffer): Buffer
-export function make(init: number | ArrayBuffer, maxLength?: number) {
+export function make(init: number | ArrayBuffer, max_length?: number) {
   if (typeof init === "object") {
     // use provided ArrayBuffer directly, inferring the write offset
     // from its byteLength
     return new Buffer(init, init.byteLength)
-  } else if (maxLength !== undefined) {
+  } else if (max_length !== undefined) {
     // both a length and max length were provided; reuse or create a
     // growable ArrayBuffer of the appropriate size
     DEV: {
-      assert(maxLength <= 0x40000000)
-      assert(maxLength >= init)
+      assert(max_length <= 0x40000000)
+      assert(max_length >= init)
     }
-    const i = ceil_log_2(Math.max(2, maxLength | 0))
+    const i = ceil_log_2(Math.max(2, max_length | 0))
     return new Buffer(
       arenas[i].pop() ?? new ArrayBuffer(init, {maxByteLength: 1 << i}),
     )
@@ -156,7 +156,7 @@ export const read_u8 = (buffer: Buffer) => {
 }
 
 export const peek_u8 = (buffer: Buffer) => {
-  const n = buffer.view.getUint32(buffer.read_offset, true)
+  const n = buffer.view.getUint8(buffer.read_offset)
   return n
 }
 

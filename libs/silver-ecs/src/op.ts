@@ -18,6 +18,7 @@ export type Spawn = {
 
 export type Despawn = {
   kind: Kind.Despawn
+  type?: Type.T
   entity: Entity.T
 }
 

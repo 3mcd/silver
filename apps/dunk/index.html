@@ -1,51 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <title>Socket.IO WebTransport example</title>
+    <title>silver/dunk</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #686775;
+      }
+    </style>
   </head>
   <body>
-    <p>Status: <span id="status">Disconnected</span></p>
-    <p>Transport: <span id="transport">N/A</span></p>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      const $status = document.getElementById("status")
-      const $transport = document.getElementById("transport")
-
-      const socket = io({
-        transportOptions: {
-          webtransport: {
-            hostname: "127.0.0.1",
-          },
-        },
-      })
-
-      socket.on("connect", () => {
-        console.log(
-          `connected with transport ${socket.io.engine.transport.name}`,
-        )
-
-        $status.innerText = "Connected"
-        $transport.innerText = socket.io.engine.transport.name
-
-        socket.io.engine.on("upgrade", transport => {
-          console.log(`transport upgraded to ${transport.name}`)
-
-          $transport.innerText = transport.name
-        })
-      })
-
-      socket.on("connect_error", err => {
-        console.log(`connect_error due to ${err.message}`)
-      })
-
-      socket.on("disconnect", reason => {
-        console.log(`disconnect due to ${reason}`)
-
-        $status.innerText = "Disconnected"
-        $transport.innerText = "N/A"
-      })
-    </script>
+    <script src="./dist/client.js"></script>
   </body>
 </html>

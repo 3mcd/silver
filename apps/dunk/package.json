@@ -4,8 +4,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "vite"
+    "dev": "pnpm dev:server & pnpm dev:client",
+    "dev:server": "tsx server.ts",
+    "dev:client": "tsx build/watch.ts"
   },
   "keywords": [],
   "author": "",
@@ -14,9 +17,11 @@
     "@fails-components/webtransport": "^1.1.4",
     "@fails-components/webtransport-transport-http3-quiche": "^1.1.4",
     "silver-ecs": "workspace:*",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
-    "vite": "^5.4.2"
+    "esbuild": "^0.23.1",
+    "tsx": "^4.19.2"
   }
 }

@@ -10,7 +10,7 @@ export let mock_world = () => {
       return this
     },
     get_resource(res: Component.Ref) {
-      return Assert.exists(resources.get(res))
+      return Assert.assert_exists(resources.get(res))
     },
     get_resource_opt(res: Component.Ref) {
       return resources.get(res)

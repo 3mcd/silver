@@ -7,3 +7,4 @@ export {make as type} from "./type"
 
 export type {System, Plugin} from "./app/index"
 export type {T as World} from "./world"
+export * as Buffer from "./buffer"

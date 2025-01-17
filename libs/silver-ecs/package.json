@@ -1,5 +1,6 @@
 {
   "name": "silver-ecs",
+  "type": "module",
   "version": "0.0.10",
   "description": "",
   "keywords": [
@@ -23,6 +24,29 @@
   ],
   "main": "dist/silver-ecs.cjs.js",
   "module": "dist/silver-ecs.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/silver-ecs.esm.js",
+      "module": "./dist/silver-ecs.esm.js",
+      "default": "./dist/silver-ecs.cjs.js"
+    },
+    "./net": {
+      "import": "./net/dist/silver-ecs-net.esm.js",
+      "module": "./net/dist/silver-ecs-net.esm.js",
+      "default": "./net/dist/silver-ecs-net.cjs.js"
+    },
+    "./test": {
+      "import": "./test/dist/silver-ecs-test.esm.js",
+      "module": "./test/dist/silver-ecs-test.esm.js",
+      "default": "./test/dist/silver-ecs-test.cjs.js"
+    },
+    "./plugins": {
+      "import": "./plugins/dist/silver-ecs-plugins.esm.js",
+      "module": "./plugins/dist/silver-ecs-plugins.esm.js",
+      "default": "./plugins/dist/silver-ecs-plugins.cjs.js"
+    },
+    "./package.json": "./package.json"
+  },
   "source": "./src/index.ts",
   "types": "./dist/silver-ecs.cjs.d.ts",
   "preconstruct": {
