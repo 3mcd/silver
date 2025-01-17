@@ -1,4 +1,4 @@
-import {ref} from "../../component"
+import {ref} from "#component"
 
 class Time {
   #t_mono

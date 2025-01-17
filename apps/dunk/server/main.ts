@@ -1,11 +1,11 @@
 import {Http3Server} from "@fails-components/webtransport"
+import {WebTransportSessionImpl} from "@fails-components/webtransport/dist/lib/types"
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
 import {app} from "silver-ecs"
 import {Remote, Server, Transport} from "silver-ecs/net"
 import {Time} from "silver-ecs/plugins"
-import {Server as SocketIOServer} from "socket.io"
-import {SocketIOTransport} from "./transport"
+import {WebTransportTransport} from "./transport"
 
 let key = await readFile("./key.pem", {encoding: "utf8"})
 let cert = await readFile("./cert.pem", {encoding: "utf8"})
@@ -29,21 +29,6 @@ https_server.listen(port, () => {
   console.log(`server listening at https://localhost:${port}`)
 })
 
-let socket_io_server = new SocketIOServer(https_server, {
-  transports: ["polling", "websocket", "webtransport"],
-})
-
-socket_io_server.on("connection", socket => {
-  let client = game
-    .world()
-    .with(Remote)
-    .with(Transport, new SocketIOTransport(socket))
-    .spawn()
-  socket.on("disconnect", () => {
-    game.world().despawn(client)
-  })
-})
-
 let http3_server = new Http3Server({
   port,
   host: "0.0.0.0",
@@ -52,9 +37,22 @@ let http3_server = new Http3Server({
   privKey: key,
 })
 
+let game = app().use(Time.plugin).use(Server.plugin)
+
+let handle_web_transport_session = (session: WebTransportSessionImpl) => {
+  let client = game
+    .world()
+    .with(Remote)
+    .with(Transport, new WebTransportTransport(session))
+    .spawn()
+  session.closed.then(() => {
+    game.world().despawn(client)
+  })
+}
+
 http3_server.startServer()
 ;(async () => {
-  let session_stream = http3_server.sessionStream("/socket.io/")
+  let session_stream = http3_server.sessionStream("/transport/")
   let session_reader = session_stream.getReader()
 
   while (true) {
@@ -62,11 +60,11 @@ http3_server.startServer()
     if (done) {
       break
     }
-    socket_io_server.engine.onWebTransportSession(value)
+    if (value) {
+      handle_web_transport_session(value)
+    }
   }
 })()
-
-let game = app().use(Time.plugin).use(Server.plugin)
 
 setInterval(() => {
   game.run()

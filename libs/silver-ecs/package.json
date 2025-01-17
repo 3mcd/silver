@@ -49,6 +49,9 @@
   },
   "source": "./src/index.ts",
   "types": "./dist/silver-ecs.cjs.d.ts",
+  "imports": {
+    "#*": "./src/*.ts"
+  },
   "preconstruct": {
     "entrypoints": [
       "index.ts",

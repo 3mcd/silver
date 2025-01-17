@@ -1,45 +1,45 @@
-export const canvas = document.querySelector("canvas")!
-export const context = canvas.getContext("2d")!
-export const transform = {scale: 1, x: 0, y: 0}
+export let canvas = document.querySelector("canvas")!
+export let context = canvas.getContext("2d")!
+export let transform = {scale: 1, x: 0, y: 0}
 
-const dpr = window.devicePixelRatio
+let dpr = window.devicePixelRatio
 
-const scale = (s: number) => {
+let scale = (s: number) => {
   context.scale(s, s)
   transform.scale *= 1 / s
   transform.x *= 1 / s
   transform.y *= 1 / s
 }
 
-export const translate = (dx: number, dy: number) => {
+export let translate = (dx: number, dy: number) => {
   context.translate(dx, dy)
   transform.x -= dx
   transform.y -= dy
 }
 
-const transformX = (x: number) => transform.scale * x + transform.x
-const transformY = (y: number) => transform.scale * y + transform.y
+let transformX = (x: number) => transform.scale * x + transform.x
+let transformY = (y: number) => transform.scale * y + transform.y
 
 let dragging = false
 
-const onMousedown = () => {
+let onMousedown = () => {
   dragging = true
 }
 
-const onMousemove = (e: MouseEvent) => {
+let onMousemove = (e: MouseEvent) => {
   if (dragging) {
     translate(e.movementX * transform.scale, e.movementY * transform.scale)
   }
 }
 
-const onMouseup = () => {
+let onMouseup = () => {
   dragging = false
 }
 
-const onWheel = (e: WheelEvent) => {
-  const s = Math.sign(e.deltaY) > 0 ? 0.9 : 1.1
-  const tx = transformX(e.pageX * dpr - canvas.offsetLeft)
-  const ty = transformY(e.pageY * dpr - canvas.offsetTop)
+let onWheel = (e: WheelEvent) => {
+  let s = Math.sign(e.deltaY) > 0 ? 0.9 : 1.1
+  let tx = transformX(e.pageX * dpr - canvas.offsetLeft)
+  let ty = transformY(e.pageY * dpr - canvas.offsetTop)
   translate(tx, ty)
   scale(s)
   translate(-tx, -ty)
@@ -50,20 +50,20 @@ canvas.addEventListener("mousedown", onMousedown)
 canvas.addEventListener("mousemove", onMousemove)
 canvas.addEventListener("mouseup", onMouseup)
 
-const resize = () => {
-  const width = window.innerWidth
-  const height = window.innerHeight
+let resize = () => {
+  let width = window.innerWidth
+  let height = window.innerHeight
   canvas.style.width = width + "px"
   canvas.style.height = height + "px"
   canvas.width = width * dpr
   canvas.height = height * dpr
 }
 
-export const clear = () => {
-  const left = transformX(0)
-  const top = transformY(0)
-  const width = Math.abs(transformX(context.canvas.width) - left)
-  const height = Math.abs(transformY(context.canvas.height) - top)
+export let clear = () => {
+  let left = transformX(0)
+  let top = transformY(0)
+  let width = Math.abs(transformX(context.canvas.width) - left)
+  let height = Math.abs(transformY(context.canvas.height) - top)
   context.fillStyle = "black"
   context.fillRect(left, top, width, height)
 }
@@ -72,7 +72,7 @@ window.addEventListener("resize", resize)
 
 resize()
 
-export const circle = (color: string, radius: number) => {
+export let circle = (color: string, radius: number) => {
   context.fillStyle = color
   context.beginPath()
   context.arc(0, 0, radius, 0, 2 * Math.PI, true)
@@ -80,7 +80,7 @@ export const circle = (color: string, radius: number) => {
   context.fill()
 }
 
-export const arc = (
+export let arc = (
   color: string,
   radius: number,
   start: number,
@@ -95,7 +95,7 @@ export const arc = (
   context.closePath()
 }
 
-export const rect = (
+export let rect = (
   color: string,
   width: number,
   height: number,

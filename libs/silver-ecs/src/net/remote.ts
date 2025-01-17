@@ -1,3 +1,3 @@
-import {tag} from "../component"
+import {tag} from "#component"
 
 export let Remote = tag()

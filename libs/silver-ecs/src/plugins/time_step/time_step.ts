@@ -1,4 +1,4 @@
-import {ref} from "../../component"
+import {ref} from "#component"
 import * as Timestepper from "./stepper"
 
 export type Config = Timestepper.Config

@@ -1,4 +1,4 @@
-import * as Buffer from "../buffer"
+import * as Buffer from "#buffer"
 
 export enum MessageType {
   Identity = 0,
@@ -16,8 +16,8 @@ export let init_identity = () => {
   return buffer
 }
 
-export let write_identity = (buffer: Buffer.T, client_id: number) => {
-  Buffer.write_u32(buffer, client_id)
+export let write_identity = (buffer: Buffer.T, id: number) => {
+  Buffer.write_u32(buffer, id)
 }
 
 export let read_identity = (buffer: Buffer.T) => {

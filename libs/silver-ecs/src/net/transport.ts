@@ -1,8 +1,8 @@
-import {ref} from "../component"
+import {ref} from "#component"
 
 export type Transport = {
-  send: (buffer: ArrayBuffer) => void
-  recv: () => ArrayBuffer | undefined
+  send: (buffer: Uint8Array) => void
+  recv: () => Uint8Array | undefined
 }
 
 export let Transport = ref<Transport>()

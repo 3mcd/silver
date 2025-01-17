@@ -34,5 +34,8 @@
     "packages": [
       "libs/*"
     ]
+  },
+  "devDependencies": {
+    "babel-plugin-tsconfig-paths": "^1.0.3"
   }
 }

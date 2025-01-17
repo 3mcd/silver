@@ -1,4 +1,4 @@
-import {ref} from "../../component"
+import {ref} from "#component"
 
 export type Sample = [t0: number, t1: number]
 

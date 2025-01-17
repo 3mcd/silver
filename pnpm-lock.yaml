@@ -35,6 +35,10 @@ importers:
       vitest:
         specifier: ^2.0.5
         version: 2.0.5(@types/node@22.5.1)(terser@5.24.0)
+    devDependencies:
+      babel-plugin-tsconfig-paths:
+        specifier: ^1.0.3
+        version: 1.0.3(@babel/core@7.25.2)
 
   apps/dunk:
     dependencies:
@@ -1329,6 +1333,11 @@ packages:
     resolution: {integrity: sha512-2R25rQZWP63nGwaAswvDazbPXfrM3HwVoBXK6HcqeKrSrL/JqcC/rDcf95l4r7LXLyxDXc8uQDa064GubtCABg==}
     peerDependencies:
       '@babel/core': ^7.4.0 || ^8.0.0-0 <8.0.0
+
+  babel-plugin-tsconfig-paths@1.0.3:
+    resolution: {integrity: sha512-eBTjzXpx0CXO2gooYPyIU1joS/eK1Vk2+oLhJDwRwIgh2+2kD/j649eYNtHjFKuXr36/4Y0ytPORLyiey7MLRA==}
+    peerDependencies:
+      '@babel/core': ^7.9.0
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
@@ -3984,6 +3993,10 @@ snapshots:
       '@babel/helper-define-polyfill-provider': 0.6.2(@babel/core@7.25.2)
     transitivePeerDependencies:
       - supports-color
+
+  babel-plugin-tsconfig-paths@1.0.3(@babel/core@7.25.2):
+    dependencies:
+      '@babel/core': 7.25.2
 
   balanced-match@1.0.2: {}
 

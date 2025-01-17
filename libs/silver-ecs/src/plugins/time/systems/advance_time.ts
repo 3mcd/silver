@@ -1,4 +1,4 @@
-import {System} from "../../../app/index"
+import {System} from "#app/index"
 import * as Time from "../time"
 
 export let advance_time: System = world => {

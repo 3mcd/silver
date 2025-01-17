@@ -1,10 +1,10 @@
-import {after, App, before, range, when} from "../../app"
-import * as World from "../../world"
-import * as Time from "../time/plugin"
-import * as Timestep from "./time_step"
+import {after, App, before, range, when} from "#app/index"
+import * as Time from "#plugins/time/plugin"
+import * as World from "#world"
 import * as Timestepper from "./stepper"
 import {advance_timestep} from "./systems/advance_timestep"
 import {increment_step} from "./systems/increment_step"
+import * as Timestep from "./time_step"
 
 export type Config = Timestep.Config
 

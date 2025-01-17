@@ -1,11 +1,7 @@
-import {ref} from "../../../component"
+import {ref} from "#component"
 
 class Client {
-  t_time_sync
-
-  constructor() {
-    this.t_time_sync = 0
-  }
+  t_time_sync = 0
 }
 
 export type T = Client

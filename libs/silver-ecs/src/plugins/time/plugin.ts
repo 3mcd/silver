@@ -1,4 +1,4 @@
-import {after, Plugin, range, when} from "../../app"
+import {Plugin, range, when} from "#app/index"
 import {advance_time} from "./systems/advance_time"
 import * as Time from "./time"
 

@@ -16,9 +16,7 @@
   "dependencies": {
     "@fails-components/webtransport": "^1.1.4",
     "@fails-components/webtransport-transport-http3-quiche": "^1.1.4",
-    "silver-ecs": "workspace:*",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "silver-ecs": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.23.1",

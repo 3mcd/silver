@@ -4,11 +4,11 @@ class SystemGraph<T> {
 
 export type T<U> = SystemGraph<U>
 
-export const make = <T>() => {
+export let make = <T>() => {
   return new SystemGraph<T>()
 }
 
-export const edges = <T>(graph: SystemGraph<T>, vertex: T) => {
+export let edges = <T>(graph: SystemGraph<T>, vertex: T) => {
   let edges = graph.vertices_.get(vertex)
   if (edges === undefined) {
     edges = new Set()
@@ -17,7 +17,7 @@ export const edges = <T>(graph: SystemGraph<T>, vertex: T) => {
   return edges
 }
 
-export const sort = <T>(
+export let sort = <T>(
   graph: SystemGraph<T>,
   vertex: T,
   rank: number,
@@ -25,8 +25,8 @@ export const sort = <T>(
   visited: Set<T>,
 ) => {
   visited.add(vertex)
-  const adj_vertices = edges(graph, vertex)
-  for (const adj_vertex of adj_vertices) {
+  let adj_vertices = edges(graph, vertex)
+  for (let adj_vertex of adj_vertices) {
     if (!visited.has(adj_vertex)) {
       rank = sort(graph, adj_vertex, rank, ranked, visited)
     }
@@ -35,23 +35,23 @@ export const sort = <T>(
   return rank - 1
 }
 
-export const add_edge = <T>(graph: SystemGraph<T>, vertex: T, dep: T) => {
+export let add_edge = <T>(graph: SystemGraph<T>, vertex: T, dep: T) => {
   edges(graph, vertex).add(dep)
 }
 
-export const remove = <T>(graph: SystemGraph<T>, vertex: T) => {
+export let remove = <T>(graph: SystemGraph<T>, vertex: T) => {
   graph.vertices_.delete(vertex)
   graph.vertices_.forEach(graphVertex => {
     graphVertex.delete(vertex)
   })
 }
 
-export const build = <T>(graph: SystemGraph<T>) => {
-  const vertices = Array.from(graph.vertices_.keys())
-  const visited = new Set<T>()
-  const ranks = new Map<T, number>()
+export let build = <T>(graph: SystemGraph<T>) => {
+  let vertices = Array.from(graph.vertices_.keys())
+  let visited = new Set<T>()
+  let ranks = new Map<T, number>()
   let rank = vertices.length - 1
-  for (const vertex of vertices) {
+  for (let vertex of vertices) {
     if (!visited.has(vertex)) {
       rank = sort(graph, vertex, rank, ranks, visited)
     }

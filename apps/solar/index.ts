@@ -10,7 +10,7 @@ import {
 } from "silver-ecs"
 import {Time, Timestep} from "silver-ecs/plugins"
 import {canvas, circle, clear, context, transform} from "./canvas"
-import {Color, Name, Orbits, Angvel, Position, Radius} from "./data"
+import {Angvel, Color, Name, Orbits, Position, Radius} from "./data"
 
 let FONT_SIZE = 12 * window.devicePixelRatio
 

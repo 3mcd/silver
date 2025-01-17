@@ -1,10 +1,10 @@
-import {System} from "../../../../app"
-import {Time} from "../../../../plugins"
-import * as QueryBuilder from "../../../../query_builder"
-import {Remote} from "../../../remote"
-import {Transport} from "../../../transport"
-import * as Buffer from "../../../../buffer"
-import * as Protocol from "../../../protocol"
+import {System} from "#app/index"
+import * as Buffer from "#buffer"
+import * as Protocol from "#net/protocol"
+import {Remote} from "#net/remote"
+import {Transport} from "#net/transport"
+import {Time} from "#plugins/index"
+import * as QueryBuilder from "#query_builder"
 import {res} from "../client"
 
 let remotes = QueryBuilder.make().with(Remote).with(Transport)

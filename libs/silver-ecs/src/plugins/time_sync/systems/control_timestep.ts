@@ -1,6 +1,6 @@
-import {System} from "../../../app"
-import * as Time from "../../time/plugin"
-import * as Timestep from "../../time_step/plugin"
+import {System} from "#app/index"
+import * as Time from "#plugins/time/plugin"
+import * as Timestep from "#plugins/time_step/plugin"
 import * as Timesync from "../time_sync"
 
 export let control_timestep: System = world => {
