@@ -1,5 +1,5 @@
 import {app} from "silver-ecs"
-import {Time} from "silver-ecs/plugins"
+import {Time, Timestep, Timesync} from "silver-ecs/plugins"
 import {Client, Remote, Transport} from "silver-ecs/net"
 import {io, Socket} from "socket.io-client"
 
@@ -34,6 +34,8 @@ class SocketIOTransport implements Transport {
 
 let game = app()
   .use(Time.plugin)
+  .use(Timestep.plugin)
+  .use(Timesync.plugin)
   .use(Client.plugin)
   .add_init_system(world => {
     world.with(Remote).with(Transport, new SocketIOTransport(socket)).spawn()
