@@ -1,9 +1,9 @@
 import {app} from "silver-ecs"
 import {Client, Remote, Transport} from "silver-ecs/net"
 import {Time, Timestep, Timesync} from "silver-ecs/plugins"
-import {WebTransportTransport} from "./transport"
+import {WebTransportTransport} from "../transport"
 
-let wt = new WebTransport(`https://127.0.0.1:3000/transport/`)
+let wt = new WebTransport(`https://127.0.0.1:3000/transport`)
 
 let game = app()
   .use(Time.plugin)

@@ -19,7 +19,6 @@ export class WebTransportTransport implements Transport {
         if (done) {
           break
         }
-        console.log(value)
         this.#inbox.push(value)
       }
     } catch (e) {

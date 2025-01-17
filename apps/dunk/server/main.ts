@@ -5,7 +5,7 @@ import {createServer} from "node:https"
 import {app} from "silver-ecs"
 import {Remote, Server, Transport} from "silver-ecs/net"
 import {Time} from "silver-ecs/plugins"
-import {WebTransportTransport} from "./transport"
+import {WebTransportTransport} from "../transport"
 
 let key = await readFile("./key.pem", {encoding: "utf8"})
 let cert = await readFile("./cert.pem", {encoding: "utf8"})
@@ -43,7 +43,10 @@ let handle_web_transport_session = (session: WebTransportSessionImpl) => {
   let client = game
     .world()
     .with(Remote)
-    .with(Transport, new WebTransportTransport(session))
+    .with(
+      Transport,
+      new WebTransportTransport(session as unknown as WebTransport),
+    )
     .spawn()
   session.closed.then(() => {
     game.world().despawn(client)
@@ -52,7 +55,7 @@ let handle_web_transport_session = (session: WebTransportSessionImpl) => {
 
 http3_server.startServer()
 ;(async () => {
-  let session_stream = http3_server.sessionStream("/transport/")
+  let session_stream = http3_server.sessionStream("/transport")
   let session_reader = session_stream.getReader()
 
   while (true) {
