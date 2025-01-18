@@ -1,6 +1,6 @@
-import * as Effect from "../effect"
+import {assert} from "../assert"
 import * as Component from "../component"
-import * as Assert from "../assert"
+import * as Effect from "../effect"
 import * as World from "../world"
 import * as Schedule from "./schedule"
 import * as System from "./system"
@@ -53,7 +53,7 @@ class App {
   }
 
   add_resource<U>(res: Component.Ref<U>, resource: U) {
-    Assert.assert(this.#world.has_resource(res) === false)
+    assert(this.#world.has_resource(res) === false)
     this.#world.set_resource(res, resource)
     return this
   }

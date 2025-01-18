@@ -1,4 +1,4 @@
-import * as Assert from "./assert"
+import {assert_exists} from "./assert"
 import * as Type from "./type"
 import * as Entity from "./entity"
 import * as Hash from "./hash"
@@ -32,7 +32,7 @@ export class Batch {
 
 let emit_spawned_entities = (batch: Batch) => {
   Node.traverse_left(
-    Assert.assert_exists(batch.next_node),
+    assert_exists(batch.next_node),
     function emit_spawned_entities(visit: Node.T) {
       Node.emit_entities_in(visit, batch)
     },
@@ -41,7 +41,7 @@ let emit_spawned_entities = (batch: Batch) => {
 
 let emit_despawned_entities = (batch: Batch) => {
   Node.traverse_left(
-    Assert.assert_exists(batch.prev_node),
+    assert_exists(batch.prev_node),
     function emit_despawned_entities_inner(visit: Node.T) {
       Node.emit_entities_out(visit, batch)
     },
@@ -51,11 +51,11 @@ let emit_despawned_entities = (batch: Batch) => {
 let emit_moved_entities = (batch: Batch) => {
   // Find the type the source and destination nodes have in common.
   let intersection = Type.from_intersection(
-    Assert.assert_exists(batch.prev_node).type,
-    Assert.assert_exists(batch.next_node).type,
+    assert_exists(batch.prev_node).type,
+    assert_exists(batch.next_node).type,
   )
   Node.traverse_left(
-    Assert.assert_exists(batch.next_node),
+    assert_exists(batch.next_node),
     function emit_upgraded_entities(visit: Node.T) {
       if (
         intersection.vec_hash === visit.type.vec_hash ||
@@ -67,7 +67,7 @@ let emit_moved_entities = (batch: Batch) => {
     },
   )
   Node.traverse_left(
-    Assert.assert_exists(batch.prev_node),
+    assert_exists(batch.prev_node),
     function emit_downgraded_entities(node: Node.T) {
       if (
         intersection.vec_hash === node.type.vec_hash ||
