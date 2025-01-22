@@ -3,8 +3,9 @@ import {WebTransportSessionImpl} from "@fails-components/webtransport/dist/lib/t
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
 import {app} from "silver-ecs"
-import {Remote, Server, Transport} from "silver-ecs/net"
+import {Remote, Serde, Server, Transport} from "silver-ecs/net"
 import {Time} from "silver-ecs/plugins"
+import {serde} from "../serde"
 import {WebTransportTransport} from "../transport"
 
 let key = await readFile("./key.pem", {encoding: "utf8"})
@@ -37,7 +38,10 @@ let http3_server = new Http3Server({
   privKey: key,
 })
 
-let game = app().use(Time.plugin).use(Server.plugin)
+let game = app()
+  .use(Time.plugin)
+  .use(Server.plugin)
+  .add_resource(Serde.res, serde)
 
 let handle_web_transport_session = (session: WebTransportSessionImpl) => {
   let client = game

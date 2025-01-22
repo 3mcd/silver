@@ -16,6 +16,9 @@
   "dependencies": {
     "@fails-components/webtransport": "^1.1.4",
     "@fails-components/webtransport-transport-http3-quiche": "^1.1.4",
+    "pex-context": "^3.1.2",
+    "pex-math": "^4.1.1",
+    "primitive-geometry": "^2.10.1",
     "silver-ecs": "workspace:*"
   },
   "devDependencies": {
