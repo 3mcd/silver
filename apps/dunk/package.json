@@ -16,10 +16,14 @@
   "dependencies": {
     "@fails-components/webtransport": "^1.1.4",
     "@fails-components/webtransport-transport-http3-quiche": "^1.1.4",
-    "pex-context": "^3.1.2",
-    "pex-math": "^4.1.1",
+    "@webgpu/glslang": "^0.0.15",
+    "cameras": "^3.1.1",
+    "dgel": "^0.17.1",
+    "gl-matrix": "^3.4.3",
     "primitive-geometry": "^2.10.1",
-    "silver-ecs": "workspace:*"
+    "silver-ecs": "workspace:*",
+    "typed-array-concat": "^3.0.1",
+    "typed-array-interleave": "^2.0.1"
   },
   "devDependencies": {
     "esbuild": "^0.23.1",

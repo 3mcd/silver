@@ -1,4 +1,5 @@
 export * as Client from "./plugins/client/plugin"
+export * as Serde from "./plugins/serde/plugin"
 export * as Server from "./plugins/server/plugin"
 export {Remote} from "./remote"
 export {Transport} from "./transport"

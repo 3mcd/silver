@@ -25,6 +25,8 @@ let {values: args} = parseArgs({
 })
 
 export let config: BuildOptions = {
+  format: "esm",
+  publicPath: "./",
   entryPoints: args.entry ? [args.entry] : ["./client/index.ts"],
   bundle: true,
   dropLabels: Boolean(args.optimize) ? ["DEV", "DEBUG"] : undefined,

@@ -8,6 +8,18 @@ export const f32 = "f32"
 export const f64 = "f64"
 export const string = "string"
 
+export const Scalar: Record<Scalar, string> = {
+  u8,
+  u16,
+  u32,
+  i8,
+  i16,
+  i32,
+  f32,
+  f64,
+  string,
+}
+
 /**
  * A variable-length string.
  */

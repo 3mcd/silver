@@ -1,7 +1,7 @@
 import {app} from "silver-ecs"
 import {Client, Remote, Serde, Transport} from "silver-ecs/net"
 import {Time, Timestep, Timesync} from "silver-ecs/plugins"
-import {Render} from "../plugins"
+import {Player, Render} from "../plugins"
 import {serde} from "../serde"
 import {WebTransportTransport} from "../transport"
 
@@ -16,6 +16,9 @@ let game = app()
   .add_resource(Serde.res, serde)
   .add_init_system(world => {
     world.with(Remote).with(Transport, new WebTransportTransport(wt)).spawn()
+  })
+  .add_init_system(world => {
+    world.with(Player.Player).spawn()
   })
 
 let loop = () => {
