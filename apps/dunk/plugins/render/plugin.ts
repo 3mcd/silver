@@ -20,9 +20,8 @@ import {
 import {mat4} from "gl-matrix"
 import {cube} from "primitive-geometry"
 import {after, Plugin, query, range, ref, System, when} from "silver-ecs"
-import typedArrayInterleave from "typed-array-interleave"
-
-import typedArrayConcat from "typed-array-concat"
+import typed_array_concat from "typed-array-concat"
+import typed_array_interleave from "typed-array-interleave"
 import * as Player from "../player/plugin"
 
 // context
@@ -150,7 +149,7 @@ let geometry_vertex_buffer = new Buffer()
 let geometry_index_buffer = new Buffer()
 
 geometry_vertex_buffer.vertexBuffer(
-  typedArrayInterleave(
+  typed_array_interleave(
     Float32Array,
     [3, 3, 2],
     geometry.positions,
@@ -215,7 +214,7 @@ let res = ref<Context>()
 
 let clear: System = world => {}
 
-let players = query().with(Player.Player)
+let players = query().with(Player.IsPlayer)
 
 let draw: System = world => {
   camera_controls.update()
@@ -225,7 +224,11 @@ let draw: System = world => {
 
   system_uniforms_buffer.setSubData(
     0,
-    typedArrayConcat(Float32Array, camera.projectionMatrix, camera.viewMatrix),
+    typed_array_concat(
+      Float32Array,
+      camera.projectionMatrix,
+      camera.viewMatrix,
+    ),
   )
   mesh_uniforms_buffer.setSubData(0, model_matrix)
 

@@ -12,10 +12,10 @@ class App {
   #world
 
   constructor(world = World.make(), schedule = Schedule.make()) {
-    this.#world = world
-    this.#schedule = schedule
     this.#init = true
     this.#init_schedule = Schedule.make()
+    this.#world = world
+    this.#schedule = schedule
   }
 
   use(plugin: Plugin): this

@@ -12,10 +12,10 @@ let clients = query().with(Remote).with(Transport)
 let recv_message = (buffer: Buffer.T, transport: Transport, world: World.T) => {
   switch (Buffer.read_u8(buffer)) {
     case Protocol.MessageType.TimeSyncRequest:
-      let t_mono_origin = Protocol.read_time_sync_request(buffer)
-      let t_mono_remote = world.get_resource(Time.res).t_mono()
+      let t_origin = Protocol.read_time_sync_request(buffer)
+      let t_remote = world.get_resource(Time.res).t_mono()
       let response = Protocol.init_time_sync_response()
-      Protocol.write_time_sync_response(response, t_mono_origin, t_mono_remote)
+      Protocol.write_time_sync_response(response, t_origin, t_remote)
       transport.send(Buffer.end(response))
   }
 }

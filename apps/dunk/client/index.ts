@@ -5,8 +5,6 @@ import {Player, Render} from "../plugins"
 import {serde} from "../serde"
 import {WebTransportTransport} from "../transport"
 
-let wt = new WebTransport(`https://127.0.0.1:3000/transport`)
-
 let game = app()
   .use(Time.plugin)
   .use(Timestep.plugin)
@@ -15,10 +13,11 @@ let game = app()
   .use(Render.plugin)
   .add_resource(Serde.res, serde)
   .add_init_system(world => {
+    let wt = new WebTransport(`https://127.0.0.1:3000/transport`)
     world.with(Remote).with(Transport, new WebTransportTransport(wt)).spawn()
   })
   .add_init_system(world => {
-    world.with(Player.Player).spawn()
+    world.with(Player.IsPlayer).spawn()
   })
 
 let loop = () => {

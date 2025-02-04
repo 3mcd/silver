@@ -1,11 +1,11 @@
 import * as World from "../world"
-import * as SystemGraph from "./system_graph"
-import * as System from "./system"
 import * as Range from "./range"
+import * as System from "./system"
+import * as SystemGraph from "./system_graph"
 
 class Schedule {
   graph = SystemGraph.make<System.T>()
-  is_stale = true
+  stale = true
   system_runs = [] as number[]
   systems = [] as System.T[]
   explicit = new Set<Function>()
@@ -31,23 +31,22 @@ export let add_system = (schedule: Schedule, system: System.T | System.Fn) => {
     SystemGraph.add_edge(schedule.graph, System.make(fn), system)
   })
   // mark schedule stale to be rebuilt on next `run`
-  schedule.is_stale = true
-
+  schedule.stale = true
   schedule.explicit.add(system.fn)
 }
 
 export let remove_system = (schedule: Schedule, system: System.Fn) => {
   SystemGraph.remove(schedule.graph, System.make(system))
-  schedule.is_stale = true
+  schedule.stale = true
 }
 
 export let run = (schedule: Schedule, world: World.T) => {
   // rebuild system schedule when stale
-  if (schedule.is_stale) {
+  if (schedule.stale) {
     schedule.systems = SystemGraph.build(schedule.graph)
       .filter(s => !Range.is_anchor(s.fn))
       .filter(s => schedule.explicit.has(s.fn))
-    schedule.is_stale = false
+    schedule.stale = false
   }
   // try to execute each system once
   let total_runs_remaining = 0

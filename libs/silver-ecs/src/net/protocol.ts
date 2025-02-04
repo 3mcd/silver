@@ -46,11 +46,11 @@ export let init_time_sync_response = () => {
 
 export let write_time_sync_response = (
   buffer: Buffer.T,
-  t_mono_origin: number,
-  t_mono_remote: number,
+  t_origin: number,
+  t_remote: number,
 ) => {
-  Buffer.write_f64(buffer, t_mono_origin)
-  Buffer.write_f64(buffer, t_mono_remote)
+  Buffer.write_f64(buffer, t_origin)
+  Buffer.write_f64(buffer, t_remote)
 }
 
 export let read_time_sync_response = (

@@ -54,7 +54,7 @@ export let _after = (a: Fn | System, b: Fn | Range.T): System => {
     a = make(a)
   }
   if (Range.is(b)) {
-    a.after.add(b.max())
+    a.after.add(b.hi())
   } else {
     a.after.add(b!)
   }
@@ -66,7 +66,7 @@ export let _before = (a: Fn | System, b: Fn | Range.T): System => {
     a = make(a)
   }
   if (Range.is(b)) {
-    a.before.add(b.min())
+    a.before.add(b.lo())
   } else {
     a.before.add(b!)
   }
@@ -78,8 +78,8 @@ export let _when = (a: Fn | System, b: Criteria | Range.T): System => {
     a = make(a)
   }
   if (Range.is(b)) {
-    a.after.add(b.min())
-    a.before.add(b.max())
+    a.after.add(b.lo())
+    a.before.add(b.hi())
     a = apply_constraints(a, b.constraints())
   } else {
     a.when.push(b)
