@@ -2,12 +2,9 @@ import {System} from "#app/index"
 import * as Buffer from "#buffer"
 import * as Protocol from "#net/protocol"
 import {Remote} from "#net/remote"
-import {Transport} from "#net/transport"
 import {Time, Timesync} from "#plugins/index"
 import * as QueryBuilder from "#query_builder"
 import * as World from "#world"
-
-let remotes = QueryBuilder.make().with(Remote).with(Transport)
 
 let recv_identity = (buffer: Buffer.T, world: World.T) => {
   let id = Protocol.read_identity(buffer)
@@ -34,11 +31,13 @@ let recv_message = (buffer: Buffer.T, world: World.T) => {
   }
 }
 
+let remotes = QueryBuilder.make().with(Remote)
+
 export let recv_messages: System = world => {
-  world.for_each(remotes, transport => {
-    let packet: Uint8Array | undefined
-    while ((packet = transport.recv()) !== undefined) {
-      recv_message(Buffer.make(packet.buffer as ArrayBuffer), world)
+  world.for_each(remotes, remote => {
+    let data: Uint8Array | undefined
+    while ((data = remote.recv()) !== undefined) {
+      recv_message(Buffer.make(data.buffer), world)
     }
   })
 }

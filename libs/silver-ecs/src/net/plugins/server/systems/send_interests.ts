@@ -1,14 +1,14 @@
 import {System} from "#app/index"
-import {query} from "#index"
-import {Topic, Interest} from "#net/plugins/serde/interest"
-import {Remote} from "#net/remote"
+import {make as query} from "#query_builder"
+import {HasInterest, Interest} from "../../../interest"
+import {Remote} from "../../../remote"
 
-let interested = query()
-  .with(Remote)
-  .with(Interest, interest => interest.with(Topic))
+let remotes = query(Remote).with(HasInterest, interest =>
+  interest.with(Interest),
+)
 
-export let load_interest_snapshots: System = world => {
-  world.for_each(interested, interest => {
+export let send_interests: System = world => {
+  world.for_each(remotes, (remote, interest) => {
     console.log(interest.pop())
   })
 }

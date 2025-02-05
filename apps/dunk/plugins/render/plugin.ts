@@ -22,7 +22,7 @@ import {cube} from "primitive-geometry"
 import {after, Plugin, query, range, ref, System, when} from "silver-ecs"
 import typed_array_concat from "typed-array-concat"
 import typed_array_interleave from "typed-array-interleave"
-import * as Player from "../player/plugin"
+import {IsPlayer} from "../player/plugin"
 
 // context
 
@@ -214,7 +214,7 @@ let res = ref<Context>()
 
 let clear: System = world => {}
 
-let players = query().with(Player.IsPlayer)
+let players = query(IsPlayer)
 
 let draw: System = world => {
   camera_controls.update()

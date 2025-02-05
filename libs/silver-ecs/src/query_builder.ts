@@ -36,6 +36,9 @@ class QueryBuilderNode<T extends unknown[] = unknown[]> {
   ): QueryBuilderNode<[...T, ...U]>
   with(
     component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
+  ): QueryBuilderNode
+  with(
+    component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
     join?: Join<unknown[]>,
   ) {
     if (component instanceof Function) {
@@ -54,6 +57,15 @@ class QueryBuilderNode<T extends unknown[] = unknown[]> {
 }
 export type T<U extends unknown[] = unknown[]> = QueryBuilderNode<U>
 
-export let make = (): QueryBuilderNode<[]> => {
-  return new QueryBuilderNode()
+export function make(): QueryBuilderNode<[]>
+export function make<U extends Component.Ref>(ref: U): WithRef<[], U>
+export function make(
+  component: Component.Tag | Component.Rel | Component.PairFn,
+): QueryBuilderNode<[]>
+export function make(
+  component?: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
+): QueryBuilderNode<[]> {
+  return component === undefined
+    ? new QueryBuilderNode()
+    : new QueryBuilderNode().with(component)
 }

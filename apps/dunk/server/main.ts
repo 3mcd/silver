@@ -1,14 +1,13 @@
 import {Http3Server} from "@fails-components/webtransport"
-import {WebTransportSessionImpl} from "@fails-components/webtransport/dist/lib/types"
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
 import {join} from "node:path"
 import {app, query, System} from "silver-ecs"
-import {Remote, Serde, Server, Transport} from "silver-ecs/net"
+import {HasInterest, Interest, Remote, Serde, Server} from "silver-ecs/net"
 import {Time} from "silver-ecs/plugins"
+import {IsPlayer} from "../plugins/player/plugin"
 import {serde} from "../serde"
-import {WebTransportTransport} from "../transport"
-import {Player} from "../plugins"
+import {WebTransportRemote} from "../transport"
 
 let key = await readFile("./key.pem", {encoding: "utf8"})
 let cert = await readFile("./cert.pem", {encoding: "utf8"})
@@ -67,8 +66,8 @@ let http3_server = new Http3Server({
   privKey: key,
 })
 
-let topics = query().with(Serde.Topic)
-let players = query().with(Player.IsPlayer)
+let topics = query(Interest)
+let players = query(IsPlayer)
 
 let amplify_entities: System = world => {
   world.for_each(topics, topic => {
@@ -84,28 +83,25 @@ let game = app()
   .add_resource(Serde.res, serde)
   .add_system(amplify_entities)
   .add_init_system(world => {
-    world.with(Serde.Topic).spawn()
+    world.with(Interest).spawn()
   })
 
-let handle_web_transport_session = (session: WebTransportSessionImpl) => {
-  let topic = game.world().single(Serde.Topic)
+let handle_web_transport_session = (wt: WebTransport) => {
+  let interest = game.world().single(Interest)
   let client = game
     .world()
-    .with(Remote)
-    .with(
-      Transport,
-      new WebTransportTransport(session as unknown as WebTransport),
-    )
-    .with(Serde.Interest(topic))
+    .with(Remote, new WebTransportRemote(wt))
+    .with(IsPlayer)
+    .with(HasInterest(interest))
     .spawn()
-  session.closed.then(() => {
+  wt.closed.then(() => {
     game.world().despawn(client)
   })
 }
 
 http3_server.startServer()
 ;(async () => {
-  let session_stream = http3_server.sessionStream("/transport")
+  let session_stream = http3_server.sessionStream("/wt")
   let session_reader = session_stream.getReader()
 
   while (true) {
@@ -114,7 +110,7 @@ http3_server.startServer()
       break
     }
     if (value) {
-      handle_web_transport_session(value)
+      handle_web_transport_session(value as unknown as WebTransport)
     }
   }
 })()

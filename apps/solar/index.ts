@@ -14,8 +14,7 @@ import {Angvel, Color, Name, Orbits, Position, Radius} from "./data"
 
 let FONT_SIZE = 12 * window.devicePixelRatio
 
-let satellites = query()
-  .with(Position)
+let satellites = query(Position)
   .with(Angvel)
   .with(Orbits, body => body.with(Position))
 
@@ -32,7 +31,7 @@ let move_satellites: System = world => {
   )
 }
 
-let bodies = query().with(Name).with(Color).with(Position).with(Radius)
+let bodies = query(Name).with(Color).with(Position).with(Radius)
 
 let draw_bodies: System = world => {
   context.save()

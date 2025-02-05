@@ -351,6 +351,10 @@ class World {
 
   single(ref: Component.Ref): Entity.T {
     let node = Graph.find_or_create_node_by_component(this.graph, ref)
+    // Fast path for singleton components
+    if (SparseSet.size(node.entities) > 0) {
+      return SparseSet.at(node.entities, 0)
+    }
     let entity: Entity.T | undefined
     Node.traverse_right(node, visited_node => {
       // TODO: implement a better way to terminate traversal

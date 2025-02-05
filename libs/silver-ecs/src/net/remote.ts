@@ -1,3 +1,8 @@
-import {tag} from "#component"
+import {ref} from "#component"
 
-export let Remote = tag()
+export type Remote = {
+  send: (buffer: Uint8Array) => void
+  recv: () => Uint8Array | undefined
+}
+
+export let Remote = ref<Remote>()

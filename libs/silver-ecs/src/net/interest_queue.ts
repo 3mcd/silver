@@ -81,7 +81,7 @@ class InterestQueue {
   }
 
   has(entity: Entity.T) {
-    return assert_exists(this.#entity_priorities[entity])
+    return this.#entity_priorities[entity] !== undefined
   }
 
   push(entity: Entity.T, priority_of: number) {

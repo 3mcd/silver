@@ -32,7 +32,7 @@ class Buffer {
   read_offset = 0
   write_offset
   view
-  constructor(init: ArrayBuffer, writeOffset = 0) {
+  constructor(init: ArrayBufferLike, writeOffset = 0) {
     this.write_offset = writeOffset
     this.buffer = init
     this.view = new DataView(this.buffer)
@@ -42,8 +42,8 @@ class Buffer {
 export type T = Buffer
 
 export function make(length: number, max_length?: number): Buffer
-export function make(ab: ArrayBuffer): Buffer
-export function make(init: number | ArrayBuffer, max_length?: number) {
+export function make(ab: ArrayBufferLike): Buffer
+export function make(init: number | ArrayBufferLike, max_length?: number) {
   if (typeof init === "object") {
     // use provided ArrayBuffer directly, inferring the write offset
     // from its byteLength
@@ -72,6 +72,7 @@ export let readable = (buffer: Buffer) => {
 export let grow = (buffer: Buffer, bytes: number) => {
   let length = bytes + buffer.write_offset
   if (length > buffer.buffer.byteLength) {
+    assert("resize" in buffer.buffer)
     assert(buffer.buffer.resizable)
     buffer.buffer.resize(length * GROW_FACTOR)
   }
@@ -190,7 +191,7 @@ export let read_f64 = (buffer: Buffer) => {
 }
 
 export let free = (buffer: Buffer) => {
-  if (buffer.buffer.resizable) {
+  if ("resizable" in buffer.buffer) {
     let i = ceil_log_2(buffer.buffer.maxByteLength)
     let arena = arenas[i]
     if (arena.length < 100) {

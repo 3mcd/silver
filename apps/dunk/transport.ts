@@ -1,6 +1,6 @@
 import {Transport} from "silver-ecs/net"
 
-export class WebTransportTransport implements Transport {
+export class WebTransportRemote implements Transport {
   #writer
   #reader
   #inbox
