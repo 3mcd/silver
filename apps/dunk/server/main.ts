@@ -3,11 +3,12 @@ import {WebTransportSessionImpl} from "@fails-components/webtransport/dist/lib/t
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
 import {join} from "node:path"
-import {app} from "silver-ecs"
+import {app, query, System} from "silver-ecs"
 import {Remote, Serde, Server, Transport} from "silver-ecs/net"
 import {Time} from "silver-ecs/plugins"
 import {serde} from "../serde"
 import {WebTransportTransport} from "../transport"
+import {Player} from "../plugins"
 
 let key = await readFile("./key.pem", {encoding: "utf8"})
 let cert = await readFile("./cert.pem", {encoding: "utf8"})
@@ -66,12 +67,28 @@ let http3_server = new Http3Server({
   privKey: key,
 })
 
+let topics = query().with(Serde.Topic)
+let players = query().with(Player.IsPlayer)
+
+let amplify_entities: System = world => {
+  world.for_each(topics, topic => {
+    world.for_each_entity(players, player => {
+      topic.amplify(player, 0.1)
+    })
+  })
+}
+
 let game = app()
   .use(Time.plugin)
   .use(Server.plugin)
   .add_resource(Serde.res, serde)
+  .add_system(amplify_entities)
+  .add_init_system(world => {
+    world.with(Serde.Topic).spawn()
+  })
 
 let handle_web_transport_session = (session: WebTransportSessionImpl) => {
+  let topic = game.world().single(Serde.Topic)
   let client = game
     .world()
     .with(Remote)
@@ -79,6 +96,7 @@ let handle_web_transport_session = (session: WebTransportSessionImpl) => {
       Transport,
       new WebTransportTransport(session as unknown as WebTransport),
     )
+    .with(Serde.Interest(topic))
     .spawn()
   session.closed.then(() => {
     game.world().despawn(client)

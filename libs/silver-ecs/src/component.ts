@@ -27,6 +27,11 @@ export interface Tag extends Base<void> {
 export interface Ref<U = unknown> extends Base<U> {
   kind: Kind.Ref
   schema?: Schema.SchemaOf<U>
+  make?: () => U
+}
+
+export interface RefWithMake<U = unknown> extends Ref<U> {
+  make: () => U
 }
 
 export type ValueOf<U extends T> = U extends Ref<infer V> ? V : never
@@ -81,12 +86,20 @@ class Component {
   schema
   target?: RelInverse
   topology
+  make
 
-  constructor(id: number, kind: Kind, topology?: Topology, schema?: Schema.T) {
+  constructor(
+    id: number,
+    kind: Kind,
+    topology?: Topology,
+    schema?: Schema.T,
+    make?: () => unknown,
+  ) {
     this.id = id
     this.kind = kind
     this.schema = schema
     this.topology = topology
+    this.make = make
   }
 }
 
@@ -103,14 +116,16 @@ export function make(
   kind: Kind.Ref,
   topology?: Topology,
   schema?: Schema.T,
+  make?: () => unknown,
 ): Ref
 export function make(
   id: number,
   kind: Kind,
   topology?: Topology,
   schema?: Schema.T,
+  make?: () => unknown,
 ): T {
-  let component = new Component(id, kind, topology, schema) as T
+  let component = new Component(id, kind, topology, schema, make) as T
   components.set(id, component)
   return component
 }
@@ -124,11 +139,18 @@ type RecursivePartial<T> = {
 }
 
 export function ref<U extends Schema.T>(schema: U): Ref<Schema.Express<U>>
+export function ref<U>(make: () => U): RefWithMake<U>
 export function ref<U>(schema: Schema.SchemaOf<RecursivePartial<U>>): Ref<U>
 export function ref<U>(): Ref<U>
 export function ref(): Ref<unknown>
-export function ref(schema?: Schema.T) {
-  return make(make_component_id(), Kind.Ref, undefined, schema)
+export function ref(schema?: Schema.T | (() => unknown)) {
+  return make(
+    make_component_id(),
+    Kind.Ref,
+    undefined,
+    typeof schema === "function" ? undefined : schema,
+    typeof schema === "function" ? schema : undefined,
+  )
 }
 
 export let tag = (): Tag => make(make_component_id(), Kind.Tag)

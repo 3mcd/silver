@@ -1,4 +1,5 @@
 import * as Type from "./type"
+import * as Entity from "./entity"
 import * as World from "./world"
 import * as Component from "./component"
 import * as Graph from "./graph"
@@ -6,12 +7,19 @@ import * as Node from "./node"
 import * as QueryBuilder from "./query_builder"
 import * as SparseMap from "./sparse_map"
 
+export type ForEachIteratee<U extends unknown[]> = (...value: U) => void
 export type ForEach<U extends unknown[]> = (
   iteratee: ForEachIteratee<U>,
 ) => void
-export type ForEachIteratee<U extends unknown[]> = (...value: U) => void
+export type ForEachEntityIteratee<U extends unknown[]> = (
+  entity: Entity.T,
+  ...value: U
+) => void
+export type ForEachEntity<U extends unknown[]> = (
+  iteratee: ForEachEntityIteratee<U>,
+) => void
 
-let build_for_each_join = (query: T, join_index: number) => {
+let build_for_each_join = (query: T, join_index: number, entity: boolean) => {
   let i = `i${join_index}` // current node index
   let j = `j${join_index}` // current join index
   let q = `q${join_index}` // current join
@@ -31,6 +39,7 @@ let build_for_each_join = (query: T, join_index: number) => {
   }
   if (join_index === query.joins.length - 1) {
     exp += "$("
+    exp += entity ? "e," : ""
     let fetch: string[] = []
     for (let join_index = 0; join_index < query.joins.length; join_index++) {
       let join = query.joins[join_index]
@@ -41,17 +50,27 @@ let build_for_each_join = (query: T, join_index: number) => {
     exp += fetch.join(",")
     exp += ")"
   } else {
-    exp += build_for_each_join(query, join_index + 1)
+    exp += build_for_each_join(query, join_index + 1, entity)
   }
   exp += "}"
   exp += "}"
   return exp
 }
 
-let compile_for_each = <U extends unknown[]>(
+function compile_for_each<U extends unknown[]>(
   query: T<U>,
   world: World.T,
-): ForEach<U> => {
+): ForEach<U>
+function compile_for_each<U extends unknown[]>(
+  query: T<U>,
+  world: World.T,
+  include_entity: true,
+): ForEachEntity<U>
+function compile_for_each<U extends unknown[]>(
+  query: T<U>,
+  world: World.T,
+  include_entity = false,
+) {
   let body = ""
   body += query.joins
     .map((_, join_index) => `let q${join_index}=Q.joins[${join_index}];`)
@@ -68,13 +87,14 @@ let compile_for_each = <U extends unknown[]>(
     )
     .join("")
   body += "return $=>{"
-  body += build_for_each_join(query, 0)
+  body += build_for_each_join(query, 0, include_entity)
   body += "}"
   return new Function("Q", "W", body)(query, world)
 }
 
 class Query<U extends unknown[] = unknown[]> {
   for_each
+  for_each_entity
   builder
   joins
 
@@ -82,6 +102,7 @@ class Query<U extends unknown[] = unknown[]> {
     this.builder = builder
     this.joins = joins
     this.for_each = compile_for_each(this, world)
+    this.for_each_entity = compile_for_each(this, world, true)
   }
 }
 export type T<U extends unknown[] = unknown[]> = Query<U>

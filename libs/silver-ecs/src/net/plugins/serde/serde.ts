@@ -39,3 +39,5 @@ export let make = () => {
 }
 
 export let res = Component.ref<T>()
+
+export {Interest, Topic} from "./interest"

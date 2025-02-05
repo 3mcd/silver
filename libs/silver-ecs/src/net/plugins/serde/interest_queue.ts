@@ -111,6 +111,12 @@ class InterestQueue {
   is_empty() {
     return this.#heap.length === 0
   }
+
+  amplify(entity: Entity.T, value: number) {
+    let priority = this.priority_of(entity) ?? 0
+    this.remove(entity)
+    this.push(entity, priority + value)
+  }
 }
 
 export type T = InterestQueue
