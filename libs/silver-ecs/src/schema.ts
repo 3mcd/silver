@@ -20,6 +20,41 @@ export const Scalar: Record<Scalar, string> = {
   string,
 }
 
+let bytes_per_scalar = (type: Scalar): number => {
+  switch (type) {
+    case u8:
+    case i8:
+      return 1
+    case u16:
+    case i16:
+      return 2
+    case f32:
+    case u32:
+    case i32:
+      return 4
+    case f64:
+      return 8
+    case string:
+      return 0
+  }
+}
+
+export let bytes_per_element = (type: T): number => {
+  if (typeof type === "string") {
+    return bytes_per_scalar(type)
+  } else {
+    let sum = 0
+    for (let key in type) {
+      sum += bytes_per_element(type[key])
+    }
+    return sum
+  }
+}
+
+export let is_scalar = (value: unknown): value is Scalar => {
+  return typeof value === "string" && value in Scalar
+}
+
 /**
  * A variable-length string.
  */

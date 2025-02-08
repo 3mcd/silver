@@ -22,7 +22,7 @@ class InterestQueue {
 
   #remove(index: number) {
     if (this.#heap.length === 0) {
-      return null
+      return undefined
     }
     this.#swap(index, this.#heap.length - 1)
     let entity = assert_exists(this.#heap.pop())

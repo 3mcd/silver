@@ -23,12 +23,21 @@ class Serde {
     return this
   }
 
+  has(component: Component.T) {
+    return this.#to_iso[component.id] !== undefined
+  }
+
   from_iso(iso: number) {
     return assert_exists(this.#by_iso[iso])
   }
 
   to_iso(component: Component.T) {
     return this.#to_iso[component.id]
+  }
+
+  encoding_from_ref_id(ref_id: number) {
+    let iso = this.#to_iso[ref_id]
+    return assert_exists(this.#ref_encodings[iso])
   }
 }
 

@@ -1,3 +1,4 @@
+import {assert} from "console"
 import * as Component from "./component"
 import * as Entity from "./entity"
 import * as Node from "./node"
@@ -6,7 +7,6 @@ import * as Transaction from "./stage"
 import * as World from "./world"
 
 export type Term = Component.T | Component.PairFn
-
 export type Event<U extends Term[]> = (world: World.T, entity: Entity.T) => void
 
 class Effect<U extends Term[]> implements Node.Listener {
@@ -22,14 +22,22 @@ class Effect<U extends Term[]> implements Node.Listener {
   }
 
   on_node_entities_in(batch: Transaction.Batch): void {
+    if (this.on_match === undefined) {
+      return
+    }
+    assert(this.world !== undefined)
     SparseSet.each(batch.entities, entity => {
-      this.on_match?.(this.world!, entity)
+      this.on_match!(this.world!, entity)
     })
   }
 
   on_node_entities_out(batch: Transaction.Batch): void {
+    if (this.on_unmatch === undefined) {
+      return
+    }
+    assert(this.world !== undefined)
     SparseSet.each(batch.entities, entity => {
-      this.on_unmatch?.(this.world!, entity)
+      this.on_unmatch!(this.world!, entity)
     })
   }
 }

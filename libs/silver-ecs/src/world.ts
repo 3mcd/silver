@@ -205,6 +205,15 @@ class World {
     }
   }
 
+  #resolve_query<U extends unknown[]>(query: QueryBuilder.T<U>): Query.T<U> {
+    let compiled_query = this.#queries.get(query)
+    if (compiled_query === undefined) {
+      compiled_query = Query.make(query, this)
+      this.#queries.set(query, compiled_query)
+    }
+    return compiled_query as Query.T<U>
+  }
+
   identify(id: number) {
     this.#id = id
   }
@@ -374,7 +383,7 @@ class World {
     ref: U,
     value: Component.ValueOf<U>,
   ): EntityBuilder.T
-  with<U extends Component.RefWithMake>(ref: U): EntityBuilder.T
+  with<U extends Component.RefFactory>(ref: U): EntityBuilder.T
   with<U extends Component.Pair>(component: U): EntityBuilder.T
   with(
     component: Component.Tag | Component.Ref | Component.Pair,
@@ -382,31 +391,22 @@ class World {
   ) {
     let builder = EntityBuilder.make(this)
     return Component.is_ref(component)
-      ? builder.with(component, value ?? component.make?.())
+      ? builder.with(component, value ?? component.init?.())
       : builder.with(component)
-  }
-
-  find_query<U extends unknown[]>(query: QueryBuilder.T<U>): Query.T<U> {
-    let compiled_query = this.#queries.get(query)
-    if (compiled_query === undefined) {
-      compiled_query = Query.make(query, this)
-      this.#queries.set(query, compiled_query)
-    }
-    return compiled_query as Query.T<U>
   }
 
   for_each<U extends unknown[]>(
     query: QueryBuilder.T<U>,
     iteratee: Query.ForEachIteratee<U>,
   ) {
-    this.find_query(query).for_each(iteratee)
+    this.#resolve_query(query).for_each(iteratee)
   }
 
   for_each_entity<U extends unknown[]>(
     query: QueryBuilder.T<U>,
     iteratee: Query.ForEachEntityIteratee<U>,
   ) {
-    this.find_query(query).for_each_entity(iteratee)
+    this.#resolve_query(query).for_each_entity(iteratee)
   }
 
   add_effect<const U extends Effect.Term[]>(effect: Effect.T<U>) {

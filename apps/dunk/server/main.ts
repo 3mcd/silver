@@ -66,13 +66,13 @@ let http3_server = new Http3Server({
   privKey: key,
 })
 
-let topics = query(Interest)
+let interests = query(Interest)
 let players = query(IsPlayer)
 
 let amplify_entities: System = world => {
-  world.for_each(topics, topic => {
+  world.for_each(interests, interest => {
     world.for_each_entity(players, player => {
-      topic.amplify(player, 0.1)
+      interest.amplify(player, 0.1)
     })
   })
 }
@@ -87,15 +87,15 @@ let game = app()
   })
 
 let handle_web_transport_session = (wt: WebTransport) => {
-  let interest = game.world().single(Interest)
-  let client = game
-    .world()
+  let world = game.world()
+  let interest = world.single(Interest)
+  let client = world
     .with(Remote, new WebTransportRemote(wt))
     .with(IsPlayer)
     .with(HasInterest(interest))
     .spawn()
   wt.closed.then(() => {
-    game.world().despawn(client)
+    world.despawn(client)
   })
 }
 
