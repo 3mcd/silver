@@ -25,6 +25,9 @@ let recv_message = (buffer: Buffer.T, world: World.T) => {
     case Protocol.MessageType.Identity:
       recv_identity(buffer, world)
       break
+    case Protocol.MessageType.Interest:
+      console.log(buffer.buffer)
+      break
     case Protocol.MessageType.TimeSyncResponse:
       recv_time_sync_response(buffer, world)
       break

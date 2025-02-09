@@ -1,4 +1,4 @@
-import {assert} from "console"
+import {assert} from "#assert"
 import * as Component from "./component"
 import * as Entity from "./entity"
 import * as Node from "./node"

@@ -4,12 +4,16 @@ export class WebTransportRemote implements Transport {
   #writer
   #reader
   #inbox
+  #closed = false
 
   constructor(session: WebTransport) {
     this.#inbox = [] as Uint8Array[]
     this.#writer = session.datagrams.writable.getWriter()
     this.#reader = session.datagrams.readable.getReader()
     this.#listen()
+    session.closed.then(() => {
+      this.#closed = true
+    })
   }
 
   async #listen() {
@@ -27,6 +31,9 @@ export class WebTransportRemote implements Transport {
   }
 
   send(data: Uint8Array) {
+    if (this.#closed) {
+      return
+    }
     this.#writer.write(data)
   }
 
