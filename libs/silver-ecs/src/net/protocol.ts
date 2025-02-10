@@ -6,6 +6,7 @@ import * as Node from "#node"
 import * as Schema from "#schema"
 import * as SparseMap from "#sparse_map"
 import * as World from "#world"
+import {buffer} from "stream/consumers"
 import * as InterestQueue from "./interest_queue"
 import * as Serde from "./serde"
 
@@ -123,14 +124,16 @@ let get_segment_index = (node_id: number) => {
 let write_segment_components = (
   buffer: Buffer.T,
   node_match: Component.T[],
+  serde: Serde.T,
 ) => {
+  Buffer.write_u8(buffer, node_match.length)
   for (let i = 0; i < node_match.length; i++) {
     let component = node_match[i]
     if (Component.is_rel(component)) {
       // TODO: relations
     } else {
       assert(Component.is_ref(component))
-      Buffer.write_u32(buffer, component.id)
+      Buffer.write_u32(buffer, serde.to_iso(component))
     }
   }
 }
@@ -167,6 +170,7 @@ let compute_message_length = (
   serde: Serde.T,
 ) => {
   let offset = buffer.write_offset
+  offset += 1 // segment count
   while (offset < buffer.buffer.maxByteLength) {
     let entity = interest.pop()
     if (entity === undefined) {
@@ -199,17 +203,53 @@ export let encode_interest = (
   let serde = world.get_resource(Serde.res)
   let length = compute_message_length(buffer, interest, world, serde)
   Buffer.grow(buffer, length)
+  Buffer.write_u8(buffer, segment_count)
   SparseMap.each(segment_indices, (node_id, segment_index) => {
     let segment = assert_exists(segments[segment_index])
     let segment_length = assert_exists(SparseMap.get(segment_lengths, node_id))
     let node = assert_exists(SparseMap.get(world.graph.nodes_by_id, node_id))
-    let match = get_node_match(node, serde)
-    Buffer.write_u32(buffer, node_id)
-    Buffer.write_u32(buffer, segment.length)
-    write_segment_components(buffer, match)
-    write_segment_entities(buffer, match, segment, segment_length, world, serde)
+    let node_match = get_node_match(node, serde)
+    Buffer.write_u32(buffer, segment_length)
+    write_segment_components(buffer, node_match, serde)
+    write_segment_entities(
+      buffer,
+      node_match,
+      segment,
+      segment_length,
+      world,
+      serde,
+    )
   })
   segment_count = 0
   SparseMap.clear(segment_indices)
   SparseMap.clear(segment_lengths)
+}
+
+let segment_match = [] as Component.T[]
+
+export let decode_interest = (buffer: Buffer.T, world: World.T) => {
+  let serde = world.get_resource(Serde.res)
+  let segment_count = Buffer.read_u8(buffer)
+  for (let i = 0; i < segment_count; i++) {
+    let segment_length = Buffer.read_u32(buffer)
+    let segment_match_length = Buffer.read_u8(buffer)
+    for (let j = 0; j < segment_match_length; j++) {
+      let component_id_iso = Buffer.read_u32(buffer)
+      let component = serde.from_iso(component_id_iso)
+      segment_match[j] = component
+    }
+    for (let j = 0; j < segment_length; j++) {
+      let entity = Buffer.read_u32(buffer)
+      for (let k = 0; k < segment_match_length; k++) {
+        let component = segment_match[k]
+        if (Component.is_rel(component)) {
+        } else {
+          assert(Component.is_ref(component))
+          let ref_encoding = serde.encoding_from_ref_id(component.id)
+          let ref_store = world.store(component.id)
+          ref_encoding.decode(buffer, entity, ref_store, true)
+        }
+      }
+    }
+  }
 }

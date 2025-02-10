@@ -102,6 +102,10 @@ export let write_u8 = (buffer: Buffer, n: number) => {
   buffer.write_offset += 1
 }
 
+export let write_u8_at = (buffer: Buffer, n: number, offset: number) => {
+  return buffer.view.setUint8(offset, n)
+}
+
 export let write_u16 = (buffer: Buffer, n: number) => {
   grow(buffer, 2)
   buffer.view.setUint16(buffer.write_offset, n, true)

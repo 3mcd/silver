@@ -6,23 +6,28 @@ import {expect, test} from "vitest"
 import * as Interest from "./interest"
 import * as Protocol from "./protocol"
 import * as Serde from "./serde"
-import * as Buffer from "#buffer"
+import * as Buffer from "../buffer"
 
-let A = Component.ref<number>(f32)
-let B = Component.ref<number>(f32)
-let C = Component.ref<number>(f32)
+let A = Component.ref(f32)
+let B = Component.ref(f32)
+let C = Component.ref({foo: f32})
 
 test("interest message", () => {
-  let world = mock_world()
-  world.set_resource(Serde.res, Serde.make().add(A).add(C))
+  let serde = Serde.make().add(A).add(C)
+  let source = mock_world().set_resource(Serde.res, serde).build()
   let buffer = Protocol.init_interest()
   let interest = Interest.Interest.init()
   let entity = Entity.make(0, 0)
-  world.set(entity, A, 12)
-  world.set(entity, B, 13)
-  world.set(entity, C, 14)
+  source.set(entity, A, 12)
+  source.set(entity, B, 13)
+  source.set(entity, C, {foo: 14})
   interest.amplify(entity, 1)
-  Protocol.encode_interest(buffer, interest, world.build())
-  console.log(Buffer.end(buffer))
-  expect(true).toBe(true)
+  Protocol.encode_interest(buffer, interest, source)
+  let target = mock_world().set_resource(Serde.res, serde).build()
+  // skip the message type
+  Buffer.read_u8(buffer)
+  Protocol.decode_interest(buffer, target)
+  expect(target.get(entity, A)).toBe(source.get(entity, A))
+  expect(target.get(entity, B)).toBe(undefined)
+  expect(target.get(entity, C)).toEqual(source.get(entity, C))
 })

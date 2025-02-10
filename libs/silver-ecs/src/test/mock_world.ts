@@ -15,8 +15,8 @@ type MockNode = {
 }
 
 export let mock_world = () => {
+  let entities = new Map<Entity.T, Set<Component.T>>()
   let resources = new Map<Component.Ref, unknown>()
-  let entities = new Map<number, Map<Component.T, unknown>>()
 
   let node_id = 0
   let node_ids = new Map<number, number>()
@@ -37,7 +37,21 @@ export let mock_world = () => {
     return node
   }
 
+  let stores = new Map<number, unknown[]>()
+
+  let get_store = (component_id: number) => {
+    let store = stores.get(component_id)
+    if (store === undefined) {
+      store = []
+      stores.set(component_id, store)
+    }
+    return store
+  }
+
   return {
+    graph: {
+      nodes_by_id,
+    },
     set_resource(res: Component.Ref, value: unknown) {
       resources.set(res, value)
       return this
@@ -49,23 +63,27 @@ export let mock_world = () => {
       return resources.get(res)
     },
     get(entity: Entity.T, component: Component.T) {
-      return assert_exists(entities.get(entity)?.get(component))
+      return get_store(component.id)[entity]
     },
     set(entity: Entity.T, component: Component.T, value: unknown) {
-      let entity_components = entities.get(entity) ?? new Map()
-      entity_components.set(component, value)
-      entities.set(entity, entity_components)
+      get_store(component.id)[entity] = value
+      let set = entities.get(entity)
+      if (set === undefined) {
+        set = new Set()
+        entities.set(entity, set)
+      }
+      set.add(component)
       return this
     },
     get_entity_node(entity: Entity.T) {
-      let map = entities.get(entity)
-      if (map === undefined) {
+      let set = entities.get(entity)
+      if (set === undefined) {
         throw new Error(`entity ${entity} does not exist`)
       }
-      return get_node(Array.from(map.keys()))
+      return get_node(Array.from(set.keys()))
     },
-    graph: {
-      nodes_by_id,
+    store(component_id: number) {
+      return get_store(component_id)
     },
     build() {
       return this as unknown as World.T
