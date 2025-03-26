@@ -9,9 +9,9 @@ class Time {
     this.#t_mono_prev = 0
   }
 
-  advance(t_monotonic: number) {
+  advance(t_mono: number) {
     this.#t_mono_prev = this.#t_mono
-    this.#t_mono = t_monotonic
+    this.#t_mono = t_mono
   }
 
   t_mono() {

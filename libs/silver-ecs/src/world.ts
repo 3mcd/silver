@@ -83,7 +83,6 @@ class World {
 
   #despawn(entity: Entity.T) {
     let node = this.get_entity_node(entity)
-    // this.#unset_values(entity, node.type)
     this.#unset_relations(entity, node.type)
     EntityRegistry.free(this.#entity_registry, entity)
     Stage.move(this.#stage, entity)
@@ -248,8 +247,13 @@ class World {
     this.#ops.push(Op.despawn(entity))
   }
 
+  reserve(entity: Entity.T, type: Type.T, values: unknown[]) {
+    this.#ops.push(Op.spawn(type ?? Type.empty, entity, values as []))
+  }
+
   add<U>(entity: Entity.T, ref: Component.Ref<U>, value: U): void
   add(entity: Entity.T, pair: Component.Pair): void
+  add(entity: Entity.T, tag: Component.Tag): void
   add(entity: Entity.T, component: Component.T, value?: unknown) {
     EntityRegistry.check(this.#entity_registry, entity)
     this.#ops.push(

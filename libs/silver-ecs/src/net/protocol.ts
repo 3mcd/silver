@@ -5,8 +5,8 @@ import * as Entity from "#entity"
 import * as Node from "#node"
 import * as Schema from "#schema"
 import * as SparseMap from "#sparse_map"
+import * as Type from "#type"
 import * as World from "#world"
-import {buffer} from "stream/consumers"
 import * as InterestQueue from "./interest_queue"
 import * as Serde from "./serde"
 
@@ -155,9 +155,9 @@ let write_segment_entities = (
         // TODO: relations
       } else {
         assert(Component.is_ref(component))
-        let ref_value = world.get(entity, component)
+        let ref_out = world.get(entity, component)
         let ref_encoding = serde.encoding_from_ref_id(component.id)
-        ref_encoding.encode(buffer, ref_value)
+        ref_encoding.encode(buffer, ref_out)
       }
     }
   }
@@ -226,6 +226,7 @@ export let encode_interest = (
 }
 
 let segment_match = [] as Component.T[]
+let ref_out = [] as unknown[]
 
 export let decode_interest = (buffer: Buffer.T, world: World.T) => {
   let serde = world.get_resource(Serde.res)
@@ -239,16 +240,39 @@ export let decode_interest = (buffer: Buffer.T, world: World.T) => {
       segment_match[j] = component
     }
     for (let j = 0; j < segment_length; j++) {
-      let entity = Buffer.read_u32(buffer)
-      for (let k = 0; k < segment_match_length; k++) {
-        let component = segment_match[k]
-        if (Component.is_rel(component)) {
-        } else {
-          assert(Component.is_ref(component))
-          let ref_encoding = serde.encoding_from_ref_id(component.id)
-          let ref_store = world.store(component.id)
-          ref_encoding.decode(buffer, entity, ref_store, true)
+      let entity = Buffer.read_u32(buffer) as Entity.T
+      if (world.is_alive(entity)) {
+        for (let k = 0; k < segment_match_length; k++) {
+          let component = segment_match[k]
+          if (world.has(entity, component)) {
+            if (Component.is_ref(component)) {
+              let ref_encoding = serde.encoding_from_ref_id(component.id)
+              let ref_store = world.store(component.id)
+              ref_encoding.decode(buffer, entity, ref_store, true)
+            }
+          } else {
+            if (Component.is_ref(component)) {
+              let ref_encoding = serde.encoding_from_ref_id(component.id)
+              ref_encoding.decode(buffer, entity, ref_out, true)
+              world.add(entity, component, ref_out[entity])
+            } else {
+              world.add(entity, component as Component.Tag & Component.Pair)
+            }
+          }
         }
+      } else {
+        let type = Type.make(segment_match.slice(0, segment_match_length))
+        let values = [] as unknown[]
+        for (let k = 0; k < segment_match_length; k++) {
+          let component = segment_match[k]
+          if (Component.is_rel(component)) {
+          } else {
+            let ref_encoding = serde.encoding_from_ref_id(component.id)
+            ref_encoding.decode(buffer, entity, ref_out, true)
+            values.push(ref_out[entity])
+          }
+        }
+        world.reserve(entity, type, values)
       }
     }
   }
