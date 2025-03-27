@@ -23,7 +23,7 @@ let identify_clients = Effect.make(
     let buffer = Protocol.init_identity()
     world.add(entity, ClientId, client_id)
     Protocol.write_identity(buffer, client_id)
-    client_remote.send(Buffer.end(buffer))
+    client_remote.send(buffer.end())
   },
   (world, entity) => {
     let server = world.get_resource(res)

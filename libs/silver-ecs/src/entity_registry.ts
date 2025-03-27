@@ -48,23 +48,23 @@ export let encode = (registry: T, buffer?: Buffer.T) => {
   if (buffer === undefined) {
     buffer = Buffer.make(size)
   } else {
-    Buffer.grow(buffer, size)
+    buffer.grow(size)
   }
-  Buffer.write_u32(buffer, registry.next_entity_id)
-  Buffer.write_u32(buffer, registry.alive_count)
-  Buffer.write_u32(buffer, registry.dense.length)
+  buffer.write_u32(registry.next_entity_id)
+  buffer.write_u32(registry.alive_count)
+  buffer.write_u32(registry.dense.length)
   for (let i = 0; i < registry.dense.length; i++) {
-    Buffer.write_u32(buffer, registry.dense[i])
+    buffer.write_u32(registry.dense[i])
   }
 }
 
 export let decode = (buffer: Buffer.T) => {
   let registry = make()
-  registry.next_entity_id = Buffer.read_u32(buffer)
-  registry.alive_count = Buffer.read_u32(buffer)
-  let count = Buffer.read_u32(buffer)
+  registry.next_entity_id = buffer.read_u32()
+  registry.alive_count = buffer.read_u32()
+  let count = buffer.read_u32()
   for (let i = 0; i < count; i++) {
-    let entity = Buffer.read_u32(buffer) as Entity.T
+    let entity = buffer.read_u32() as Entity.T
     registry.dense.push(entity)
     registry.sparse[entity] = i
   }

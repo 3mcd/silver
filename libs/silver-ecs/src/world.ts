@@ -9,7 +9,6 @@ import * as Node from "./node"
 import * as Op from "./op"
 import * as Query from "./query"
 import * as QueryBuilder from "./query_builder"
-import * as SparseSet from "./sparse_set"
 import * as Stage from "./stage"
 import * as Type from "./type"
 
@@ -101,11 +100,11 @@ class World {
       }
       let object_node = this.get_entity_node(object)
       // grant the object entity the relation's inverse tag
-      if (!Type.has_component(object_node.type, rel_inverse)) {
+      if (!object_node.type.has_component(rel_inverse)) {
         this.#apply_add(Op.add(Type.make([rel_inverse]), object, []))
       }
       let next_object_node = this.get_entity_node(object)
-      Node.set_object(next_object_node, rel_inverse.id, subject, object)
+      next_object_node.set_object(rel_inverse.id, subject, object)
     }
   }
 
@@ -117,7 +116,7 @@ class World {
       let object_id = Component.parse_pair_entity(pair)
       let object = Entity.make(object_id, this.#id)
       let object_node = this.get_entity_node(object)
-      switch (Node.unpair(object_node, rel.inverse.id, entity, object)) {
+      switch (object_node.unpair(rel.inverse.id, entity, object)) {
         // Object has no more subjects, so remove the relation's inverse tag.
         case 2:
         case 3:
@@ -142,18 +141,18 @@ class World {
       if (subjects === undefined) {
         continue
       }
-      if (Type.has_component(next_node.type, rel_inverse)) {
-        SparseSet.each(subjects, subject => {
-          Node.set_object(next_node, rel_inverse.id, subject, object)
+      if (next_node.type.has_component(rel_inverse)) {
+        subjects.each(subject => {
+          next_node.set_object(rel_inverse.id, subject, object)
         })
       }
-      Node.delete_object(prev_node, rel_inverse.id, object)
+      prev_node.delete_object(rel_inverse.id, object)
     }
   }
 
   #apply_spawn(op: Op.Spawn) {
     let {entity, type, values} = op
-    let node = Graph.find_or_create_node_by_type(this.graph, type)
+    let node = this.graph.find_or_create_node_by_type(type)
     this.#set_values(entity, type, values)
     this.#set_relations(entity, type)
     Stage.move(this.#stage, entity, node)
@@ -170,8 +169,8 @@ class World {
     this.#set_values(entity, type, values)
     this.#set_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
-    let next_type = Type.from_sum(prev_node.type, type)
-    let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
+    let next_type = prev_node.type.from_sum(type)
+    let next_node = this.graph.find_or_create_node_by_type(next_type)
     this.#move_relations(entity, prev_node, next_node)
     Stage.move(this.#stage, entity, next_node)
   }
@@ -181,8 +180,8 @@ class World {
     // this.#unset_values(entity, type)
     this.#unset_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
-    let next_type = Type.from_difference(prev_node.type, type)
-    let next_node = Graph.find_or_create_node_by_type(this.graph, next_type)
+    let next_type = prev_node.type.from_difference(type)
+    let next_node = this.graph.find_or_create_node_by_type(next_type)
     this.#move_relations(entity, prev_node, next_node)
     Stage.move(this.#stage, entity, next_node)
   }
@@ -282,7 +281,7 @@ class World {
 
   has(entity: Entity.T, component: Component.T): boolean {
     let node = this.get_entity_node(entity)
-    return Type.has_component(node.type, component)
+    return node.type.has_component(component)
   }
 
   get<U extends Component.Ref>(entity: Entity.T, ref: U) {
@@ -324,7 +323,7 @@ class World {
     if (rel.topology !== Component.Topology.Exclusive) {
       throw new Error("Cannot get exclusive relative of inclusive relation")
     }
-    if (!Type.has_component(node.type, rel)) {
+    if (!node.type.has_component(rel)) {
       return undefined
     }
     for (let i = 0; i < node.type.pairs.length; i++) {
@@ -363,19 +362,19 @@ class World {
   }
 
   single(ref: Component.Ref): Entity.T {
-    let node = Graph.find_or_create_node_by_component(this.graph, ref)
+    let node = this.graph.find_or_create_node_by_component(ref)
     // Fast path for singleton components
-    if (SparseSet.size(node.entities) > 0) {
-      return SparseSet.at(node.entities, 0)
+    if (node.entities.size() > 0) {
+      return node.entities.at(0)
     }
     let entity: Entity.T | undefined
-    Node.traverse_right(node, visited_node => {
+    node.traverse_right(visited_node => {
       // TODO: implement a better way to terminate traversal
       if (entity !== undefined) {
         return false
       }
-      if (SparseSet.size(visited_node.entities) > 0) {
-        entity = SparseSet.at(visited_node.entities, 0)
+      if (visited_node.entities.size() > 0) {
+        entity = visited_node.entities.at(0)
         return false
       }
     })
@@ -416,8 +415,8 @@ class World {
   add_effect<const U extends Effect.Term[]>(effect: Effect.T<U>) {
     let components = effect.terms.map(c => (typeof c === "function" ? c() : c))
     let type = Type.make(components)
-    let node = Graph.find_or_create_node_by_type(this.graph, type)
-    Node.add_listener(node, effect, true)
+    let node = this.graph.find_or_create_node_by_type(type)
+    node.add_listener(effect, true)
     effect.world = this
   }
 }

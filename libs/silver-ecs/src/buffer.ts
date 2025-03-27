@@ -37,6 +37,148 @@ class Buffer {
     this.buffer = init
     this.view = new DataView(this.buffer)
   }
+
+  readable() {
+    return this.read_offset < this.write_offset
+  }
+
+  grow(bytes: number) {
+    let length = bytes + this.write_offset
+    if (length > this.buffer.byteLength) {
+      assert("resize" in this.buffer)
+      assert(this.buffer.resizable)
+      this.buffer.resize(length * GROW_FACTOR)
+    }
+  }
+
+  write_i8(n: number) {
+    this.grow(1)
+    this.view.setInt8(this.write_offset, n)
+    this.write_offset += 1
+  }
+
+  write_i16(n: number) {
+    this.grow(2)
+    this.view.setInt16(this.write_offset, n, true)
+    this.write_offset += 2
+  }
+
+  write_i32(n: number) {
+    this.grow(4)
+    this.view.setInt32(this.write_offset, n, true)
+    this.write_offset += 4
+  }
+
+  write_u8(n: number) {
+    this.grow(1)
+    this.view.setUint8(this.write_offset, n)
+    this.write_offset += 1
+  }
+
+  write_u8_at(n: number, offset: number) {
+    this.view.setUint8(offset, n)
+  }
+
+  write_u16(n: number) {
+    this.grow(2)
+    this.view.setUint16(this.write_offset, n, true)
+    this.write_offset += 2
+  }
+
+  write_u32(n: number) {
+    let offset = this.write_offset
+    this.grow(4)
+    this.view.setUint32(offset, n, true)
+    this.write_offset += 4
+    return offset
+  }
+
+  write_u32_at(n: number, offset: number) {
+    this.view.setUint32(offset, n, true)
+  }
+
+  write_f32(n: number) {
+    this.grow(4)
+    this.view.setFloat32(this.write_offset, n, true)
+    this.write_offset += 4
+  }
+
+  write_f64(n: number) {
+    this.grow(8)
+    this.view.setFloat64(this.write_offset, n, true)
+    this.write_offset += 8
+  }
+
+  read_i8() {
+    let n = this.view.getInt8(this.read_offset)
+    this.read_offset += 1
+    return n
+  }
+
+  read_i16() {
+    let n = this.view.getInt16(this.read_offset, true)
+    this.read_offset += 2
+    return n
+  }
+
+  read_i32() {
+    let n = this.view.getInt32(this.read_offset, true)
+    this.read_offset += 4
+    return n
+  }
+
+  read_u8() {
+    let n = this.view.getUint8(this.read_offset)
+    this.read_offset += 1
+    return n
+  }
+
+  peek_u8() {
+    return this.view.getUint8(this.read_offset)
+  }
+
+  read_u16() {
+    let n = this.view.getUint16(this.read_offset, true)
+    this.read_offset += 2
+    return n
+  }
+
+  read_u32() {
+    let n = this.view.getUint32(this.read_offset, true)
+    this.read_offset += 4
+    return n
+  }
+
+  peek_u32() {
+    return this.view.getUint32(this.read_offset, true)
+  }
+
+  read_f32() {
+    let n = this.view.getFloat32(this.read_offset, true)
+    this.read_offset += 4
+    return n
+  }
+
+  read_f64() {
+    let n = this.view.getFloat64(this.read_offset, true)
+    this.read_offset += 8
+    return n
+  }
+
+  free() {
+    if ("resizable" in this.buffer) {
+      let i = ceil_log_2(this.buffer.maxByteLength)
+      let arena = arenas[i]
+      if (arena.length < 100) {
+        arenas[i].push(this.buffer)
+      }
+    }
+  }
+
+  end() {
+    this.free()
+    return new Uint8Array(this.buffer.slice(0, this.write_offset))
+  }
 }
 
 export type T = Buffer
@@ -63,148 +205,4 @@ export function make(init: number | ArrayBufferLike, max_length?: number) {
     // a length was passed; create a new fixed-length ArrayBuffer
     return new Buffer(new ArrayBuffer(init))
   }
-}
-
-export let readable = (buffer: Buffer) => {
-  return buffer.read_offset < buffer.write_offset
-}
-
-export let grow = (buffer: Buffer, bytes: number) => {
-  let length = bytes + buffer.write_offset
-  if (length > buffer.buffer.byteLength) {
-    assert("resize" in buffer.buffer)
-    assert(buffer.buffer.resizable)
-    buffer.buffer.resize(length * GROW_FACTOR)
-  }
-}
-
-export let write_i8 = (buffer: Buffer, n: number) => {
-  grow(buffer, 1)
-  buffer.view.setInt8(buffer.write_offset, n)
-  buffer.write_offset += 1
-}
-
-export let write_i16 = (buffer: Buffer, n: number) => {
-  grow(buffer, 2)
-  buffer.view.setInt16(buffer.write_offset, n, true)
-  buffer.write_offset += 2
-}
-
-export let write_i32 = (buffer: Buffer, n: number) => {
-  grow(buffer, 4)
-  buffer.view.setInt32(buffer.write_offset, n, true)
-  buffer.write_offset += 4
-}
-
-export let write_u8 = (buffer: Buffer, n: number) => {
-  grow(buffer, 1)
-  buffer.view.setUint8(buffer.write_offset, n)
-  buffer.write_offset += 1
-}
-
-export let write_u8_at = (buffer: Buffer, n: number, offset: number) => {
-  return buffer.view.setUint8(offset, n)
-}
-
-export let write_u16 = (buffer: Buffer, n: number) => {
-  grow(buffer, 2)
-  buffer.view.setUint16(buffer.write_offset, n, true)
-  buffer.write_offset += 2
-}
-
-export let write_u32 = (buffer: Buffer, n: number) => {
-  let offset = buffer.write_offset
-  grow(buffer, 4)
-  buffer.view.setUint32(offset, n, true)
-  buffer.write_offset += 4
-  return offset
-}
-
-export let write_u32_at = (buffer: Buffer, n: number, offset: number) => {
-  return buffer.view.setUint32(offset, n, true)
-}
-
-export let write_f32 = (buffer: Buffer, n: number) => {
-  grow(buffer, 4)
-  buffer.view.setFloat32(buffer.write_offset, n, true)
-  return (buffer.write_offset += 4)
-}
-
-export let write_f64 = (buffer: Buffer, n: number) => {
-  grow(buffer, 8)
-  buffer.view.setFloat64(buffer.write_offset, n, true)
-  return (buffer.write_offset += 8)
-}
-
-export let read_i8 = (buffer: Buffer) => {
-  let n = buffer.view.getInt8(buffer.read_offset)
-  buffer.read_offset += 1
-  return n
-}
-
-export let read_i16 = (buffer: Buffer) => {
-  let n = buffer.view.getInt16(buffer.read_offset, true)
-  buffer.read_offset += 2
-  return n
-}
-
-export let read_i32 = (buffer: Buffer) => {
-  let n = buffer.view.getInt32(buffer.read_offset, true)
-  buffer.read_offset += 4
-  return n
-}
-
-export let read_u8 = (buffer: Buffer) => {
-  let n = buffer.view.getUint8(buffer.read_offset)
-  buffer.read_offset += 1
-  return n
-}
-
-export let peek_u8 = (buffer: Buffer) => {
-  let n = buffer.view.getUint8(buffer.read_offset)
-  return n
-}
-
-export let read_u16 = (buffer: Buffer) => {
-  let n = buffer.view.getUint16(buffer.read_offset, true)
-  buffer.read_offset += 2
-  return n
-}
-
-export let read_u32 = (buffer: Buffer) => {
-  let n = buffer.view.getUint32(buffer.read_offset, true)
-  buffer.read_offset += 4
-  return n
-}
-
-export let peek_u32 = (buffer: Buffer) => {
-  let n = buffer.view.getUint32(buffer.read_offset, true)
-  return n
-}
-
-export let read_f32 = (buffer: Buffer) => {
-  let n = buffer.view.getFloat32(buffer.read_offset, true)
-  buffer.read_offset += 4
-  return n
-}
-
-export let read_f64 = (buffer: Buffer) => {
-  let n = buffer.view.getFloat64(buffer.read_offset, true)
-  buffer.read_offset += 8
-  return n
-}
-
-export let free = (buffer: Buffer) => {
-  if ("resizable" in buffer.buffer) {
-    let i = ceil_log_2(buffer.buffer.maxByteLength)
-    let arena = arenas[i]
-    if (arena.length < 100) {
-      arenas[i].push(buffer.buffer)
-    }
-  }
-}
-
-export let end = (buffer: Buffer) => {
-  free(buffer)
-  return new Uint8Array(buffer.buffer.slice(0, buffer.write_offset))
 }

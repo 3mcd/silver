@@ -1,10 +1,9 @@
 import {assert_exists} from "./assert"
-import * as Type from "./type"
 import * as Entity from "./entity"
 import * as Hash from "./hash"
+import * as Node from "./node"
 import * as SparseMap from "./sparse_map"
 import * as SparseSet from "./sparse_set"
-import * as Node from "./node"
 
 export type Iteratee = (
   batch: SparseSet.T<Entity.T>,
@@ -28,56 +27,61 @@ export class Batch {
     this.prev_node = prev_node
     this.next_node = next_node
   }
+
+  add(entity: Entity.T) {
+    this.entities.add(entity)
+  }
+
+  delete(entity: Entity.T) {
+    this.entities.delete(entity)
+  }
+
+  each(callback: (entity: Entity.T) => void) {
+    this.entities.each(callback)
+  }
 }
 
 let emit_spawned_entities = (batch: Batch) => {
-  Node.traverse_left(
-    assert_exists(batch.next_node),
-    function emit_spawned_entities(visit: Node.T) {
-      Node.emit_entities_in(visit, batch)
-    },
-  )
+  let next_node = assert_exists(batch.next_node)
+  next_node.traverse_left(function emit_spawned_entities(visit: Node.T) {
+    visit.emit_entities_in(batch)
+  })
 }
 
 let emit_despawned_entities = (batch: Batch) => {
-  Node.traverse_left(
-    assert_exists(batch.prev_node),
-    function emit_despawned_entities_inner(visit: Node.T) {
-      Node.emit_entities_out(visit, batch)
-    },
-  )
+  let prev_node = assert_exists(batch.prev_node)
+  prev_node.traverse_left(function emit_despawned_entities_inner(
+    visit: Node.T,
+  ) {
+    visit.emit_entities_out(batch)
+  })
 }
 
 let emit_moved_entities = (batch: Batch) => {
+  let prev_node = assert_exists(batch.prev_node)
+  let next_node = assert_exists(batch.next_node)
   // Find the type the source and destination nodes have in common.
-  let intersection = Type.from_intersection(
-    assert_exists(batch.prev_node).type,
+  let intersection = prev_node.type.from_intersection(
     assert_exists(batch.next_node).type,
   )
-  Node.traverse_left(
-    assert_exists(batch.next_node),
-    function emit_upgraded_entities(visit: Node.T) {
-      if (
-        intersection.vec_hash === visit.type.vec_hash ||
-        Type.is_superset(intersection, visit.type)
-      ) {
-        return false
-      }
-      Node.emit_entities_in(visit, batch)
-    },
-  )
-  Node.traverse_left(
-    assert_exists(batch.prev_node),
-    function emit_downgraded_entities(node: Node.T) {
-      if (
-        intersection.vec_hash === node.type.vec_hash ||
-        Type.is_superset(intersection, node.type)
-      ) {
-        return false
-      }
-      Node.emit_entities_out(node, batch)
-    },
-  )
+  next_node.traverse_left(function emit_upgraded_entities(visit: Node.T) {
+    if (
+      intersection.vec_hash === visit.type.vec_hash ||
+      intersection.is_superset(visit.type)
+    ) {
+      return false
+    }
+    visit.emit_entities_in(batch)
+  })
+  prev_node.traverse_left(function emit_downgraded_entities(node: Node.T) {
+    if (
+      intersection.vec_hash === node.type.vec_hash ||
+      intersection.is_superset(node.type)
+    ) {
+      return false
+    }
+    node.emit_entities_out(batch)
+  })
 }
 
 class Stage {
@@ -97,12 +101,12 @@ export let apply = (stage: T) => {
   let emit_entity_batch = (batch: Batch) => {
     let {entities, prev_node, next_node} = batch
     // Invoke the iteratee for this batch.
-    SparseSet.each(entities, function move_entity(entity) {
+    batch.each(function move_entity(entity) {
       if (prev_node) {
-        Node.remove_entity(prev_node, entity)
+        prev_node.remove_entity(entity)
       }
       if (next_node) {
-        Node.insert_entity(next_node, entity)
+        next_node.insert_entity(entity)
       }
     })
     // If the next node is undefined, the batch contains entities that were
@@ -110,15 +114,15 @@ export let apply = (stage: T) => {
     if (next_node === undefined) {
       emit_despawned_entities(batch)
       // Stop tracking the despawned entities' nodes.
-      SparseSet.each(entities, function clear_entity_node(entity) {
-        SparseMap.delete(stage.targets_by_entity, entity)
+      batch.each(function clear_entity_node(entity) {
+        stage.targets_by_entity.delete(entity)
       })
       return
     }
     // Otherwise, the batch contains entities that were spawned or moved. Track
     // their new nodes.
-    SparseSet.each(entities, function finalize_entity_node(entity) {
-      SparseMap.set(stage.targets_by_entity, entity, next_node)
+    batch.each(function finalize_entity_node(entity) {
+      stage.targets_by_entity.set(entity, next_node)
     })
     if (prev_node === undefined) {
       emit_spawned_entities(batch)
@@ -127,30 +131,30 @@ export let apply = (stage: T) => {
     }
   }
   // Emit all batches to interested nodes.
-  SparseMap.each_value(stage.batches_by_key, emit_entity_batch)
+  stage.batches_by_key.each_value(emit_entity_batch)
   // Clear the stage.
-  SparseMap.clear(stage.batches_by_key)
-  SparseMap.clear(stage.batches_by_entity)
+  stage.batches_by_key.clear()
+  stage.batches_by_entity.clear()
 }
 
 export let get_prev_entity_node = (
   stage: T,
   entity: Entity.T,
-): Node.T | undefined => SparseMap.get(stage.targets_by_entity, entity)
+): Node.T | undefined => stage.targets_by_entity.get(entity)
 
 export let get_next_entity_node = (
   stage: T,
   entity: Entity.T,
 ): Node.T | undefined =>
-  SparseMap.get(stage.batches_by_entity, entity)?.next_node ??
+  stage.batches_by_entity.get(entity)?.next_node ??
   get_prev_entity_node(stage, entity)
 
 export let move = (stage: T, entity: Entity.T, next_node?: Node.T) => {
-  let prev_batch = SparseMap.get(stage.batches_by_entity, entity)
+  let prev_batch = stage.batches_by_entity.get(entity)
   // If the entity was already moved since the last drain, remove it from its
   // previous batch.
   if (prev_batch !== undefined) {
-    SparseSet.delete(prev_batch.entities, entity)
+    prev_batch.delete(entity)
   }
   // If the entity is being moved to the same node it was already in,
   // do nothing.
@@ -162,14 +166,14 @@ export let move = (stage: T, entity: Entity.T, next_node?: Node.T) => {
   // implies deletion.
   let next_batch_key = make_batch_key(prev_node?.id ?? 0, next_node?.id ?? 0)
   // Get or create the next batch.
-  let next_batch = SparseMap.get(stage.batches_by_key, next_batch_key)
+  let next_batch = stage.batches_by_key.get(next_batch_key)
   if (next_batch === undefined) {
     next_batch = new Batch(prev_node, next_node)
-    SparseMap.set(stage.batches_by_key, next_batch_key, next_batch)
+    stage.batches_by_key.set(next_batch_key, next_batch)
   }
   // Add the entity to the next batch and store its key.
-  SparseSet.add(next_batch.entities, entity)
-  SparseMap.set(stage.batches_by_entity, entity, next_batch)
+  next_batch.add(entity)
+  stage.batches_by_entity.set(entity, next_batch)
 }
 
 export let make = (): T => {

@@ -8,61 +8,58 @@ export class SparseSet<U extends number> {
     this.dense = []
     this.sparse = []
   }
+
+  has(value: U): boolean {
+    return this.sparse[value] !== undefined
+  }
+
+  add(value: U): number {
+    return (this.sparse[value] ??= this.dense.push(value) - 1)
+  }
+
+  at(index: number): U {
+    return this.dense[index]
+  }
+
+  indexOf(value: U): number {
+    return this.sparse[value] ?? -1
+  }
+
+  delete(value: U): void {
+    let index = this.sparse[value]
+    if (index !== undefined) {
+      let key = this.dense[this.dense.length - 1]
+      this.dense[index] = key
+      this.dense.pop()
+      this.sparse[key] = index
+      this.sparse[value] = undefined!
+    }
+  }
+
+  clear(): void {
+    let value: number | undefined
+    while ((value = this.dense.pop()) !== undefined) {
+      this.sparse[value] = undefined!
+    }
+  }
+
+  values(): U[] {
+    return this.dense
+  }
+
+  size(): number {
+    return this.dense.length
+  }
+
+  each(iteratee: ForEachIteratee<U>): void {
+    for (let i = this.dense.length - 1; i >= 0; i--) {
+      iteratee(this.dense[i])
+    }
+  }
 }
+
 export type T<U extends number = number> = SparseSet<U>
 
 export let make = <U extends number>(): T<U> => {
   return new SparseSet<U>()
-}
-
-export let has = <U extends number>(set: T<U>, value: U): boolean => {
-  return set.sparse[value] !== undefined
-}
-
-export let add = <U extends number>(set: T<U>, value: U): number => {
-  return (set.sparse[value] ??= set.dense.push(value) - 1)
-}
-
-export let at = <U extends number>(set: T<U>, index: number): U => {
-  return set.dense[index]
-}
-
-export let index_of = <U extends number>(set: T<U>, value: U): number => {
-  return set.sparse[value] ?? -1
-}
-
-let delete_ = <U extends number>(set: T<U>, value: U): void => {
-  let index = set.sparse[value]
-  if (index !== undefined) {
-    let key = set.dense[set.dense.length - 1]
-    set.dense[index] = key
-    set.dense.pop()
-    set.sparse[key] = index
-    set.sparse[value] = undefined!
-  }
-}
-export {delete_ as delete}
-
-export let clear = <U extends number>(set: T<U>): void => {
-  let value: number | undefined
-  while ((value = set.dense.pop()) !== undefined) {
-    set.sparse[value] = undefined!
-  }
-}
-
-export let values = <U extends number>(set: T<U>): U[] => {
-  return set.dense
-}
-
-export let size = <U extends number>(set: T<U>): number => {
-  return set.dense.length
-}
-
-export let each = <U extends number>(
-  set: SparseSet<U>,
-  iteratee: ForEachIteratee<U>,
-) => {
-  for (let i = set.dense.length - 1; i >= 0; i--) {
-    iteratee(set.dense[i])
-  }
 }

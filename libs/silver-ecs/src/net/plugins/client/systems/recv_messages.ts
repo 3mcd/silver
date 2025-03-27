@@ -21,7 +21,7 @@ let recv_time_sync_response = (buffer: Buffer.T, world: World.T) => {
 }
 
 let recv_message = (buffer: Buffer.T, world: World.T) => {
-  switch (Buffer.read_u8(buffer)) {
+  switch (buffer.read_u8()) {
     case Protocol.MessageType.Identity:
       recv_identity(buffer, world)
       break

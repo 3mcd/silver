@@ -45,8 +45,7 @@ class QueryBuilderNode<T extends unknown[] = unknown[]> {
       component = component()
     }
     if (Component.is_rel(component) && join !== undefined) {
-      SparseMap.set(
-        this.joins,
+      this.joins.set(
         component.id,
         join(new QueryBuilderNode(component.inverse)),
       )

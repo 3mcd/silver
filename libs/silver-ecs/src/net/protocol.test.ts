@@ -25,7 +25,7 @@ test("interest message", () => {
   Protocol.encode_interest(buffer, interest, source)
   let target = mock_world().set_resource(Serde.res, serde).build()
   // skip the message type
-  Buffer.read_u8(buffer)
+  buffer.read_u8()
   Protocol.decode_interest(buffer, target)
   expect(target.get(entity, A)).toBe(source.get(entity, A))
   expect(target.get(entity, B)).toBe(undefined)

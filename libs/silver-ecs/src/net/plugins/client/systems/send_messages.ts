@@ -14,9 +14,9 @@ export let send_messages: System = world => {
 
   if (t_mono - client.t_time_sync > 0.2) {
     world.for_each(remotes, remote => {
-      let request = Protocol.init_time_sync_request()
-      Protocol.write_time_sync_request(request, t_mono)
-      remote.send(Buffer.end(request))
+      let message = Protocol.init_time_sync_request()
+      Protocol.write_time_sync_request(message, t_mono)
+      remote.send(message.end())
     })
     client.t_time_sync = t_mono
   }

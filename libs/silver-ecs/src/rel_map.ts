@@ -19,8 +19,8 @@ class RelMap<U extends number> implements RelMap<U> {
   set_object(source: U, target: U) {
     let b = (this.a_to_b[source] ??= SparseSet.make())
     let a = (this.b_to_a[target] ??= SparseSet.make())
-    SparseSet.add(b, target)
-    SparseSet.add(a, source)
+    b.add(target)
+    a.add(source)
   }
 
   has_subject(subject: U): boolean {
@@ -37,13 +37,13 @@ class RelMap<U extends number> implements RelMap<U> {
       return 0
     }
     let res = 0
-    SparseSet.delete(b, object)
-    if (SparseSet.size(b) === 0) {
+    b.delete(object)
+    if (b.size() === 0) {
       delete this.a_to_b[subject]
       res |= 1
     }
-    SparseSet.delete(a, subject)
-    if (SparseSet.size(a) === 0) {
+    a.delete(subject)
+    if (a.size() === 0) {
       delete this.b_to_a[object]
       res |= 2
     }
@@ -55,13 +55,13 @@ class RelMap<U extends number> implements RelMap<U> {
     if (a === undefined) {
       return
     }
-    SparseSet.each(a, subject => {
+    a.each(subject => {
       let b = this.a_to_b[subject]
       if (b === undefined) {
         return
       }
-      SparseSet.delete(b, object)
-      if (SparseSet.size(b) === 0) {
+      b.delete(object)
+      if (b.size() === 0) {
         delete this.a_to_b[subject]
       }
     })
@@ -73,13 +73,13 @@ class RelMap<U extends number> implements RelMap<U> {
     if (b === undefined) {
       return
     }
-    SparseSet.each(b, target => {
+    b.each(target => {
       let a = this.b_to_a[target]
       if (a === undefined) {
         return
       }
-      SparseSet.delete(a, source)
-      if (SparseSet.size(a) === 0) {
+      a.delete(source)
+      if (a.size() === 0) {
         delete this.b_to_a[target]
       }
     })

@@ -58,6 +58,131 @@ class Type {
       this.pair_counts[pair_rel_id] = (this.pair_counts[pair_rel_id] ?? 0) + 1
     }
   }
+
+  is_superset(other: Type): boolean {
+    if (this.vec.length === 0) {
+      return false
+    }
+    if (other.vec.length === 0) {
+      return true
+    }
+    if (this.vec_hash === other.vec_hash) {
+      return false
+    }
+    let ia = 0
+    let ib = 0
+    while (ia < this.vec.length && ib < other.vec.length) {
+      let ida = this.vec[ia].id
+      let idb = other.vec[ib].id
+      if (ida < idb) {
+        ia++
+      } else if (ida > idb) {
+        return false
+      } else {
+        ia++
+        ib++
+      }
+    }
+    return ib === other.vec.length
+  }
+
+  xor_hash(other: Type): number {
+    if (this.vec_hash === other.vec_hash) {
+      return 0
+    }
+    let xor = 0
+    let ia = 0
+    let ib = 0
+    while (ia < this.vec.length && ib < other.vec.length) {
+      let ida = this.vec[ia].id
+      let idb = other.vec[ib].id
+      if (ida === idb) {
+        ia++
+        ib++
+      } else if (ida < idb) {
+        xor = Hash.hash_word(xor, ida)
+        ia++
+      } else if (ida > idb) {
+        xor = Hash.hash_word(xor, idb)
+        ib++
+      }
+    }
+    while (ia < this.vec.length) {
+      xor = Hash.hash_word(xor, this.vec[ia].id)
+      ia++
+    }
+    while (ib < other.vec.length) {
+      xor = Hash.hash_word(xor, other.vec[ib].id)
+      ib++
+    }
+    return xor
+  }
+
+  xor_hash_u(other: Type): number {
+    return this.xor_hash(other) >>> 0
+  }
+
+  from_sum(other: Type): Type {
+    let components = this.vec.concat(other.vec)
+    for (let i = 0; i < other.pairs.length; i++) {
+      let pair = other.pairs[i]
+      let pair_rel_id = Entity.parse_hi(pair.id)
+      if (!this.has_component_id(pair_rel_id)) {
+        let pair_rel = Component.find_by_id(pair_rel_id)!
+        components.push(pair_rel)
+      }
+    }
+    return make(components)
+  }
+
+  from_difference(other: Type): Type {
+    let components: Component.T[] = []
+    outer: for (let i = 0; i < this.vec.length; i++) {
+      let component = this.vec[i]
+      if (!other.has_component(component)) {
+        if (Component.is_rel(component)) {
+          for (let j = 0; j < this.pairs.length; j++) {
+            let pair = this.pairs[j]
+            let pair_rel_id = Entity.parse_hi(pair.id)
+            if (
+              this.pair_counts[pair_rel_id] === other.pair_counts[pair_rel_id]
+            ) {
+              continue outer
+            }
+          }
+        }
+        components.push(component)
+      }
+    }
+    return make(components)
+  }
+
+  from_intersection(other: Type): Type {
+    let components: Component.T[] = []
+    for (let i = 0; i < this.vec.length; i++) {
+      let component = this.vec[i]
+      if (other.has_component(component)) {
+        components.push(component)
+      }
+    }
+    return make(components)
+  }
+
+  has_component(component: Component.T): boolean {
+    return this.set.has(component.id)
+  }
+
+  has_component_id(component_id: number): boolean {
+    return this.set.has(component_id)
+  }
+
+  with_component(component: Component.T): Type {
+    return make(this.vec.concat(component))
+  }
+
+  without_component(component: Component.T): Type {
+    return make(this.vec.filter(c => c.id !== component.id))
+  }
 }
 
 export type T = Type
@@ -87,163 +212,3 @@ export let make = (components: Component.T[]) => {
 }
 
 export let empty = make([])
-
-/**
- * Check if type `a` contains every component of type `b`.
- */
-export let is_superset = (a: T, b: T): boolean => {
-  // This type is an empty type.
-  if (a.vec.length === 0) {
-    return false
-  }
-  // Compared type is an empty type.
-  if (b.vec.length === 0) {
-    return true
-  }
-  // Compared type is equivalent to this type.
-  if (a.vec_hash === b.vec_hash) {
-    return false
-  }
-  let ia = 0
-  let ib = 0
-  while (ia < a.vec.length && ib < b.vec.length) {
-    let ida = a.vec[ia].id
-    let idb = b.vec[ib].id
-    if (ida < idb) {
-      ia++
-    } else if (ida > idb) {
-      return false
-    } else {
-      ia++
-      ib++
-    }
-  }
-  return ib === b.vec.length
-}
-
-/**
- * Compute a unique integer that represents the difference between types `a`
- * and `b`.
- */
-export let xor_hash = (a: T, b: T): number => {
-  if (a.vec_hash === b.vec_hash) {
-    return 0
-  }
-  let xor = 0
-  let ia = 0
-  let ib = 0
-  while (ia < a.vec.length && ib < b.vec.length) {
-    let ida = a.vec[ia].id
-    let idb = b.vec[ib].id
-    if (ida === idb) {
-      ia++
-      ib++
-    } else if (ida < idb) {
-      xor = Hash.hash_word(xor, ida)
-      ia++
-    } else if (ida > idb) {
-      xor = Hash.hash_word(xor, idb)
-      ib++
-    }
-  }
-  while (ia < a.vec.length) {
-    xor = Hash.hash_word(xor, a.vec[ia].id)
-    ia++
-  }
-  while (ib < b.vec.length) {
-    xor = Hash.hash_word(xor, b.vec[ib].id)
-    ib++
-  }
-  return xor
-}
-
-/**
- * Compute a unique unsigned integer that represents the difference between
- * types `a` and `b`.
- */
-export let xor_hash_u = (a: T, b: T): number => {
-  return xor_hash(a, b) >>> 0
-}
-
-/**
- * Compute the type that contains all components from types `a` and `b`.
- */
-export let from_sum = (a: T, b: T) => {
-  let components = a.vec.concat(b.vec)
-  // add relations when the sum would add a new pair of that relation
-  for (let i = 0; i < b.pairs.length; i++) {
-    let pair = b.pairs[i]
-    let pair_rel_id = Entity.parse_hi(pair.id)
-    if (has_component_id(a, pair_rel_id) === false) {
-      let pair_rel = Component.find_by_id(pair_rel_id)!
-      components.push(pair_rel)
-    }
-  }
-  return make(components)
-}
-
-/**
- * Compute the type that contains all components that are unique to type `a`.
- */
-export let from_difference = (a: T, b: T) => {
-  let components: Component.T[] = []
-  outer: for (let i = 0; i < a.vec.length; i++) {
-    let component = a.vec[i]
-    if (has_component(b, component) === false) {
-      // strip relations when the difference would remove all pairs of that
-      // relation
-      if (Component.is_rel(component)) {
-        for (let j = 0; j < a.pairs.length; j++) {
-          let pair = a.pairs[j]
-          let pair_rel_id = Entity.parse_hi(pair.id)
-          if (a.pair_counts[pair_rel_id] === b.pair_counts[pair_rel_id]) {
-            continue outer
-          }
-        }
-      }
-      components.push(component)
-    }
-  }
-  return make(components)
-}
-
-/**
- * Compute the type that contains all components that are common to both types `a`
- * and `b`.
- */
-export let from_intersection = (a: T, b: T) => {
-  let components: Component.T[] = []
-  for (let i = 0; i < a.vec.length; i++) {
-    let component = a.vec[i]
-    if (has_component(b, component)) {
-      components.push(component)
-    }
-  }
-  return make(components)
-}
-
-/**
- * Check if type `a` contains component `component`.
- */
-export let has_component = (a: T, component: Component.T): boolean => {
-  return a.set.has(component.id)
-}
-
-/**
- * Check if type `a` contains component with id `component_id`.
- */
-export let has_component_id = (a: T, component_id: number): boolean => {
-  return a.set.has(component_id)
-}
-
-/**
- * Add component `component` to type `a`.
- */
-export let with_component = (a: T, component: Component.T) =>
-  make(a.vec.concat(component))
-
-/**
- * Remove component `component` from type `a`.
- */
-export let without_component = (a: T, component: Component.T) =>
-  make(a.vec.filter(c => c.id !== component.id))

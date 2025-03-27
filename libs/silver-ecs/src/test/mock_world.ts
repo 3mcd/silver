@@ -29,10 +29,10 @@ export let mock_world = () => {
       id = node_id++
       node_ids.set(vec_hash, id)
     }
-    let node = SparseMap.get(nodes_by_id, id)
+    let node = nodes_by_id.get(id)
     if (node === undefined) {
       node = {id, type: {vec, vec_hash, refs: vec.filter(Component.is_ref)}}
-      SparseMap.set(nodes_by_id, id, node)
+      nodes_by_id.set(id, node)
     }
     return node
   }

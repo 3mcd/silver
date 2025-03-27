@@ -15,7 +15,7 @@ export class EntityBuilder {
   with<U extends Component.Tag | Component.Pair>(component: U): T
   with<U extends Component.Ref>(ref: U, value: Component.ValueOf<U>): T
   with(component: Component.T, value?: unknown) {
-    this.#type = Type.with_component(this.#type, component)
+    this.#type = this.#type.with_component(component)
     if (Component.is_ref(component)) {
       this.#values[component.id] = value
     }

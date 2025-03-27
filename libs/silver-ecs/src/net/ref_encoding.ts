@@ -9,7 +9,7 @@ type Decode = (b: Buffer.T, e: number, w: unknown[], create?: boolean) => void
 
 let make_encode_exp = (schema: Schema.T, exp: string = "d") => {
   if (typeof schema === "string") {
-    return `${Schema.Scalar[schema]}(b,${exp});`
+    return `b.write_${Schema.Scalar[schema]}(${exp});`
   }
   let fields = Object.entries(schema)
   let out = ""
@@ -31,7 +31,7 @@ let make_encode_exp_create = (schema: Schema.T) => {
 
 let make_decode_exp_noop = (schema: Schema.T): string => {
   if (typeof schema === "string") {
-    return `${Schema.Scalar[schema]}(b);`
+    return `b.read_${Schema.Scalar[schema]}();`
   }
   let fields = Object.values(schema)
   let out = ""
@@ -44,7 +44,7 @@ let make_decode_exp_noop = (schema: Schema.T): string => {
 
 let make_decode_exp = (schema: Schema.T, exp: string) => {
   if (typeof schema === "string") {
-    return `${exp}=${Schema.Scalar[schema]}(b);`
+    return `${exp}=b.read_${Schema.Scalar[schema]}();`
   }
   let fields = Object.entries(schema)
   let out = ""
@@ -54,54 +54,16 @@ let make_decode_exp = (schema: Schema.T, exp: string) => {
   return out
 }
 
-let compileEncoder = (schema: Schema.T): Encode => {
+let compile_encode = (schema: Schema.T): Encode => {
   let body = `return(b,d)=>{${make_encode_exp(schema)}}`
-  return Function(
-    "i8",
-    "i16",
-    "i32",
-    "u8",
-    "u16",
-    "u32",
-    "f32",
-    "f64",
-    body,
-  )(
-    Buffer.write_i8,
-    Buffer.write_i16,
-    Buffer.write_i32,
-    Buffer.write_u8,
-    Buffer.write_u16,
-    Buffer.write_u32,
-    Buffer.write_f32,
-    Buffer.write_f64,
-  )
+  return Function(body)()
 }
 
-let compileDecoder = (schema: Schema.T): Decode => {
+let compile_decode = (schema: Schema.T): Decode => {
   let body = `return(b,e,w,c=false)=>{${make_decode_dec(
     schema,
   )}${make_decode_exp(schema, typeof schema === "object" ? "d" : "w[e]")}}`
-  return Function(
-    "i8",
-    "i16",
-    "i32",
-    "u8",
-    "u16",
-    "u32",
-    "f32",
-    "f64",
-    body,
-  )(
-    Buffer.read_i8,
-    Buffer.read_i16,
-    Buffer.read_i32,
-    Buffer.read_u8,
-    Buffer.read_u16,
-    Buffer.read_u32,
-    Buffer.read_f32,
-    Buffer.read_f64,
-  )
+  return Function(body)()
 }
 
 class RefEncoding implements T {
@@ -109,8 +71,8 @@ class RefEncoding implements T {
   decode
   constructor(ref: Component.Ref) {
     let schema = assert_exists(ref.schema)
-    this.encode = compileEncoder(schema)
-    this.decode = compileDecoder(schema)
+    this.encode = compile_encode(schema)
+    this.decode = compile_decode(schema)
   }
 }
 

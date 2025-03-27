@@ -135,13 +135,12 @@ let init_query_joins = (
   joins: Join[] = [],
 ) => {
   let join = new Join(query_builder_node.terms, query_builder_node.join_on)
-  let node = Graph.find_or_create_node_by_type(
-    world.graph,
+  let node = world.graph.find_or_create_node_by_type(
     Type.make(query_builder_node.terms),
   )
-  Node.add_listener(node, join, true)
+  node.add_listener(join, true)
   joins.push(join)
-  SparseMap.each_value(query_builder_node.joins, query_builder_inner => {
+  query_builder_node.joins.each_value(query_builder_inner => {
     init_query_joins(query_builder_inner, world, joins)
   })
   return joins
