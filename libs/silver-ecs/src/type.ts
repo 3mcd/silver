@@ -211,4 +211,8 @@ export let make = (components: Component.T[]) => {
     new Type(vec, vec_hash))
 }
 
+export let single = (component: Component.T) => {
+  return make([component])
+}
+
 export let empty = make([])

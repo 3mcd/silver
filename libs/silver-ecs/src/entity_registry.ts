@@ -6,44 +6,44 @@ class EntityRegistry {
   alive_count = 0
   dense = [] as Entity.T[]
   sparse = [] as number[]
+
+  alloc(hi = 0) {
+    if (this.alive_count !== this.dense.length) {
+      return this.dense[this.alive_count++]
+    }
+    let entity = Entity.make(this.next_entity_id++, hi)
+    let entity_index = this.dense.push(entity) - 1
+    this.alive_count++
+    this.sparse[entity] = entity_index
+    return entity
+  }
+
+  free(entity: Entity.T) {
+    let entity_index = this.sparse[entity]
+    let last_alive_entity = this.dense[--this.alive_count]
+    let last_alive_entity_index = this.sparse[last_alive_entity]
+    this.dense[entity_index] = last_alive_entity
+    this.dense[last_alive_entity_index] = entity
+    this.sparse[entity] = last_alive_entity_index
+    this.sparse[last_alive_entity] = entity_index
+  }
+
+  is_alive(entity: Entity.T) {
+    return this.sparse[entity] < this.alive_count
+  }
+
+  check(entity: Entity.T) {
+    if (!this.is_alive(entity)) {
+      throw new Error(`Entity ${entity} is not alive`)
+    }
+  }
 }
 
 export type T = EntityRegistry
 
 export let make = () => new EntityRegistry()
 
-export let alloc = (registry: T, hi = 0) => {
-  if (registry.alive_count !== registry.dense.length) {
-    return registry.dense[registry.alive_count++]
-  }
-  let entity = Entity.make(registry.next_entity_id++, hi)
-  let entity_index = registry.dense.push(entity) - 1
-  registry.alive_count++
-  registry.sparse[entity] = entity_index
-  return entity
-}
-
-export let free = (registry: T, entity: Entity.T) => {
-  let entity_index = registry.sparse[entity]
-  let last_alive_entity = registry.dense[--registry.alive_count]
-  let last_alive_entity_index = registry.sparse[last_alive_entity]
-  registry.dense[entity_index] = last_alive_entity
-  registry.dense[last_alive_entity_index] = entity
-  registry.sparse[entity] = last_alive_entity_index
-  registry.sparse[last_alive_entity] = entity_index
-}
-
-export let is_alive = (registry: T, entity: Entity.T) => {
-  return registry.sparse[entity] < registry.alive_count
-}
-
-export let check = (registry: T, entity: Entity.T) => {
-  if (!is_alive(registry, entity)) {
-    throw new Error(`Entity ${entity} is not alive`)
-  }
-}
-
-export let encode = (registry: T, buffer?: Buffer.T) => {
+export let encode = (registry: EntityRegistry, buffer?: Buffer.T) => {
   let size = 4 + 4 + 4 + registry.dense.length * 4
   if (buffer === undefined) {
     buffer = Buffer.make(size)
@@ -59,7 +59,7 @@ export let encode = (registry: T, buffer?: Buffer.T) => {
 }
 
 export let decode = (buffer: Buffer.T) => {
-  let registry = make()
+  let registry = new EntityRegistry()
   registry.next_entity_id = buffer.read_u32()
   registry.alive_count = buffer.read_u32()
   let count = buffer.read_u32()

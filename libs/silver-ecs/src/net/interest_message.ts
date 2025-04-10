@@ -203,6 +203,7 @@ export let decode_interest = (
               let ref_encoding = serde.encoding_from_ref_id(component.id)
               ref_encoding.decode(buffer, entity, ref_out, true)
               world.add(entity, component, ref_out[entity])
+              ref_out[entity] = undefined
             } else {
               world.add(entity, component as Component.Tag & Component.Pair)
             }
@@ -219,6 +220,7 @@ export let decode_interest = (
             ref_encoding.decode(buffer, entity, ref_out, init)
             if (init) {
               values.push(ref_out[entity])
+              ref_out[entity] = undefined
             }
           }
         }

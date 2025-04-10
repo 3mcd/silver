@@ -7,40 +7,40 @@ test("free entities", () => {
   let registry = EntityRegistry.make()
   let alive: Entity.T[] = []
   for (let i = 0; i < 10; i++) {
-    alive.push(EntityRegistry.alloc(registry, 1))
+    alive.push(registry.alloc(1))
   }
-  let e0 = EntityRegistry.alloc(registry, 1)
+  let e0 = registry.alloc(1)
   for (let i = 0; i < 3; i++) {
-    alive.push(EntityRegistry.alloc(registry, 1))
+    alive.push(registry.alloc(1))
   }
-  expect(EntityRegistry.is_alive(registry, e0)).toBe(true)
-  EntityRegistry.free(registry, e0)
-  expect(EntityRegistry.is_alive(registry, e0)).toBe(false)
-  let e1 = EntityRegistry.alloc(registry, 1)
+  expect(registry.is_alive(e0)).toBe(true)
+  registry.free(e0)
+  expect(registry.is_alive(e0)).toBe(false)
+  let e1 = registry.alloc(1)
   for (let i = 0; i < 5; i++) {
-    alive.push(EntityRegistry.alloc(registry, 1))
+    alive.push(registry.alloc(1))
   }
-  expect(EntityRegistry.is_alive(registry, e1)).toBe(true)
-  EntityRegistry.free(registry, e1)
-  expect(EntityRegistry.is_alive(registry, e1)).toBe(false)
+  expect(registry.is_alive(e1)).toBe(true)
+  registry.free(e1)
+  expect(registry.is_alive(e1)).toBe(false)
   for (let i = 0; i < alive.length; i++) {
-    expect(EntityRegistry.is_alive(registry, alive[i])).toBe(true)
+    expect(registry.is_alive(alive[i])).toBe(true)
   }
 })
 
 test("check", () => {
   let registry = EntityRegistry.make()
-  let e0 = EntityRegistry.alloc(registry, 1)
-  let e1 = EntityRegistry.alloc(registry, 1)
-  EntityRegistry.free(registry, e0)
-  expect(() => EntityRegistry.check(registry, e0)).toThrow()
-  expect(() => EntityRegistry.check(registry, e1)).not.toThrow()
+  let e0 = registry.alloc(1)
+  let e1 = registry.alloc(1)
+  registry.free(e0)
+  expect(() => registry.check(e0)).toThrow()
+  expect(() => registry.check(e1)).not.toThrow()
 })
 
 test("encode/decode", () => {
   let registry_a = EntityRegistry.make()
-  EntityRegistry.alloc(registry_a, 1)
-  EntityRegistry.alloc(registry_a, 1)
+  registry_a.alloc(1)
+  registry_a.alloc(1)
   let buffer = Buffer.make(0, 100)
   EntityRegistry.encode(registry_a, buffer)
   let registry_b = EntityRegistry.decode(buffer)

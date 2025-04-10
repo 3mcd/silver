@@ -1,4 +1,4 @@
-import {assert_exists} from "./assert"
+import {assert, assert_exists} from "./assert"
 import * as Component from "./component"
 import * as Effect from "./effect"
 import * as Entity from "./entity"
@@ -16,6 +16,10 @@ let err_missing_res = "missing resource"
 let err_missing_entity = "missing entity"
 let err_missing_entity_single = "no entity found for single"
 let err_missing_entity_exclusive = "missing exclusive relative"
+let err_missing_pair =
+  "Unexpected error: entity has exclusive relation component without a pair"
+let err_inclusive = "Cannot get exclusive relative of inclusive relation"
+let err_self_rel = "Cannot relate an entity to itself"
 
 export const $graph = Symbol()
 
@@ -83,7 +87,7 @@ class World {
   #despawn(entity: Entity.T) {
     let node = this.get_entity_node(entity)
     this.#unset_relations(entity, node.type)
-    EntityRegistry.free(this.#entity_registry, entity)
+    this.#entity_registry.free(entity)
     Stage.move(this.#stage, entity)
   }
 
@@ -95,13 +99,11 @@ class World {
       let rel_inverse = rel.inverse
       let object_id = Component.parse_pair_entity(pair)
       let object = Entity.make(object_id, this.#id)
-      if (object === subject) {
-        throw new Error("Cannot relate an entity to itself")
-      }
+      assert(object !== subject, err_self_rel)
       let object_node = this.get_entity_node(object)
       // grant the object entity the relation's inverse tag
       if (!object_node.type.has_component(rel_inverse)) {
-        this.#apply_add(Op.add(Type.make([rel_inverse]), object, []))
+        this.#apply_add(Op.add(Type.single(rel_inverse), object, []))
       }
       let next_object_node = this.get_entity_node(object)
       next_object_node.set_object(rel_inverse.id, subject, object)
@@ -120,7 +122,7 @@ class World {
         // Object has no more subjects, so remove the relation's inverse tag.
         case 2:
         case 3:
-          this.#apply_remove(Op.remove(Type.make([rel.inverse]), object))
+          this.#apply_remove(Op.remove(Type.single(rel.inverse), object))
           break
         default:
           break
@@ -236,13 +238,13 @@ class World {
   spawn(): Entity.T
   spawn(type: Type.T, values: unknown[]): Entity.T
   spawn(type?: Type.T, values?: unknown[]): Entity.T {
-    let entity = EntityRegistry.alloc(this.#entity_registry, this.#id)
+    let entity = this.#entity_registry.alloc(this.#id)
     this.#ops.push(Op.spawn(type ?? Type.empty, entity, values as []))
     return entity
   }
 
   despawn(entity: Entity.T) {
-    EntityRegistry.check(this.#entity_registry, entity)
+    this.#entity_registry.check(entity)
     this.#ops.push(Op.despawn(entity))
   }
 
@@ -254,18 +256,18 @@ class World {
   add(entity: Entity.T, pair: Component.Pair): void
   add(entity: Entity.T, tag: Component.Tag): void
   add(entity: Entity.T, component: Component.T, value?: unknown) {
-    EntityRegistry.check(this.#entity_registry, entity)
+    this.#entity_registry.check(entity)
     this.#ops.push(
       Op.add(
-        Type.make([component]),
+        Type.single(component),
         entity,
-        (value
+        value
           ? (() => {
               let arr = []
               arr[component.id] = value
-              return arr
+              return arr as []
             })()
-          : []) as any,
+          : [],
       ),
     )
   }
@@ -274,8 +276,8 @@ class World {
     entity: Entity.T,
     component: Component.Ref | Component.Tag | Component.Pair,
   ) {
-    if (EntityRegistry.is_alive(this.#entity_registry, entity)) {
-      this.#ops.push(Op.remove(Type.make([component]), entity))
+    if (this.#entity_registry.is_alive(entity)) {
+      this.#ops.push(Op.remove(Type.single(component), entity))
     }
   }
 
@@ -320,23 +322,19 @@ class World {
 
   get_exclusive_relative_opt(entity: Entity.T, rel: Component.Rel) {
     let node = this.get_entity_node(entity)
-    if (rel.topology !== Component.Topology.Exclusive) {
-      throw new Error("Cannot get exclusive relative of inclusive relation")
-    }
+    assert(rel.topology === Component.Topology.Exclusive, err_inclusive)
     if (!node.type.has_component(rel)) {
       return undefined
     }
     for (let i = 0; i < node.type.pairs.length; i++) {
       let pair = node.type.pairs[i]
-      let rel_id = Entity.parse_hi(pair.id)
+      let rel_id = Component.parse_pair_rel_id(pair)
       if (rel_id === rel.id) {
-        let object_id = Entity.parse_lo(pair.id)
+        let object_id = Component.parse_pair_entity(pair)
         return Entity.make(object_id, this.#id)
       }
     }
-    throw new Error(
-      "Unexpected error: entity has exclusive relation component without a pair",
-    )
+    throw new Error(err_missing_pair)
   }
 
   get_exclusive_relative(
@@ -353,7 +351,7 @@ class World {
   }
 
   is_alive(entity: Entity.T) {
-    return EntityRegistry.is_alive(this.#entity_registry, entity)
+    return this.#entity_registry.is_alive(entity)
   }
 
   store(component_id: number) {
@@ -403,6 +401,7 @@ class World {
     iteratee: Query.ForEachIteratee<U>,
   ) {
     this.#resolve_query(query).for_each(iteratee)
+    return this
   }
 
   for_each_entity<U extends unknown[]>(

@@ -4,6 +4,7 @@ import * as Component from "#component"
 import * as World from "#world"
 import * as SparseMap from "#sparse_map"
 import {hash_words} from "#hash"
+import * as Type from "#type"
 
 type MockNode = {
   id: number
@@ -75,6 +76,26 @@ export let mock_world = () => {
       set.add(component)
       return this
     },
+    has(entity: Entity.T, component: Component.T) {
+      let set = entities.get(entity)
+      if (set === undefined) {
+        return false
+      }
+      return set.has(component)
+    },
+    add(entity: Entity.T, component: Component.T, value = null) {
+      if (value !== undefined) {
+        this.set(entity, component, value)
+      } else {
+        let set = entities.get(entity)
+        if (set === undefined) {
+          set = new Set()
+          entities.set(entity, set)
+        }
+        set.add(component)
+      }
+      return this
+    },
     get_entity_node(entity: Entity.T) {
       let set = entities.get(entity)
       if (set === undefined) {
@@ -87,6 +108,22 @@ export let mock_world = () => {
     },
     build() {
       return this as unknown as World.T
+    },
+    is_alive(entity: Entity.T) {
+      return entities.has(entity)
+    },
+    reserve(entity: Entity.T, type: Type.T, values: unknown[]) {
+      let j = 0
+      for (let i = 0; i < type.vec.length; i++) {
+        let component = type.vec[i]
+        if (Component.is_ref(component)) {
+          let value = values[j]
+          this.set(entity, component, value)
+          j++
+        } else {
+          this.set(entity, component, null)
+        }
+      }
     },
   }
 }

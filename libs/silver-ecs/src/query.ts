@@ -1,9 +1,7 @@
 import * as Component from "./component"
 import * as Entity from "./entity"
-import * as Graph from "./graph"
 import * as Node from "./node"
 import * as QueryBuilder from "./query_builder"
-import * as SparseMap from "./sparse_map"
 import * as Type from "./type"
 import * as World from "./world"
 
@@ -38,8 +36,8 @@ let build_for_each_join = (
     exp += `for(let ${j}=0;${j}<rt.length;${j}++){`
     exp += `let e${join_index}=rt[${j}];`
   } else {
-    exp += `for(let ${j}=0;${j}<${n}.entities.dense.length;${j}++){`
-    exp += `let e${join_index}=${n}.entities.dense[${j}];`
+    exp += `for(let ${j}=0;${j}<${n}.entities.size();${j}++){`
+    exp += `let e${join_index}=${n}.entities.at(${j});`
   }
   if (join_index === query.joins.length - 1) {
     exp += "$("
