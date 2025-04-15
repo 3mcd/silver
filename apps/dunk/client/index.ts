@@ -2,8 +2,8 @@ import {app} from "silver-ecs"
 import {Client, Remote, Serde} from "silver-ecs/net"
 import {Time, Timestep, Timesync} from "silver-ecs/plugins"
 import {Player, Render} from "../plugins"
+import {WebTransportRemote} from "../remote"
 import {serde} from "../serde"
-import {WebTransportRemote} from "../transport"
 
 let game = app()
   .use(Time.plugin)

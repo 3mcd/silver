@@ -6,8 +6,8 @@ import {app, query, System} from "silver-ecs"
 import {HasInterest, Interest, Remote, Serde, Server} from "silver-ecs/net"
 import {Time} from "silver-ecs/plugins"
 import {IsPlayer} from "../plugins/player/plugin"
+import {WebTransportRemote} from "../remote"
 import {serde} from "../serde"
-import {WebTransportRemote} from "../transport"
 
 let key = await readFile("./key.pem", {encoding: "utf8"})
 let cert = await readFile("./cert.pem", {encoding: "utf8"})
