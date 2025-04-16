@@ -1,11 +1,12 @@
 import {expect, it} from "vitest"
-import {System, make as app, when} from "../../app/index.ts"
+import {make as app} from "../../app/index.ts"
+import * as System from "../../app/system.ts"
 import * as Time from "../time/plugin.ts"
 import * as Timestep from "../time_step/plugin.ts"
 import * as Timesync from "./plugin.ts"
 
 it("controls the timestep using an estimated server time offset", () => {
-  let add_sample_system: System = world => {
+  let add_sample_system: System.Fn = world => {
     let time = world.get_resource(Time.res)
     let time_sync = world.get_resource(Timesync.res)
     let t_client = time.t_mono() + 1
@@ -16,7 +17,7 @@ it("controls the timestep using an estimated server time offset", () => {
     .use(Time.plugin)
     .use(Timestep.plugin)
     .use(Timesync.plugin)
-    .add_system(add_sample_system, when(Timesync.collect))
+    .add_system(add_sample_system, System.when(Timesync.collect))
   let time_sync = game.world().get_resource(Timesync.res)
   let time_step = game.world().get_resource(Timestep.res)
   let t = 0

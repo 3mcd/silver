@@ -1,4 +1,5 @@
-import {after, App, before, when} from "#app/index"
+import {App} from "#app/index"
+import * as System from "#app/system"
 import * as Range from "#app/range"
 import * as Time from "#plugins/time/plugin"
 import * as World from "#world"
@@ -18,9 +19,12 @@ let default_config: Config = {
   overshoot: true,
 }
 
-export let advance = Range.make(after(Time.advance))
-export let control = Range.make(after(Time.advance), before(advance))
-export let logical = Range.make(when(advance), when(steps))
+export let advance = Range.make(System.after(Time.advance))
+export let control = Range.make(
+  System.after(Time.advance),
+  System.before(advance),
+)
+export let logical = Range.make(System.when(advance), System.when(steps))
 
 export let plugin = (app: App, config?: Partial<Config>) => {
   let stepper_config = {...default_config, ...config}
@@ -28,8 +32,13 @@ export let plugin = (app: App, config?: Partial<Config>) => {
   let timestep = Timestep.make(stepper)
   app
     .add_resource(Timestep.res, timestep)
-    .add_system(advance_timestep, when(advance), before(logical))
-    .add_system(increment_step, when(advance), when(steps), after(logical))
+    .add_system(advance_timestep, System.when(advance), System.before(logical))
+    .add_system(
+      increment_step,
+      System.when(advance),
+      System.when(steps),
+      System.after(logical),
+    )
 }
 
 export * from "./time_step.ts"

@@ -1,4 +1,4 @@
-import {after, App, before, Effect, Query, when, World} from "silver-ecs"
+import {App, Effect, Query, System, World} from "silver-ecs"
 import {Time, Timestep} from "silver-ecs/plugins"
 import {canvas, circle, clear, context, transform} from "./canvas"
 import {Angvel, Color, Name, Orbits, Position, Radius} from "./data"
@@ -74,9 +74,13 @@ let game = App.make()
       .spawn()
     body(world, "moon", "#aaa", 5, 0, 1, 10).with(Orbits(earth)).spawn()
   })
-  .add_system(move_satellites, before(clear_canvas), when(Timestep.logical))
+  .add_system(
+    move_satellites,
+    System.before(clear_canvas),
+    System.when(Timestep.logical),
+  )
   .add_system(clear_canvas)
-  .add_system(draw_bodies, after(clear_canvas))
+  .add_system(draw_bodies, System.after(clear_canvas))
   .add_effect(log_orbits)
 
 let loop = () => {

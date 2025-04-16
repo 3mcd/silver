@@ -1,4 +1,5 @@
-import {App, when} from "#app/index"
+import {App} from "#app/index"
+
 import * as Range from "#app/range"
 import {ref} from "#component"
 import * as Effect from "#effect"
@@ -9,6 +10,7 @@ import {Remote} from "#net/remote"
 import * as Server from "./server.ts"
 import {recv_messages} from "./systems/recv_messages.ts"
 import {send_interests} from "./systems/send_interests.ts"
+import * as System from "#app/system"
 
 export let res = ref<Server.t>()
 export let recv = Range.make()
@@ -38,7 +40,7 @@ let identify_clients = Effect.make([Remote], identify_client, release_client)
 export let plugin = (app: App) => {
   app
     .add_resource(res, Server.make())
-    .add_system(recv_messages, when(recv))
-    .add_system(send_interests, when(send))
+    .add_system(recv_messages, System.when(recv))
+    .add_system(send_interests, System.when(send))
     .add_effect(identify_clients)
 }

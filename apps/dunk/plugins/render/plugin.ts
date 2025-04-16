@@ -19,7 +19,7 @@ import {
 } from "dgel"
 import {mat4} from "gl-matrix"
 import {cube} from "primitive-geometry"
-import {after, App, Query, Range, ref, when} from "silver-ecs"
+import {App, Query, Range, Component, System} from "silver-ecs"
 import typed_array_concat from "typed-array-concat"
 import typed_array_interleave from "typed-array-interleave"
 import {IsPlayer} from "../player/plugin"
@@ -210,7 +210,7 @@ let draw_geometry_command = new Command({
 
 // ecs
 
-let res = ref<Context>()
+let res = Component.ref<Context>()
 
 let clear: App.System = world => {}
 
@@ -244,6 +244,6 @@ let render = Range.make()
 export let plugin: App.Plugin = app => {
   app
     .add_resource(res, context)
-    .add_system(clear, when(render))
-    .add_system(draw, when(render), after(clear))
+    .add_system(clear, System.when(render))
+    .add_system(draw, System.when(render), System.after(clear))
 }

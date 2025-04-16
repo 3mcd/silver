@@ -1,22 +1,23 @@
 import {expect, it, vi} from "vitest"
-import {after, make as app, before, System} from "../../app/index.ts"
+import {make as app} from "../../app/index.ts"
+import * as System from "#app/system"
 import * as Time from "./plugin.ts"
 
 it("advances time during Time.advance", () => {
   let t_mono_a: number | undefined
   let t_mono_b: number | undefined
-  let sys_before: System = world => {
+  let sys_before: System.Fn = world => {
     let time = world.get_resource(Time.res)
     t_mono_a = time.t_mono()
   }
-  let sys_after: System = world => {
+  let sys_after: System.Fn = world => {
     let time = world.get_resource(Time.res)
     t_mono_b = time.t_mono()
   }
   app()
     .use(Time.plugin)
-    .add_system(sys_before, before(Time.advance))
-    .add_system(sys_after, after(Time.advance))
+    .add_system(sys_before, System.before(Time.advance))
+    .add_system(sys_after, System.after(Time.advance))
     .set_resource(Time.time, 1)
     .run()
   expect(t_mono_a).toBe(0)
@@ -30,18 +31,18 @@ it("uses performance.now() if Time.time is not set", () => {
   vi.advanceTimersByTime(t_ms)
   let t_mono_a: number | undefined
   let t_mono_b: number | undefined
-  let sys_before: System = world => {
+  let sys_before: System.Fn = world => {
     let time = world.get_resource(Time.res)
     t_mono_a = time.t_mono()
   }
-  let sys_after: System = world => {
+  let sys_after: System.Fn = world => {
     let time = world.get_resource(Time.res)
     t_mono_b = time.t_mono()
   }
   app()
     .use(Time.plugin)
-    .add_system(sys_before, before(Time.advance))
-    .add_system(sys_after, after(Time.advance))
+    .add_system(sys_before, System.before(Time.advance))
+    .add_system(sys_after, System.after(Time.advance))
     .run()
   expect(t_mono_a).toBe(0)
   expect(t_mono_b).toBe(t)

@@ -1,5 +1,5 @@
-import {ref, u8} from "silver-ecs"
+import {Component, Data} from "silver-ecs"
 
-export let Test = ref({
-  n: u8,
+export let Test = Component.ref({
+  n: Data.u8,
 })

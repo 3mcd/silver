@@ -1,11 +1,11 @@
-import {ref, rel} from "silver-ecs"
+import {Component} from "silver-ecs"
 
 type Position = {x: number; y: number}
 
-export let Position = ref<Position>({x: "f32", y: "f32"})
-export let Radius = ref<number>("f32")
-export let Angvel = ref<number>("f32")
-export let Name = ref<string>("string")
-export let Color = ref<string>("string")
+export let Position = Component.ref<Position>({x: "f32", y: "f32"})
+export let Radius = Component.ref<number>("f32")
+export let Angvel = Component.ref<number>("f32")
+export let Name = Component.ref<string>("string")
+export let Color = Component.ref<string>("string")
 
-export let Orbits = rel({exclusive: true})
+export let Orbits = Component.rel({exclusive: true})

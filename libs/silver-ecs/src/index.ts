@@ -1,5 +1,5 @@
 /**
- * Traits given to entities to describe their data.
+ * A trait given to an entity.
  */
 export * as Component from "./component.ts"
 
@@ -12,6 +12,11 @@ export * as Range from "./app/range.ts"
  * A pairing of a `World` to a declaratively ordered schedule of systems.
  */
 export * as App from "./app/index.ts"
+
+/**
+ * A function that implements entity behavior.
+ */
+export * as System from "./app/system.ts"
 
 /**
  * An interface for reading and writing data to fixed or resizable `ArrayBuffer` instances.
@@ -30,7 +35,6 @@ export * as Query from "./query_builder.ts"
 
 export * as World from "./world.ts"
 
-export {after, before, when} from "./app/index.ts"
-export {ref, rel, tag} from "./component.ts"
-export * from "./schema.ts"
-export {make as type} from "./type.ts"
+export * as Data from "./schema.ts"
+
+export * as Entity from "./entity.ts"

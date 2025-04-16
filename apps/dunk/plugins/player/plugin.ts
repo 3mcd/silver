@@ -1,5 +1,5 @@
-import {Plugin, tag} from "silver-ecs"
+import {App, Component} from "silver-ecs"
 
-export let IsPlayer = tag()
+export let IsPlayer = Component.tag()
 
-export let plugin: Plugin = app => {}
+export let plugin: App.Plugin = app => {}

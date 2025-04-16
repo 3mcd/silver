@@ -32,6 +32,7 @@ export class World {
   #resources
   #stage
 
+  /** @internal */
   readonly graph: Graph.t
 
   constructor(id = 0) {
@@ -45,6 +46,7 @@ export class World {
     this.graph = Graph.make()
   }
 
+  /** @internal */
   get_entity_node(entity: Entity.t) {
     return assert_exists(
       Stage.get_next_entity_node(this.#stage, entity),
