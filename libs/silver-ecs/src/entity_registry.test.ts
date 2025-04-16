@@ -1,11 +1,11 @@
 import {test, expect} from "vitest"
-import * as Entity from "./entity"
-import * as EntityRegistry from "./entity_registry"
-import * as Buffer from "./buffer"
+import * as Entity from "./entity.ts"
+import * as EntityRegistry from "./entity_registry.ts"
+import * as Buffer from "./buffer.ts"
 
 test("free entities", () => {
   let registry = EntityRegistry.make()
-  let alive: Entity.T[] = []
+  let alive: Entity.t[] = []
   for (let i = 0; i < 10; i++) {
     alive.push(registry.alloc(1))
   }

@@ -1,19 +1,19 @@
-import * as Type from "./type"
-import * as Entity from "./entity"
-import * as SparseMap from "./sparse_map"
-import * as SparseSet from "./sparse_set"
-import * as Transaction from "./stage"
-import * as RelMap from "./rel_map"
+import * as Type from "./type.ts"
+import * as Entity from "./entity.ts"
+import * as SparseMap from "./sparse_map.ts"
+import * as SparseSet from "./sparse_set.ts"
+import * as Transaction from "./stage.ts"
+import * as RelMap from "./rel_map.ts"
 
-type NodeIteratee = (node: T) => boolean | void
+type NodeIteratee = (node: t) => boolean | void
 
 let next_node_id = 1
 let make_node_id = () => next_node_id++
 
 export interface Listener {
   on_node_entities_changed?(): void
-  on_node_created?(node: T): void
-  on_node_disposed?(node: T): void
+  on_node_created?(node: t): void
+  on_node_disposed?(node: t): void
   on_node_entities_in?(batch: Transaction.Batch): void
   on_node_entities_out?(batch: Transaction.Batch): void
 }
@@ -27,14 +27,14 @@ export class Node {
   type
   rel_maps
 
-  constructor(type: Type.T) {
-    this.entities = SparseSet.make<Entity.T>()
+  constructor(type: Type.t) {
+    this.entities = SparseSet.make<Entity.t>()
     this.id = make_node_id()
     this.listeners = [] as Listener[]
     this.next_nodes = SparseMap.make<Node>()
     this.prev_nodes = SparseMap.make<Node>()
     this.type = type
-    this.rel_maps = [] as RelMap.T<Entity.T>[]
+    this.rel_maps = [] as RelMap.T<Entity.t>[]
     for (let i = 0; i < type.rels_inverse.length; i++) {
       let rel_inverse = type.rels_inverse[i]
       this.rel_maps[rel_inverse.id] = RelMap.make()
@@ -68,14 +68,14 @@ export class Node {
     }
   }
 
-  insert_entity(entity: Entity.T): void {
+  insert_entity(entity: Entity.t): void {
     this.entities.add(entity)
     this.traverse_left(function insert_emit_node_entities_changed(left_node) {
       left_node.emit_node_entities_changed()
     })
   }
 
-  remove_entity(entity: Entity.T): void {
+  remove_entity(entity: Entity.t): void {
     this.entities.delete(entity)
     this.traverse_left(function remove_emit_node_entities_changed(left_node) {
       left_node.emit_node_entities_changed()
@@ -89,7 +89,7 @@ export class Node {
     }
   }
 
-  set_object(rel_id: number, subject: Entity.T, object: Entity.T): void {
+  set_object(rel_id: number, subject: Entity.t, object: Entity.t): void {
     let rel_map = this.rel_maps[rel_id]
     if (rel_map === undefined) {
       return
@@ -99,8 +99,8 @@ export class Node {
 
   unpair(
     rel_id: number,
-    subject: Entity.T,
-    object: Entity.T,
+    subject: Entity.t,
+    object: Entity.t,
   ): number | undefined {
     let rel_map = this.rel_maps[rel_id]
     if (rel_map === undefined) {
@@ -109,7 +109,7 @@ export class Node {
     return rel_map.delete(subject, object)
   }
 
-  delete_object(rel_id: number, object: Entity.T): void {
+  delete_object(rel_id: number, object: Entity.t): void {
     let rel_map = this.rel_maps[rel_id]
     if (rel_map === undefined) {
       return
@@ -117,7 +117,7 @@ export class Node {
     rel_map.delete_object(object)
   }
 
-  delete_subject(rel_id: number, subject: Entity.T): void {
+  delete_subject(rel_id: number, subject: Entity.t): void {
     let rel_map = this.rel_maps[rel_id]
     if (rel_map === undefined) {
       return
@@ -125,7 +125,7 @@ export class Node {
     rel_map.delete_subject(subject)
   }
 
-  has_subject(rel_id: number, subject: Entity.T): boolean {
+  has_subject(rel_id: number, subject: Entity.t): boolean {
     let rel_map = this.rel_maps[rel_id]
     if (rel_map === undefined) {
       return false
@@ -194,8 +194,8 @@ export class Node {
   }
 }
 
-export type T = Node
+export type t = Node
 
-export let make = (type: Type.T = Type.empty): T => {
+export let make = (type: Type.t = Type.empty): t => {
   return new Node(type)
 }

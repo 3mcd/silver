@@ -1,24 +1,15 @@
-import {
-  after,
-  app,
-  before,
-  effect,
-  query,
-  System,
-  when,
-  World,
-} from "silver-ecs"
+import {after, App, before, Effect, Query, when, World} from "silver-ecs"
 import {Time, Timestep} from "silver-ecs/plugins"
 import {canvas, circle, clear, context, transform} from "./canvas"
 import {Angvel, Color, Name, Orbits, Position, Radius} from "./data"
 
 let FONT_SIZE = 12 * window.devicePixelRatio
 
-let satellites = query(Position)
-  .with(Angvel)
-  .with(Orbits, body => body.with(Position))
+let satellites = Query.make(Position)
+  .read(Angvel)
+  .read(Orbits, body => body.read(Position))
 
-let move_satellites: System = world => {
+let move_satellites: App.System = world => {
   let step = world.get_resource(Timestep.res).step()
   world.for_each(
     satellites,
@@ -31,9 +22,9 @@ let move_satellites: System = world => {
   )
 }
 
-let bodies = query(Name).with(Color).with(Position).with(Radius)
+let bodies = Query.make(Name).read(Color).read(Position).read(Radius)
 
-let draw_bodies: System = world => {
+let draw_bodies: App.System = world => {
   context.save()
   context.font = `${FONT_SIZE * transform.scale}px monospace`
   context.translate(canvas.width / 2, canvas.height / 2)
@@ -48,17 +39,17 @@ let draw_bodies: System = world => {
   context.restore()
 }
 
-let clear_canvas: System = () => {
+let clear_canvas: App.System = () => {
   clear()
 }
 
-let log_orbits = effect([Orbits], (world, entity) => {
+let log_orbits = Effect.make([Orbits], (world, entity) => {
   let orbits = world.get_exclusive_relative(entity, Orbits)
   console.log(world.get(entity, Name), "orbits", world.get(orbits, Name))
 })
 
 let body = (
-  world: World,
+  world: World.t,
   name: string,
   color: string,
   x: number,
@@ -73,7 +64,7 @@ let body = (
     .with(Radius, r)
     .with(Angvel, av)
 
-let game = app()
+let game = App.make()
   .use(Time.plugin)
   .use(Timestep.plugin)
   .add_init_system(world => {

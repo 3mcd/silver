@@ -88,7 +88,7 @@ class Timestepper {
   }
 }
 
-export type T = Timestepper
+export type t = Timestepper
 
 export let make = (config: Config) => {
   return new Timestepper(config)

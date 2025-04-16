@@ -1,4 +1,4 @@
-import * as SparseSet from "./sparse_set"
+import * as SparseSet from "./sparse_set.ts"
 
 interface RelMap<U extends number> {
   set_object(source: U, target: U): void

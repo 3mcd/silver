@@ -23,11 +23,11 @@
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",
     "@babel/preset-typescript": "^7.24.7",
-    "@preconstruct/cli": "^2.8.7",
-    "@types/node": "^22.5.1",
+    "@preconstruct/cli": "^2.8.12",
+    "@types/node": "22.14.0",
     "@vitest/coverage-v8": "^2.0.5",
     "esbuild": "^0.23.1",
-    "typescript": "^5.5.4",
+    "typescript": "^5.8.3",
     "vitest": "^2.0.5"
   },
   "preconstruct": {

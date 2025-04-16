@@ -1,16 +1,16 @@
-import {assert, assert_exists} from "./assert"
-import * as Component from "./component"
-import * as Effect from "./effect"
-import * as Entity from "./entity"
-import * as EntityBuilder from "./entity_builder"
-import * as EntityRegistry from "./entity_registry"
-import * as Graph from "./graph"
-import * as Node from "./node"
-import * as Op from "./op"
-import * as Query from "./query"
-import * as QueryBuilder from "./query_builder"
-import * as Stage from "./stage"
-import * as Type from "./type"
+import {assert, assert_exists} from "./assert.ts"
+import * as Component from "./component.ts"
+import * as Effect from "./effect.ts"
+import * as Entity from "./entity.ts"
+import * as EntityBuilder from "./entity_builder.ts"
+import * as EntityRegistry from "./entity_registry.ts"
+import * as Graph from "./graph.ts"
+import * as Node from "./node.ts"
+import * as Op from "./op.ts"
+import * as Query from "./query.ts"
+import * as QueryBuilder from "./query_builder.ts"
+import * as Stage from "./stage.ts"
+import * as Type from "./type.ts"
 
 let err_missing_res = "missing resource"
 let err_missing_entity = "missing entity"
@@ -23,7 +23,7 @@ let err_self_rel = "Cannot relate an entity to itself"
 
 export const $graph = Symbol()
 
-class World {
+export class World {
   #entity_registry
   #entity_data
   #id
@@ -32,33 +32,33 @@ class World {
   #resources
   #stage
 
-  readonly graph: Graph.T
+  readonly graph: Graph.t
 
   constructor(id = 0) {
     this.#entity_data = [] as unknown[][]
     this.#entity_registry = EntityRegistry.make()
     this.#id = id
-    this.#ops = [] as Op.T[]
-    this.#queries = new Map<QueryBuilder.T, Query.T>()
+    this.#ops = [] as Op.t[]
+    this.#queries = new Map<QueryBuilder.t, Query.T>()
     this.#resources = [] as unknown[]
     this.#stage = Stage.make()
     this.graph = Graph.make()
   }
 
-  get_entity_node(entity: Entity.T) {
+  get_entity_node(entity: Entity.t) {
     return assert_exists(
       Stage.get_next_entity_node(this.#stage, entity),
       err_missing_entity,
     )
   }
 
-  #get_value(entity: Entity.T, component: Component.Ref) {
+  #get_value(entity: Entity.t, component: Component.Ref) {
     let store = this.store(component.id)
     return store[entity]
   }
 
-  #set_value<U extends Component.T>(
-    entity: Entity.T,
+  #set_value<U extends Component.t>(
+    entity: Entity.t,
     component: U,
     value: Component.ValueOf<U>,
   ) {
@@ -66,32 +66,32 @@ class World {
     store[entity] = value
   }
 
-  #set_values(entity: Entity.T, type: Type.T, values: unknown[]) {
+  #set_values(entity: Entity.t, type: Type.t, values: unknown[]) {
     for (let i = 0; i < type.refs.length; i++) {
       let ref = type.refs[i]
       this.#set_value(entity, ref, values[ref.id])
     }
   }
 
-  #unset_value(entity: Entity.T, ref: Component.Ref) {
+  #unset_value(entity: Entity.t, ref: Component.Ref) {
     this.#set_value(entity, ref, undefined)
   }
 
-  #unset_values(entity: Entity.T, type: Type.T) {
+  #unset_values(entity: Entity.t, type: Type.t) {
     for (let i = 0; i < type.refs.length; i++) {
       let ref = type.refs[i]
       this.#unset_value(entity, ref)
     }
   }
 
-  #despawn(entity: Entity.T) {
+  #despawn(entity: Entity.t) {
     let node = this.get_entity_node(entity)
     this.#unset_relations(entity, node.type)
     this.#entity_registry.free(entity)
     Stage.move(this.#stage, entity)
   }
 
-  #set_relations(subject: Entity.T, type: Type.T) {
+  #set_relations(subject: Entity.t, type: Type.t) {
     for (let i = 0; i < type.pairs.length; i++) {
       let pair = type.pairs[i]
       let rel_id = Component.parse_pair_rel_id(pair)
@@ -110,7 +110,7 @@ class World {
     }
   }
 
-  #unset_relations(entity: Entity.T, type: Type.T) {
+  #unset_relations(entity: Entity.t, type: Type.t) {
     for (let i = 0; i < type.pairs.length; i++) {
       let pair = type.pairs[i]
       let rel_id = Component.parse_pair_rel_id(pair)
@@ -134,7 +134,7 @@ class World {
    * Move the `object` entity's subjects from `prev_node` to `next_node` for
    * each relation present in both nodes.
    */
-  #move_relations(object: Entity.T, prev_node: Node.T, next_node: Node.T) {
+  #move_relations(object: Entity.t, prev_node: Node.t, next_node: Node.t) {
     // For every relation type that this entity is an object of.
     for (let i = 0; i < prev_node.type.rels_inverse.length; i++) {
       let rel_inverse = prev_node.type.rels_inverse[i]
@@ -188,7 +188,7 @@ class World {
     Stage.move(this.#stage, entity, next_node)
   }
 
-  #apply_op(op: Op.T) {
+  #apply_op(op: Op.t) {
     switch (op.kind) {
       case Op.Kind.Spawn:
         this.#apply_spawn(op)
@@ -205,7 +205,7 @@ class World {
     }
   }
 
-  #resolve_query<U extends unknown[]>(query: QueryBuilder.T<U>): Query.T<U> {
+  #resolve_query<U extends unknown[]>(query: QueryBuilder.t<U>): Query.T<U> {
     let compiled_query = this.#queries.get(query)
     if (compiled_query === undefined) {
       compiled_query = Query.make(query, this)
@@ -235,27 +235,27 @@ class World {
     return this.#resources[res.id] as U | undefined
   }
 
-  spawn(): Entity.T
-  spawn(type: Type.T, values: unknown[]): Entity.T
-  spawn(type?: Type.T, values?: unknown[]): Entity.T {
+  spawn(): Entity.t
+  spawn(type: Type.t, values: unknown[]): Entity.t
+  spawn(type?: Type.t, values?: unknown[]): Entity.t {
     let entity = this.#entity_registry.alloc(this.#id)
     this.#ops.push(Op.spawn(type ?? Type.empty, entity, values as []))
     return entity
   }
 
-  despawn(entity: Entity.T) {
+  despawn(entity: Entity.t) {
     this.#entity_registry.check(entity)
     this.#ops.push(Op.despawn(entity))
   }
 
-  reserve(entity: Entity.T, type: Type.T, values: unknown[]) {
+  reserve(entity: Entity.t, type: Type.t, values: unknown[]) {
     this.#ops.push(Op.spawn(type ?? Type.empty, entity, values as []))
   }
 
-  add<U>(entity: Entity.T, ref: Component.Ref<U>, value: U): void
-  add(entity: Entity.T, pair: Component.Pair): void
-  add(entity: Entity.T, tag: Component.Tag): void
-  add(entity: Entity.T, component: Component.T, value?: unknown) {
+  add<U>(entity: Entity.t, ref: Component.Ref<U>, value: U): void
+  add(entity: Entity.t, pair: Component.Pair): void
+  add(entity: Entity.t, tag: Component.Tag): void
+  add(entity: Entity.t, component: Component.t, value?: unknown) {
     this.#entity_registry.check(entity)
     this.#ops.push(
       Op.add(
@@ -273,7 +273,7 @@ class World {
   }
 
   remove(
-    entity: Entity.T,
+    entity: Entity.t,
     component: Component.Ref | Component.Tag | Component.Pair,
   ) {
     if (this.#entity_registry.is_alive(entity)) {
@@ -281,17 +281,17 @@ class World {
     }
   }
 
-  has(entity: Entity.T, component: Component.T): boolean {
+  has(entity: Entity.t, component: Component.t): boolean {
     let node = this.get_entity_node(entity)
     return node.type.has_component(component)
   }
 
-  get<U extends Component.Ref>(entity: Entity.T, ref: U) {
+  get<U extends Component.Ref>(entity: Entity.t, ref: U) {
     return this.#get_value(entity, ref) as Component.ValueOf<U>
   }
 
   set<U extends Component.Ref>(
-    entity: Entity.T,
+    entity: Entity.t,
     ref: U,
     value: Component.ValueOf<U>,
   ) {
@@ -320,7 +320,7 @@ class World {
     return ops
   }
 
-  get_exclusive_relative_opt(entity: Entity.T, rel: Component.Rel) {
+  get_exclusive_relative_opt(entity: Entity.t, rel: Component.Rel) {
     let node = this.get_entity_node(entity)
     assert(rel.topology === Component.Topology.Exclusive, err_inclusive)
     if (!node.type.has_component(rel)) {
@@ -338,7 +338,7 @@ class World {
   }
 
   get_exclusive_relative(
-    entity: Entity.T,
+    entity: Entity.t,
     rel: Component.Rel | Component.PairFn,
   ) {
     if (typeof rel === "function") {
@@ -350,7 +350,7 @@ class World {
     )
   }
 
-  is_alive(entity: Entity.T) {
+  is_alive(entity: Entity.t) {
     return this.#entity_registry.is_alive(entity)
   }
 
@@ -359,13 +359,13 @@ class World {
     return store
   }
 
-  single(ref: Component.Ref): Entity.T {
+  single(ref: Component.Ref): Entity.t {
     let node = this.graph.find_or_create_node_by_component(ref)
     // Fast path for singleton components
     if (node.entities.size() > 0) {
       return node.entities.at(0)
     }
-    let entity: Entity.T | undefined
+    let entity: Entity.t | undefined
     node.traverse_right(visited_node => {
       // TODO: implement a better way to terminate traversal
       if (entity !== undefined) {
@@ -379,13 +379,13 @@ class World {
     return assert_exists(entity, err_missing_entity_single)
   }
 
-  with<U extends Component.Tag>(tag: U): EntityBuilder.T
+  with<U extends Component.Tag>(tag: U): EntityBuilder.t
   with<U extends Component.Ref>(
     ref: U,
     value: Component.ValueOf<U>,
-  ): EntityBuilder.T
-  with<U extends Component.RefFactory>(ref: U): EntityBuilder.T
-  with<U extends Component.Pair>(component: U): EntityBuilder.T
+  ): EntityBuilder.t
+  with<U extends Component.RefFactory>(ref: U): EntityBuilder.t
+  with<U extends Component.Pair>(component: U): EntityBuilder.t
   with(
     component: Component.Tag | Component.Ref | Component.Pair,
     value?: unknown,
@@ -397,7 +397,7 @@ class World {
   }
 
   for_each<U extends unknown[]>(
-    query: QueryBuilder.T<U>,
+    query: QueryBuilder.t<U>,
     iteratee: Query.ForEachIteratee<U>,
   ) {
     this.#resolve_query(query).for_each(iteratee)
@@ -405,13 +405,13 @@ class World {
   }
 
   for_each_entity<U extends unknown[]>(
-    query: QueryBuilder.T<U>,
+    query: QueryBuilder.t<U>,
     iteratee: Query.ForEachEntityIteratee<U>,
   ) {
     this.#resolve_query(query).for_each_entity(iteratee)
   }
 
-  add_effect<const U extends Effect.Term[]>(effect: Effect.T<U>) {
+  add_effect<const U extends Effect.Term[]>(effect: Effect.t<U>) {
     let components = effect.terms.map(c => (typeof c === "function" ? c() : c))
     let type = Type.make(components)
     let node = this.graph.find_or_create_node_by_type(type)
@@ -419,8 +419,8 @@ class World {
     effect.world = this
   }
 }
-export type T = World
+export type t = World
 
-export let make = (): World => {
+export let make = (): t => {
   return new World()
 }

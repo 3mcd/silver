@@ -1,6 +1,6 @@
-import {assert} from "./assert"
-import * as Entity from "./entity"
-import * as Schema from "./schema"
+import {assert} from "./assert.ts"
+import * as Entity from "./entity.ts"
+import * as Schema from "./schema.ts"
 
 export enum Kind {
   Tag,
@@ -18,6 +18,9 @@ export enum Topology {
 export interface Base<U> {
   kind: Kind
   id: number
+  is_ref: () => this is Ref<U>
+  is_tag: () => this is Tag
+  is_rel: () => this is Rel
 }
 
 export interface Tag extends Base<void> {
@@ -34,10 +37,10 @@ export interface RefFactory<U = unknown> extends Ref<U> {
   init: () => U
 }
 
-export type ValueOf<U extends T> = U extends Ref<infer V> ? V : never
-export type ValuesOf<U extends T[] = T[]> = U extends [
+export type ValueOf<U extends t> = U extends Ref<infer V> ? V : never
+export type ValuesOf<U extends t[] = t[]> = U extends [
   infer Head,
-  ...infer Tail extends T[],
+  ...infer Tail extends t[],
 ]
   ? Head extends Ref
     ? [ValueOf<Head>, ...ValuesOf<Tail>]
@@ -58,7 +61,7 @@ export interface Pair extends Base<void> {
   kind: Kind.Pair
 }
 
-export type T = Tag | Ref | Rel | RelInverse | Pair
+export type t = Tag | Ref | Rel | RelInverse | Pair
 
 let next_component_id = 1
 
@@ -74,9 +77,9 @@ export let make_component_id = () => {
   return component_id
 }
 
-let components = new Map<number, T>()
+let components = new Map<number, t>()
 
-export let find_by_id = (component_id: number): T | undefined => {
+export let find_by_id = (component_id: number): t | undefined => {
   return components.get(component_id)
 }
 
@@ -92,7 +95,7 @@ class Component {
     id: number,
     kind: Kind,
     topology?: Topology,
-    schema?: Schema.T,
+    schema?: Schema.t,
     init?: () => unknown,
   ) {
     this.id = id
@@ -100,6 +103,18 @@ class Component {
     this.schema = schema
     this.topology = topology
     this.init = init
+  }
+
+  is_ref(): this is Ref {
+    return this.kind === Kind.Ref
+  }
+
+  is_tag(): this is Tag {
+    return this.kind === Kind.Tag
+  }
+
+  is_rel(): this is Rel {
+    return this.kind === Kind.Rel
   }
 }
 
@@ -115,17 +130,17 @@ export function make(
   id: number,
   kind: Kind.Ref,
   topology?: Topology,
-  schema?: Schema.T,
+  schema?: Schema.t,
   init?: () => unknown,
 ): Ref
 export function make(
   id: number,
   kind: Kind,
   topology?: Topology,
-  schema?: Schema.T,
+  schema?: Schema.t,
   init?: () => unknown,
-): T {
-  let component = new Component(id, kind, topology, schema, init) as T
+): t {
+  let component = new Component(id, kind, topology, schema, init) as t
   components.set(id, component)
   return component
 }
@@ -138,12 +153,12 @@ type RecursivePartial<T> = {
     : T[P]
 }
 
-export function ref<U extends Schema.T>(schema: U): Ref<Schema.Express<U>>
+export function ref<U extends Schema.t>(schema: U): Ref<Schema.Express<U>>
 export function ref<U>(make: () => U): RefFactory<U>
 export function ref<U>(schema: Schema.SchemaOf<RecursivePartial<U>>): Ref<U>
 export function ref<U>(): Ref<U>
 export function ref(): Ref<unknown>
-export function ref(schema?: Schema.T | (() => unknown)) {
+export function ref(schema?: Schema.t | (() => unknown)) {
   return make(
     make_component_id(),
     Kind.Ref,
@@ -161,7 +176,7 @@ type RelOptions = {
 
 export interface PairFn {
   (): Rel
-  (entity: Entity.T): Pair
+  (entity: Entity.t): Pair
 }
 
 export let rel = (options?: RelOptions): PairFn => {
@@ -174,8 +189,8 @@ export let rel = (options?: RelOptions): PairFn => {
   rel.inverse = make(rel_id_inverse, Kind.RelInverse, rel_topology)
   let pairs: Pair[] = []
   function pair_fn(): Rel
-  function pair_fn(entity: Entity.T): Pair
-  function pair_fn(entity?: Entity.T) {
+  function pair_fn(entity: Entity.t): Pair
+  function pair_fn(entity?: Entity.t) {
     if (entity === undefined) {
       return rel
     }
@@ -188,36 +203,36 @@ export let rel = (options?: RelOptions): PairFn => {
   return pair_fn
 }
 
-export let parse_pair_entity = (pair: Pair): Entity.T => {
-  return (pair.id & 0x3fffffff) as Entity.T
+export let parse_pair_entity = (pair: Pair): Entity.t => {
+  return (pair.id & 0x3fffffff) as Entity.t
 }
 
 export let parse_pair_rel_id = (pair: Pair): number => {
   return (pair.id - (pair.id & 0x3fffffff)) / 0x40000000
 }
 
-export let make_pair = (component: Rel, entity: Entity.T): Pair => {
+export let make_pair = (component: Rel, entity: Entity.t): Pair => {
   let component_id = component.id * 0x40000000 + entity
   return make(component_id, Kind.Pair)
 }
 
-export let is_ref = (component: T): component is Ref =>
+export let is_ref = (component: t): component is Ref =>
   component.kind === Kind.Ref
 
-export let is_tag = (component: T): component is Tag | Rel =>
+export let is_tag = (component: t): component is Tag | Rel =>
   component.kind === Kind.Tag || component.kind === Kind.Rel
 
-export let is_rel = (component: T): component is Rel =>
+export let is_rel = (component: t): component is Rel =>
   component.kind === Kind.Rel
 
-export let is_rel_exclusive = (component: T): component is Rel =>
+export let is_rel_exclusive = (component: t): component is Rel =>
   component.kind === Kind.Rel && component.topology === Topology.Exclusive
 
-export let is_rel_inverse = (component: T): component is RelInverse =>
+export let is_rel_inverse = (component: t): component is RelInverse =>
   component.kind === Kind.RelInverse
 
-export let is_pair = (component: T): component is Pair =>
+export let is_pair = (component: t): component is Pair =>
   component.kind === Kind.Pair
 
-export let is_tag_pair = (component: T): component is Pair =>
+export let is_tag_pair = (component: t): component is Pair =>
   component.kind === Kind.Pair

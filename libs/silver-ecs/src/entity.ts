@@ -1,6 +1,8 @@
-import {assert} from "./assert"
+import {assert} from "./assert.ts"
 
-export type T = number & {readonly __entity__: true}
+type Entity = number & {readonly __entity__: true}
+
+export type t = Entity
 
 export let LO_EXTENT = 20
 export let LO = (1 << LO_EXTENT) - 1
@@ -8,10 +10,10 @@ export let HI_EXTENT = 31 - LO_EXTENT
 export let HI = (1 << HI_EXTENT) - 1
 export let EXTENT = Math.pow(2, 31) - 1
 
-export let make = (id: number, hi: number): T => {
+export let make = (id: number, hi: number): t => {
   assert_valid_id(id)
   assert_valid_hi(hi)
-  return (((hi & HI) << LO_EXTENT) | id) as T
+  return (((hi & HI) << LO_EXTENT) | id) as t
 }
 
 export let assert_valid = (entity: number) => {

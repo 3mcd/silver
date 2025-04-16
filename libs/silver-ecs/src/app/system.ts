@@ -1,12 +1,12 @@
-import * as World from "../world"
-import * as Range from "./range"
+import * as World from "../world.ts"
+import * as Range from "./range.ts"
 
-export type Fn = (world: World.T) => void
-export type Criteria = (world: World.T) => boolean | number
+export type Fn = (world: World.t) => void
+export type Criteria = (world: World.t) => boolean | number
 export type Constraint = (system: System) => System
 
 export let apply_constraints = (
-  system_or_fn: T | Fn,
+  system_or_fn: t | Fn,
   system_constraints: Constraint[],
 ) => {
   let system = is_system(system_or_fn) ? system_or_fn : make(system_or_fn)
@@ -29,7 +29,7 @@ class System {
   }
 }
 
-export type T = System
+export type t = System
 
 let systems = new WeakMap<Fn, System>()
 
@@ -45,11 +45,11 @@ export let make = (fn: Fn) => {
 export let is_system = (system: Fn | System): system is System =>
   system instanceof System
 
-export let after = (a: Fn | Range.T) => (b: System) => _after(b, a)
-export let before = (b: Fn | Range.T) => (a: System) => _before(a, b)
-export let when = (a: Criteria | Range.T) => (b: System) => _when(b, a)
+export let after = (a: Fn | Range.t) => (b: System) => _after(b, a)
+export let before = (b: Fn | Range.t) => (a: System) => _before(a, b)
+export let when = (a: Criteria | Range.t) => (b: System) => _when(b, a)
 
-export let _after = (a: Fn | System, b: Fn | Range.T): System => {
+export let _after = (a: Fn | System, b: Fn | Range.t): System => {
   if (!(a instanceof System)) {
     a = make(a)
   }
@@ -61,7 +61,7 @@ export let _after = (a: Fn | System, b: Fn | Range.T): System => {
   return a
 }
 
-export let _before = (a: Fn | System, b: Fn | Range.T): System => {
+export let _before = (a: Fn | System, b: Fn | Range.t): System => {
   if (!(a instanceof System)) {
     a = make(a)
   }
@@ -73,7 +73,7 @@ export let _before = (a: Fn | System, b: Fn | Range.T): System => {
   return a
 }
 
-export let _when = (a: Fn | System, b: Criteria | Range.T): System => {
+export let _when = (a: Fn | System, b: Criteria | Range.t): System => {
   if (!(a instanceof System)) {
     a = make(a)
   }

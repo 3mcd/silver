@@ -59,5 +59,8 @@
       "net/index.ts",
       "test/index.ts"
     ]
+  },
+  "devDependencies": {
+    "typedoc": "^0.28.2"
   }
 }

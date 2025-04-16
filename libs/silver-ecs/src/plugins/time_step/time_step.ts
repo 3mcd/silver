@@ -1,5 +1,5 @@
 import {ref} from "#component"
-import * as Timestepper from "./stepper"
+import * as Timestepper from "./stepper.ts"
 
 export type Config = Timestepper.Config
 
@@ -23,7 +23,7 @@ class Timestep implements T {
   #stepper
   #t_control: number | undefined
 
-  constructor(stepper: Timestepper.T) {
+  constructor(stepper: Timestepper.t) {
     this.#step = 0
     this.#steps = 0
     this.#stepper = stepper
@@ -62,7 +62,7 @@ class Timestep implements T {
   }
 }
 
-export let make = (stepper: Timestepper.T): T => {
+export let make = (stepper: Timestepper.t): T => {
   return new Timestep(stepper)
 }
 

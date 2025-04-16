@@ -1,9 +1,9 @@
-import * as Component from "./component"
-import * as Entity from "./entity"
-import * as Hash from "./hash"
-import * as Node from "./node"
-import * as SparseMap from "./sparse_map"
-import * as Type from "./type"
+import * as Component from "./component.ts"
+import * as Entity from "./entity.ts"
+import * as Hash from "./hash.ts"
+import * as Node from "./node.ts"
+import * as SparseMap from "./sparse_map.ts"
+import * as Type from "./type.ts"
 
 export class Graph {
   nodes_by_id
@@ -12,13 +12,13 @@ export class Graph {
 
   constructor() {
     this.root = Node.make()
-    this.nodes_by_id = SparseMap.make<Node.T>()
-    this.nodes_by_hash = new Map<number, Node.T>()
+    this.nodes_by_id = SparseMap.make<Node.t>()
+    this.nodes_by_hash = new Map<number, Node.t>()
     this.nodes_by_hash.set(this.root.type.vec_hash, this.root)
     this.nodes_by_id.set(this.root.id, this.root)
   }
 
-  link_nodes_traverse(inserted_node: Node.T): void {
+  link_nodes_traverse(inserted_node: Node.t): void {
     this.root.traverse_right(function link_nodes_traverse_visitor(
       visited_node,
     ) {
@@ -55,14 +55,14 @@ export class Graph {
     })
   }
 
-  emit_nodes_traverse(node: Node.T): void {
+  emit_nodes_traverse(node: Node.t): void {
     node.traverse_left(function emit_node(visit) {
       visit.emit_node_created(node)
     })
   }
 
-  insert_node(type: Type.T): Node.T {
-    let node: Node.T = Node.make(type)
+  insert_node(type: Type.t): Node.t {
+    let node: Node.t = Node.make(type)
     this.nodes_by_hash.set(type.vec_hash, node)
     this.nodes_by_id.set(node.id, node)
     this.link_nodes_traverse(node)
@@ -70,7 +70,7 @@ export class Graph {
     return node
   }
 
-  dispose_node(node: Node.T): void {
+  dispose_node(node: Node.t): void {
     node.prev_nodes.for_each(function dispose_node_unlink_prev(xor, prev_node) {
       node.unlink(prev_node, xor)
     })
@@ -84,8 +84,8 @@ export class Graph {
     node.listeners = []
   }
 
-  prune(node: Node.T): void {
-    let disposed_nodes: Node.T[] = []
+  prune(node: Node.t): void {
+    let disposed_nodes: Node.t[] = []
     node.traverse_right(function prune_inner(next_node) {
       next_node.traverse_left(function prune_inner_dispose(visit) {
         visit.emit_node_disposed(next_node)
@@ -98,9 +98,9 @@ export class Graph {
   }
 
   move_entities_left(
-    node: Node.T,
-    component: Component.T,
-    iteratee: (entity: Entity.T, node: Node.T) => void,
+    node: Node.t,
+    component: Component.t,
+    iteratee: (entity: Entity.t, node: Node.t) => void,
   ): void {
     node.traverse_right(next_node => {
       let prev_type = next_node.type.without_component(component)
@@ -113,24 +113,24 @@ export class Graph {
     })
   }
 
-  find_or_create_node_by_type(type: Type.T): Node.T {
+  find_or_create_node_by_type(type: Type.t): Node.t {
     let node = this.nodes_by_hash.get(type.vec_hash) ?? this.insert_node(type)
     return node
   }
 
-  find_or_create_node_by_component(component: Component.T): Node.T {
+  find_or_create_node_by_component(component: Component.t): Node.t {
     let node =
       this.nodes_by_hash.get(Hash.hash_word(undefined, component.id)) ??
       this.insert_node(Type.make([component]))
     return node
   }
 
-  find_node_by_id(node_id: number): Node.T | undefined {
+  find_node_by_id(node_id: number): Node.t | undefined {
     return this.nodes_by_id.get(node_id)
   }
 }
 
-export type T = Graph
+export type t = Graph
 
 export let make = (): Graph => {
   return new Graph()

@@ -1,7 +1,7 @@
 import {expect, test} from "vitest"
-import * as World from "./world"
-import * as Component from "./component"
-import * as QueryBuilder from "./query_builder"
+import * as World from "./world.ts"
+import * as Component from "./component.ts"
+import * as QueryBuilder from "./query_builder.ts"
 
 class Pos {
   constructor(public x = 0, public y = 0) {}
@@ -16,13 +16,13 @@ test("integration", async () => {
   let InCell = Component.rel()
   let IsFood = Component.tag()
   let query_builder = QueryBuilder.make()
-    .with(Name)
-    .with(Likes, likes =>
+    .read(Name)
+    .read(Likes, likes =>
       likes
-        .with(Name)
-        .with(IsFood)
-        .with(InCell, cell =>
-          cell.with(Rect).with(InGrid, grid => grid.with(Rect)),
+        .read(Name)
+        .read(IsFood)
+        .read(InCell, cell =>
+          cell.read(Rect).read(InGrid, grid => grid.read(Rect)),
         ),
     )
 

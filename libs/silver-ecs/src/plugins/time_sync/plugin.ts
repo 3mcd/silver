@@ -1,8 +1,9 @@
-import {after, App, before, Criteria, range, when} from "#app/index"
-import * as Time from "../time/plugin"
-import * as Timestep from "../time_step/plugin"
-import {control_timestep} from "./systems/control_timestep"
-import * as Timesync from "./time_sync"
+import {after, App, before, Criteria, when} from "#app/index"
+import * as Range from "#app/range"
+import * as Time from "../time/plugin.ts"
+import * as Timestep from "../time_step/plugin.ts"
+import {control_timestep} from "./systems/control_timestep.ts"
+import * as Timesync from "./time_sync.ts"
 
 export type Config = Timesync.Config
 
@@ -12,8 +13,8 @@ let default_config: Config = {
   outlier_rate: 0.1,
 }
 
-export let control = range(when(Timestep.control))
-export let collect = range(after(Time.advance), before(control))
+export let control = Range.make(when(Timestep.control))
+export let collect = Range.make(after(Time.advance), before(control))
 
 export let synced: Criteria = world =>
   world.get_resource(Timesync.res).is_synced()
@@ -25,4 +26,4 @@ export let plugin = (app: App, config?: Partial<Config>) => {
     .add_system(control_timestep, when(control), when(synced))
 }
 
-export * from "./time_sync"
+export * from "./time_sync.ts"

@@ -1,23 +1,23 @@
-import * as World from "../world"
-import * as Range from "./range"
-import * as System from "./system"
-import * as SystemGraph from "./system_graph"
+import * as World from "../world.ts"
+import * as Range from "./range.ts"
+import * as System from "./system.ts"
+import * as SystemGraph from "./system_graph.ts"
 
 class Schedule {
-  graph = SystemGraph.make<System.T>()
+  graph = SystemGraph.make<System.t>()
   stale = true
   system_runs = [] as number[]
-  systems = [] as System.T[]
+  systems = [] as System.t[]
   explicit = new Set<Function>()
 }
 
-export type T = Schedule
+export type t = Schedule
 
 export let make = () => {
   return new Schedule()
 }
 
-export let add_system = (schedule: Schedule, system: System.T | System.Fn) => {
+export let add_system = (schedule: Schedule, system: System.t | System.Fn) => {
   if (!System.is_system(system)) {
     system = System.make(system)
   }
@@ -40,7 +40,7 @@ export let remove_system = (schedule: Schedule, system: System.Fn) => {
   schedule.stale = true
 }
 
-export let run = (schedule: Schedule, world: World.T) => {
+export let run = (schedule: Schedule, world: World.t) => {
   // rebuild system schedule when stale
   if (schedule.stale) {
     schedule.systems = SystemGraph.build(schedule.graph)

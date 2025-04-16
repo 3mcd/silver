@@ -23,7 +23,7 @@ class Time {
   }
 }
 
-export type T = Time
+export type t = Time
 
 export let make = () => {
   return new Time()

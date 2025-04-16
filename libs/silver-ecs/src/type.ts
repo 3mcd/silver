@@ -1,13 +1,13 @@
-import * as Component from "./component"
-import * as Hash from "./hash"
-import * as Entity from "./entity"
+import * as Component from "./component.ts"
+import * as Hash from "./hash.ts"
+import * as Entity from "./entity.ts"
 
 /**
  * Create an ordered collection of unique components from a unrestricted array
  * of components.
  */
-let to_vec = (components: Component.T[]) => {
-  let unique = new Set<Component.T>()
+let to_vec = (components: Component.t[]) => {
+  let unique = new Set<Component.t>()
   for (let i = 0; i < components.length; i++) {
     let component = components[i]
     if (unique.has(component)) {
@@ -40,7 +40,7 @@ class Type {
   vec
   vec_hash
 
-  constructor(vec: Component.T[], vec_hash: number) {
+  constructor(vec: Component.t[], vec_hash: number) {
     this.pairs = vec.filter(Component.is_pair)
     this.refs = vec.filter(Component.is_ref)
     this.rels = vec.filter(Component.is_rel)
@@ -123,20 +123,20 @@ class Type {
   }
 
   from_sum(other: Type): Type {
-    let components = this.vec.concat(other.vec)
+    let sum = this.vec.concat(other.vec)
     for (let i = 0; i < other.pairs.length; i++) {
       let pair = other.pairs[i]
       let pair_rel_id = Entity.parse_hi(pair.id)
       if (!this.has_component_id(pair_rel_id)) {
         let pair_rel = Component.find_by_id(pair_rel_id)!
-        components.push(pair_rel)
+        sum.push(pair_rel)
       }
     }
-    return make(components)
+    return make(sum)
   }
 
   from_difference(other: Type): Type {
-    let components: Component.T[] = []
+    let components: Component.t[] = []
     outer: for (let i = 0; i < this.vec.length; i++) {
       let component = this.vec[i]
       if (!other.has_component(component)) {
@@ -158,7 +158,7 @@ class Type {
   }
 
   from_intersection(other: Type): Type {
-    let components: Component.T[] = []
+    let components: Component.t[] = []
     for (let i = 0; i < this.vec.length; i++) {
       let component = this.vec[i]
       if (other.has_component(component)) {
@@ -168,7 +168,7 @@ class Type {
     return make(components)
   }
 
-  has_component(component: Component.T): boolean {
+  has_component(component: Component.t): boolean {
     return this.set.has(component.id)
   }
 
@@ -176,16 +176,16 @@ class Type {
     return this.set.has(component_id)
   }
 
-  with_component(component: Component.T): Type {
+  with_component(component: Component.t): Type {
     return make(this.vec.concat(component))
   }
 
-  without_component(component: Component.T): Type {
+  without_component(component: Component.t): Type {
     return make(this.vec.filter(c => c.id !== component.id))
   }
 }
 
-export type T = Type
+export type t = Type
 
 let cache: Type[] = []
 let cache_vec: Type[] = []
@@ -197,7 +197,7 @@ let cache_vec: Type[] = []
  * components, meaning types created with this function can be compared by
  * reference.
  */
-export let make = (components: Component.T[]) => {
+export let make = (components: Component.t[]) => {
   let components_hash = Hash.hash_words(components.map(c => c.id))
   if (cache[components_hash] !== undefined) {
     return cache[components_hash]
@@ -211,7 +211,7 @@ export let make = (components: Component.T[]) => {
     new Type(vec, vec_hash))
 }
 
-export let single = (component: Component.T) => {
+export let single = (component: Component.t) => {
   return make([component])
 }
 

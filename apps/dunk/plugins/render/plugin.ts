@@ -19,7 +19,7 @@ import {
 } from "dgel"
 import {mat4} from "gl-matrix"
 import {cube} from "primitive-geometry"
-import {after, Plugin, query, range, ref, System, when} from "silver-ecs"
+import {after, App, Query, Range, ref, when} from "silver-ecs"
 import typed_array_concat from "typed-array-concat"
 import typed_array_interleave from "typed-array-interleave"
 import {IsPlayer} from "../player/plugin"
@@ -70,7 +70,7 @@ let system_bind_group_layout = new BindGroupLayout([
   {
     buffer: {},
     visibility: GPUShaderStage.VERTEX,
-    name: "System",
+    name: "App.",
     uniforms: [
       new Uniform("projection_matrix", "mat4"),
       new Uniform("view_matrix", "mat4"),
@@ -212,11 +212,11 @@ let draw_geometry_command = new Command({
 
 let res = ref<Context>()
 
-let clear: System = world => {}
+let clear: App.System = world => {}
 
-let players = query(IsPlayer)
+let players = Query.make(IsPlayer)
 
-let draw: System = world => {
+let draw: App.System = world => {
   camera_controls.update()
   camera.position = camera_controls.position
   camera.target = camera_controls.target
@@ -239,9 +239,9 @@ let draw: System = world => {
   })
 }
 
-let render = range()
+let render = Range.make()
 
-export let plugin: Plugin = app => {
+export let plugin: App.Plugin = app => {
   app
     .add_resource(res, context)
     .add_system(clear, when(render))

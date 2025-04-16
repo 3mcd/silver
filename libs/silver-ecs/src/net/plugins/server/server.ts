@@ -6,18 +6,18 @@ class Server {
     this.next_id = 1
     this.free_ids = [] as number[]
   }
+
+  make_client_id() {
+    return this.free_ids.length > 0 ? this.free_ids.pop()! : this.next_id++
+  }
+
+  free_client_id(client_id: number) {
+    this.free_ids.push(client_id)
+  }
 }
 
-export type T = Server
+export type t = Server
 
 export let make = () => {
   return new Server()
-}
-
-export let make_client_id = (server: Server) => {
-  return server.free_ids.length > 0 ? server.free_ids.pop()! : server.next_id++
-}
-
-export let free_client_id = (server: Server, client_id: number) => {
-  server.free_ids.push(client_id)
 }

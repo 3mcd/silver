@@ -1,11 +1,12 @@
-import {Plugin, range, when} from "#app/index"
+import {Plugin, when} from "#app/index"
+import * as Range from "#app/range"
 import {Timesync} from "#plugins/index"
-import * as Client from "./client"
-import {recv_messages} from "./systems/recv_messages"
-import {send_messages} from "./systems/send_messages"
+import * as Client from "./client.ts"
+import {recv_messages} from "./systems/recv_messages.ts"
+import {send_messages} from "./systems/send_messages.ts"
 
-export let recv = range(when(Timesync.collect))
-export let send = range()
+export let recv = Range.make(when(Timesync.collect))
+export let send = Range.make()
 
 export let plugin: Plugin = app => {
   app

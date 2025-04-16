@@ -11,7 +11,7 @@ class InterestQueue {
   #entity_priorities
 
   constructor() {
-    this.#heap = [] as Entity.T[]
+    this.#heap = [] as Entity.t[]
     this.#entity_indices = [] as number[]
     this.#entity_priorities = [] as number[]
   }
@@ -76,15 +76,15 @@ class InterestQueue {
     return this.#heap.length
   }
 
-  priority_of(entity: Entity.T) {
+  priority_of(entity: Entity.t) {
     return this.#entity_priorities[entity]
   }
 
-  has(entity: Entity.T) {
+  has(entity: Entity.t) {
     return this.#entity_priorities[entity] !== undefined
   }
 
-  push(entity: Entity.T, priority_of: number) {
+  push(entity: Entity.t, priority_of: number) {
     if (this.#entity_indices[entity] >= 0) {
       this.remove(entity)
     }
@@ -97,7 +97,7 @@ class InterestQueue {
     return this.#heap[0]
   }
 
-  remove(entity: Entity.T) {
+  remove(entity: Entity.t) {
     if (!this.has(entity)) {
       return
     }
@@ -112,13 +112,13 @@ class InterestQueue {
     return this.#heap.length === 0
   }
 
-  amplify(entity: Entity.T, value: number) {
+  amplify(entity: Entity.t, value: number) {
     let priority = this.priority_of(entity) ?? 0
     this.remove(entity)
     this.push(entity, priority + value)
   }
 }
 
-export type T = InterestQueue
+export type t = InterestQueue
 
 export let make = () => new InterestQueue()

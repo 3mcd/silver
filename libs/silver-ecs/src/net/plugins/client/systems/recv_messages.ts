@@ -6,21 +6,21 @@ import {Time, Timesync} from "#plugins/index"
 import * as QueryBuilder from "#query_builder"
 import * as World from "#world"
 
-let recv_identity = (buffer: Buffer.T, world: World.T) => {
+let recv_identity = (buffer: Buffer.t, world: World.t) => {
   let id = Protocol.read_identity(buffer)
   world.identify(id)
 }
 
 let time_sync_res = [0, 0] as [number, number]
 
-let recv_time_sync_response = (buffer: Buffer.T, world: World.T) => {
+let recv_time_sync_response = (buffer: Buffer.t, world: World.t) => {
   let time = world.get_resource(Time.res)
   let time_sync = world.get_resource(Timesync.res)
   Protocol.read_time_sync_response(buffer, time_sync_res)
   time_sync.add_sample(time_sync_res, time.t_mono())
 }
 
-let recv_message = (buffer: Buffer.T, world: World.T) => {
+let recv_message = (buffer: Buffer.t, world: World.t) => {
   switch (buffer.read_u8()) {
     case Protocol.MessageType.Identity:
       recv_identity(buffer, world)
@@ -34,7 +34,7 @@ let recv_message = (buffer: Buffer.T, world: World.T) => {
   }
 }
 
-let remotes = QueryBuilder.make().with(Remote)
+let remotes = QueryBuilder.make().read(Remote)
 
 export let recv_messages: System = world => {
   world.for_each(remotes, remote => {

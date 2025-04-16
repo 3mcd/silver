@@ -3,10 +3,9 @@ import * as Entity from "#entity"
 import {f32} from "#schema"
 import {mock_world} from "#test/mock_world"
 import {expect, test} from "vitest"
-import * as Interest from "./interest"
-import * as Protocol from "./protocol"
-import * as Serde from "./serde"
-import * as Buffer from "../buffer"
+import * as Interest from "./interest.ts"
+import * as Protocol from "./protocol.ts"
+import * as Serde from "./serde.ts"
 
 let A = Component.ref(f32)
 let B = Component.ref(f32)

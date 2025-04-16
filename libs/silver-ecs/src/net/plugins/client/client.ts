@@ -4,7 +4,7 @@ class Client {
   t_time_sync = 0
 }
 
-export type T = Client
+export type t = Client
 
 export let make = () => new Client()
 

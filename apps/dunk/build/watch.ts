@@ -1,5 +1,5 @@
 import * as esbuild from "esbuild"
-import {config} from "./config"
+import {config} from "./config.ts"
 
 esbuild
   .context(config)

@@ -1,7 +1,7 @@
 import {System} from "#app/index"
 import * as Time from "#plugins/time/plugin"
 import * as Timestep from "#plugins/time_step/plugin"
-import * as Timesync from "../time_sync"
+import * as Timesync from "../time_sync.ts"
 
 export let control_timestep: System = world => {
   let time = world.get_resource(Time.res)

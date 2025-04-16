@@ -1,6 +1,6 @@
 import {assert_exists} from "#assert"
 import * as Component from "#component"
-import * as RefEncoding from "./ref_encoding"
+import * as RefEncoding from "./ref_encoding.ts"
 
 class Serde {
   #by_iso
@@ -8,12 +8,12 @@ class Serde {
   #ref_encodings
 
   constructor() {
-    this.#by_iso = [] as Component.T[]
+    this.#by_iso = [] as Component.t[]
     this.#to_iso = [] as number[]
-    this.#ref_encodings = [] as RefEncoding.T[]
+    this.#ref_encodings = [] as RefEncoding.t[]
   }
 
-  add(component: Component.T) {
+  add(component: Component.t) {
     let iso = this.#by_iso.length
     this.#to_iso[component.id] = iso
     this.#by_iso.push(component)
@@ -23,7 +23,7 @@ class Serde {
     return this
   }
 
-  has(component: Component.T) {
+  has(component: Component.t) {
     return this.#to_iso[component.id] !== undefined
   }
 
@@ -31,7 +31,7 @@ class Serde {
     return assert_exists(this.#by_iso[iso])
   }
 
-  to_iso(component: Component.T) {
+  to_iso(component: Component.t) {
     return this.#to_iso[component.id]
   }
 
@@ -41,10 +41,10 @@ class Serde {
   }
 }
 
-export type T = Serde
+export type t = Serde
 
 export let make = () => {
   return new Serde()
 }
 
-export let res = Component.ref<T>()
+export let res = Component.ref<t>()

@@ -2,7 +2,7 @@ import {Http3Server} from "@fails-components/webtransport"
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
 import {join} from "node:path"
-import {app, query, System} from "silver-ecs"
+import {App, Query} from "silver-ecs"
 import {HasInterest, Interest, Remote, Serde, Server} from "silver-ecs/net"
 import {Time} from "silver-ecs/plugins"
 import {IsPlayer} from "../plugins/player/plugin"
@@ -66,10 +66,10 @@ let http3_server = new Http3Server({
   privKey: key,
 })
 
-let interests = query(Interest)
-let players = query(IsPlayer)
+let interests = Query.make(Interest)
+let players = Query.make(IsPlayer)
 
-let amplify_entities: System = world => {
+let amplify_entities: App.System = world => {
   world.for_each(interests, interest => {
     world.for_each_entity(players, player => {
       interest.amplify(player, 0.1)
@@ -77,7 +77,7 @@ let amplify_entities: System = world => {
   })
 }
 
-let game = app()
+let game = App.make()
   .use(Time.plugin)
   .use(Server.plugin)
   .add_resource(Serde.res, serde)

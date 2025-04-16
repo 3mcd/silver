@@ -7,9 +7,9 @@ import * as Schema from "#schema"
 import * as SparseMap from "#sparse_map"
 import * as Type from "#type"
 import * as World from "#world"
-import * as InterestQueue from "./interest_queue"
-import {MessageType} from "./message_type"
-import * as Serde from "./serde"
+import * as InterestQueue from "./interest_queue.ts"
+import {MessageType} from "./message_type.ts"
+import * as Serde from "./serde.ts"
 
 export let init_interest = () => {
   let buffer = Buffer.make(1, 1_024)
@@ -18,14 +18,14 @@ export let init_interest = () => {
 }
 
 let node_bytes_per_element = [] as number[]
-let node_match_cache = new WeakMap<Node.T, Component.T[]>()
+let node_match_cache = new WeakMap<Node.t, Component.t[]>()
 
-let segments: Entity.T[][] = []
+let segments: Entity.t[][] = []
 let segment_count = 0
 let segment_indices = SparseMap.make<number>()
 let segment_lengths = SparseMap.make<number>()
 
-let get_node_match = (node: Node.T, serde: Serde.T) => {
+let get_node_match = (node: Node.t, serde: Serde.t) => {
   let match = node_match_cache.get(node)
   if (match === undefined) {
     match = node.type.vec.filter(component => serde.has(component))
@@ -34,7 +34,7 @@ let get_node_match = (node: Node.T, serde: Serde.T) => {
   return match
 }
 
-let bytes_per_entity = (node: Node.T, serde: Serde.T) => {
+let bytes_per_entity = (node: Node.t, serde: Serde.t) => {
   let length = node_bytes_per_element[node.id]
   if (length !== undefined) {
     return length
@@ -61,9 +61,9 @@ let get_segment_index = (node_id: number) => {
 }
 
 let write_segment_components = (
-  buffer: Buffer.T,
-  node_match: Component.T[],
-  serde: Serde.T,
+  buffer: Buffer.t,
+  node_match: Component.t[],
+  serde: Serde.t,
 ) => {
   buffer.write_u8(node_match.length)
   for (let i = 0; i < node_match.length; i++) {
@@ -78,12 +78,12 @@ let write_segment_components = (
 }
 
 let write_segment_entities = (
-  buffer: Buffer.T,
-  node_match: Component.T[],
-  segment: Entity.T[],
+  buffer: Buffer.t,
+  node_match: Component.t[],
+  segment: Entity.t[],
   segment_length: number,
-  world: World.T,
-  serde: Serde.T,
+  world: World.t,
+  serde: Serde.t,
 ) => {
   for (let i = 0; i < segment_length; i++) {
     let entity = segment[i]
@@ -107,10 +107,10 @@ let write_segment_entities = (
  * indices and lengths to `segment_indices` and `segment_lengths`, respectively.
  */
 let load_segments = (
-  buffer: Buffer.T,
-  interest: InterestQueue.T,
-  world: World.T,
-  serde: Serde.T,
+  buffer: Buffer.t,
+  interest: InterestQueue.t,
+  world: World.t,
+  serde: Serde.t,
 ) => {
   let offset = buffer.write_offset
   offset += 1 // segment count
@@ -139,9 +139,9 @@ let load_segments = (
 }
 
 export let encode_interest = (
-  buffer: Buffer.T,
-  interest: InterestQueue.T,
-  world: World.T,
+  buffer: Buffer.t,
+  interest: InterestQueue.t,
+  world: World.t,
 ) => {
   let serde = world.get_resource(Serde.res)
   let message_length = load_segments(buffer, interest, world, serde)
@@ -152,7 +152,7 @@ export let encode_interest = (
     let segment_length = assert_exists(segment_lengths.get(node_id))
     let node = assert_exists(world.graph.nodes_by_id.get(node_id))
     let node_match = get_node_match(node, serde)
-    buffer.write_u32(segment_length)
+    buffer.write_u8(segment_length)
     write_segment_components(buffer, node_match, serde)
     write_segment_entities(
       buffer,
@@ -168,65 +168,74 @@ export let encode_interest = (
   segment_lengths.clear()
 }
 
-let segment_match = [] as Component.T[]
+let segment_match = [] as Component.t[]
 let ref_out = [] as unknown[]
 
 export let decode_interest = (
-  buffer: Buffer.T,
-  world: World.T,
+  buffer: Buffer.t,
+  world: World.t,
   init = false,
 ) => {
   let serde = world.get_resource(Serde.res)
   let segment_count = buffer.read_u8()
   for (let i = 0; i < segment_count; i++) {
-    let segment_length = buffer.read_u32()
+    let segment_length = buffer.read_u8()
+    // resolve the component local of each segment component id
     let segment_match_length = buffer.read_u8()
     for (let j = 0; j < segment_match_length; j++) {
       let component_id_iso = buffer.read_u32()
       let component = serde.from_iso(component_id_iso)
       segment_match[j] = component
     }
-    let type: Type.T
+    let type: Type.t
     for (let j = 0; j < segment_length; j++) {
-      let entity = buffer.read_u32() as Entity.T
+      let entity = buffer.read_u32() as Entity.t
       if (world.is_alive(entity)) {
         for (let k = 0; k < segment_match_length; k++) {
           let component = segment_match[k]
-          if (world.has(entity, component)) {
-            if (Component.is_ref(component)) {
+          if (component.is_ref()) {
+            if (world.has(entity, component)) {
+              // decode the value on top of the existing one
               let ref_encoding = serde.encoding_from_ref_id(component.id)
               let ref_store = world.store(component.id)
               ref_encoding.decode(buffer, entity, ref_store, true)
-            }
-          } else {
-            if (Component.is_ref(component)) {
+            } else {
+              // allocate a new value and add it to the entity
               let ref_encoding = serde.encoding_from_ref_id(component.id)
               ref_encoding.decode(buffer, entity, ref_out, true)
               world.add(entity, component, ref_out[entity])
               ref_out[entity] = undefined
-            } else {
-              world.add(entity, component as Component.Tag & Component.Pair)
             }
-          }
-        }
-      } else {
-        type ??= Type.make(segment_match.slice(0, segment_match_length))
-        let values = [] as unknown[]
-        for (let k = 0; k < segment_match_length; k++) {
-          let component = segment_match[k]
-          if (Component.is_rel(component)) {
           } else {
-            let ref_encoding = serde.encoding_from_ref_id(component.id)
-            ref_encoding.decode(buffer, entity, ref_out, init)
-            if (init) {
-              values.push(ref_out[entity])
-              ref_out[entity] = undefined
-            }
+            // simply add the value if the component is data-less
+            world.add(
+              entity,
+              component as Component.Tag &
+                Component.Rel &
+                Component.RelInverse &
+                Component.Pair,
+            )
           }
         }
-        if (init) {
-          world.reserve(entity, type, values)
+        continue
+      }
+      // type used to spawn the new entity
+      type ??= Type.make(segment_match.slice(0, segment_match_length))
+      let values = [] as unknown[]
+      for (let k = 0; k < segment_match_length; k++) {
+        let component = segment_match[k]
+        if (Component.is_rel(component)) {
+        } else {
+          let ref_encoding = serde.encoding_from_ref_id(component.id)
+          ref_encoding.decode(buffer, entity, ref_out, init)
+          if (init) {
+            values.push(ref_out[entity])
+            ref_out[entity] = undefined
+          }
         }
+      }
+      if (init) {
+        world.reserve(entity, type, values)
       }
     }
   }

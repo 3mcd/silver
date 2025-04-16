@@ -1,9 +1,9 @@
 import {expect, it, vi} from "vitest"
-import {mock_world} from "../../../test"
-import * as Time from "../../time/plugin"
-import * as Timestep from "../../time_step/plugin"
-import * as Timesync from "../time_sync"
-import {control_timestep} from "./control_timestep"
+import {mock_world} from "../../../test/mock_world.ts"
+import * as Time from "../../time/plugin.ts"
+import * as Timestep from "../../time_step/plugin.ts"
+import * as Timesync from "../time_sync.ts"
+import {control_timestep} from "./control_timestep.ts"
 
 let time = {
   t_mono: vi.fn().mockReturnValue(1),

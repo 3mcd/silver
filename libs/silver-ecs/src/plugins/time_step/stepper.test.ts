@@ -1,5 +1,5 @@
 import {expect, it} from "vitest"
-import * as Stepper from "./stepper"
+import * as Stepper from "./stepper.ts"
 
 type Product<T> = {
   [K in keyof T]: T[K] extends (infer _)[] ? _ : never
@@ -71,7 +71,7 @@ let default_config = {
 }
 
 let update = (
-  timestep: Stepper.T,
+  timestep: Stepper.t,
   frames: number,
   time: number,
   drift: number,

@@ -1,8 +1,8 @@
 import {expect, it} from "vitest"
-import {System, app, when} from "../../app"
-import * as Time from "../time/plugin"
-import * as Timestep from "../time_step/plugin"
-import * as Timesync from "./plugin"
+import {System, make as app, when} from "../../app/index.ts"
+import * as Time from "../time/plugin.ts"
+import * as Timestep from "../time_step/plugin.ts"
+import * as Timesync from "./plugin.ts"
 
 it("controls the timestep using an estimated server time offset", () => {
   let add_sample_system: System = world => {

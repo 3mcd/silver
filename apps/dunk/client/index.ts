@@ -1,11 +1,11 @@
-import {app} from "silver-ecs"
+import {App} from "silver-ecs"
 import {Client, Remote, Serde} from "silver-ecs/net"
 import {Time, Timestep, Timesync} from "silver-ecs/plugins"
 import {Player, Render} from "../plugins"
 import {WebTransportRemote} from "../remote"
 import {serde} from "../serde"
 
-let game = app()
+let game = App.make()
   .use(Time.plugin)
   .use(Timestep.plugin)
   .use(Timesync.plugin)

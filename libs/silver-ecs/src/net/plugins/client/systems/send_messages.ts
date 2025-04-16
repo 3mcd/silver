@@ -1,12 +1,11 @@
 import {System} from "#app/index"
-import * as Buffer from "#buffer"
 import * as Protocol from "#net/protocol"
 import {Remote} from "#net/remote"
 import {Time} from "#plugins/index"
 import * as QueryBuilder from "#query_builder"
-import {res} from "../client"
+import {res} from "../client.ts"
 
-let remotes = QueryBuilder.make().with(Remote)
+let remotes = QueryBuilder.make().read(Remote)
 
 export let send_messages: System = world => {
   let client = world.get_resource(res)

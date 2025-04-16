@@ -8,7 +8,7 @@ import * as World from "#world"
 
 let clients = query(Remote)
 
-let recv_message = (buffer: Buffer.T, remote: Remote, world: World.T) => {
+let recv_message = (buffer: Buffer.t, remote: Remote, world: World.t) => {
   switch (buffer.read_u8()) {
     case Protocol.MessageType.TimeSyncRequest:
       let t_origin = Protocol.read_time_sync_request(buffer)

@@ -1,8 +1,8 @@
 import {expect, it, vi} from "vitest"
-import {mock_world} from "../../../test"
-import * as Time from "../../time/plugin"
-import * as Timestep from "../time_step"
-import {advance_timestep} from "./advance_timestep"
+import {mock_world} from "../../../test/mock_world.ts"
+import * as Time from "../../time/plugin.ts"
+import * as Timestep from "../time_step.ts"
+import {advance_timestep} from "./advance_timestep.ts"
 
 let time = {
   t_delta: vi.fn().mockReturnValue(1 / 60),

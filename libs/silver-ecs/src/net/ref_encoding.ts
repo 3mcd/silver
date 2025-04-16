@@ -1,13 +1,12 @@
-// import {Component, Registry, Scalar, Schema} from "../core"
 import {assert_exists} from "#assert"
 import * as Buffer from "#buffer"
 import * as Component from "#component"
 import * as Schema from "#schema"
 
-type Encode = (b: Buffer.T, d: unknown) => void
-type Decode = (b: Buffer.T, e: number, w: unknown[], create?: boolean) => void
+type Encode = (b: Buffer.t, d: unknown) => void
+type Decode = (b: Buffer.t, e: number, w: unknown[], create?: boolean) => void
 
-let make_encode_exp = (schema: Schema.T, exp: string = "d") => {
+let make_encode_exp = (schema: Schema.t, exp: string = "d") => {
   if (typeof schema === "string") {
     return `b.write_${Schema.Scalar[schema]}(${exp});`
   }
@@ -19,17 +18,17 @@ let make_encode_exp = (schema: Schema.T, exp: string = "d") => {
   return out
 }
 
-let make_decode_dec = (schema: Schema.T) => {
+let make_decode_dec = (schema: Schema.t) => {
   return `let d=w[e];if(d===undefined){if(c){${make_encode_exp_create(
     schema,
   )}}else{${make_decode_exp_noop(schema)}return}}`
 }
 
-let make_encode_exp_create = (schema: Schema.T) => {
+let make_encode_exp_create = (schema: Schema.t) => {
   return `d=w[e]=${typeof schema === "object" ? "{}" : "undefined"};`
 }
 
-let make_decode_exp_noop = (schema: Schema.T): string => {
+let make_decode_exp_noop = (schema: Schema.t): string => {
   if (typeof schema === "string") {
     return `b.read_${Schema.Scalar[schema]}();`
   }
@@ -42,7 +41,7 @@ let make_decode_exp_noop = (schema: Schema.T): string => {
   return out
 }
 
-let make_decode_exp = (schema: Schema.T, exp: string) => {
+let make_decode_exp = (schema: Schema.t, exp: string) => {
   if (typeof schema === "string") {
     return `${exp}=b.read_${Schema.Scalar[schema]}();`
   }
@@ -54,19 +53,19 @@ let make_decode_exp = (schema: Schema.T, exp: string) => {
   return out
 }
 
-let compile_encode = (schema: Schema.T): Encode => {
+let compile_encode = (schema: Schema.t): Encode => {
   let body = `return(b,d)=>{${make_encode_exp(schema)}}`
   return Function(body)()
 }
 
-let compile_decode = (schema: Schema.T): Decode => {
+let compile_decode = (schema: Schema.t): Decode => {
   let body = `return(b,e,w,c=false)=>{${make_decode_dec(
     schema,
   )}${make_decode_exp(schema, typeof schema === "object" ? "d" : "w[e]")}}`
   return Function(body)()
 }
 
-class RefEncoding implements T {
+class RefEncoding implements t {
   encode
   decode
   constructor(ref: Component.Ref) {
@@ -76,7 +75,7 @@ class RefEncoding implements T {
   }
 }
 
-export type T = RefEncoding
+export type t = RefEncoding
 
 export let make = (ref: Component.Ref) => {
   return new RefEncoding(ref)

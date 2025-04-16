@@ -1,10 +1,10 @@
-import * as Buffer from "./buffer"
-import * as Entity from "./entity"
+import * as Buffer from "./buffer.ts"
+import * as Entity from "./entity.ts"
 
 class EntityRegistry {
   next_entity_id = 0
   alive_count = 0
-  dense = [] as Entity.T[]
+  dense = [] as Entity.t[]
   sparse = [] as number[]
 
   alloc(hi = 0) {
@@ -18,7 +18,7 @@ class EntityRegistry {
     return entity
   }
 
-  free(entity: Entity.T) {
+  free(entity: Entity.t) {
     let entity_index = this.sparse[entity]
     let last_alive_entity = this.dense[--this.alive_count]
     let last_alive_entity_index = this.sparse[last_alive_entity]
@@ -28,22 +28,22 @@ class EntityRegistry {
     this.sparse[last_alive_entity] = entity_index
   }
 
-  is_alive(entity: Entity.T) {
+  is_alive(entity: Entity.t) {
     return this.sparse[entity] < this.alive_count
   }
 
-  check(entity: Entity.T) {
+  check(entity: Entity.t) {
     if (!this.is_alive(entity)) {
       throw new Error(`Entity ${entity} is not alive`)
     }
   }
 }
 
-export type T = EntityRegistry
+export type t = EntityRegistry
 
 export let make = () => new EntityRegistry()
 
-export let encode = (registry: EntityRegistry, buffer?: Buffer.T) => {
+export let encode = (registry: EntityRegistry, buffer?: Buffer.t) => {
   let size = 4 + 4 + 4 + registry.dense.length * 4
   if (buffer === undefined) {
     buffer = Buffer.make(size)
@@ -58,13 +58,13 @@ export let encode = (registry: EntityRegistry, buffer?: Buffer.T) => {
   }
 }
 
-export let decode = (buffer: Buffer.T) => {
+export let decode = (buffer: Buffer.t) => {
   let registry = new EntityRegistry()
   registry.next_entity_id = buffer.read_u32()
   registry.alive_count = buffer.read_u32()
   let count = buffer.read_u32()
   for (let i = 0; i < count; i++) {
-    let entity = buffer.read_u32() as Entity.T
+    let entity = buffer.read_u32() as Entity.t
     registry.dense.push(entity)
     registry.sparse[entity] = i
   }

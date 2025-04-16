@@ -1,6 +1,6 @@
 import {it, expect} from "vitest"
-import * as Timestep from "./time_step"
-import * as Timestepper from "./stepper"
+import * as Timestep from "./time_step.ts"
+import * as Timestepper from "./stepper.ts"
 
 let default_config = {
   period: 1 / 60,

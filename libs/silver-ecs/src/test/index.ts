@@ -1,1 +1,1 @@
-export * from "./mock_world"
+export * from "./mock_world.ts"

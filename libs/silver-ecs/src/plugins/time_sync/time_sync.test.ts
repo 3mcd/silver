@@ -1,5 +1,5 @@
 import {it as test, expect} from "vitest"
-import {make} from "./time_sync"
+import {make} from "./time_sync.ts"
 
 test("init", () => {
   let time_sync = make({

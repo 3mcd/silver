@@ -1,43 +1,46 @@
-import * as Component from "./component"
-import * as SparseMap from "./sparse_map"
+import * as Component from "./component.ts"
+import * as SparseMap from "./sparse_map.ts"
 
 type WithRef<T extends unknown[], U> = U extends Component.Ref<infer V>
-  ? QueryBuilderNode<[...T, V]>
+  ? QueryBuilder<[...T, V]>
   : never
 
 type Join<U extends unknown[]> = (
-  query_builder: QueryBuilderNode<[]>,
-) => QueryBuilderNode<U>
+  query_builder: QueryBuilder<[]>,
+) => QueryBuilder<U>
 
-class QueryBuilderNode<T extends unknown[] = unknown[]> {
+export class QueryBuilder<T extends unknown[] = unknown[]> {
+  /** @internal */
   terms
+  /** @internal */
   joins
+  /** @internal */
   join_on
 
-  constructor(join_on?: Component.T) {
+  constructor(join_on?: Component.t) {
     this.terms = join_on ? [join_on] : []
-    this.joins = SparseMap.make<QueryBuilderNode>()
+    this.joins = SparseMap.make<QueryBuilder>()
     this.join_on = join_on
   }
 
-  with<U extends Component.Ref>(ref: U): WithRef<T, U>
-  with<U extends Component.Tag>(tag: U): this
-  with(rel: Component.Rel): this
-  with<U extends unknown[]>(
+  read<U extends Component.Ref>(ref: U): WithRef<T, U>
+  read<U extends Component.Tag>(tag: U): this
+  read(rel: Component.Rel): this
+  read<U extends unknown[]>(
     rel: Component.Rel,
     join: Join<U>,
-  ): QueryBuilderNode<[...T, ...U]>
-  with<U extends unknown[]>(
+  ): QueryBuilder<[...T, ...U]>
+  read<U extends unknown[]>(
     pair_fn: Component.PairFn,
-  ): QueryBuilderNode<[...T, ...U]>
-  with<U extends unknown[]>(
+  ): QueryBuilder<[...T, ...U]>
+  read<U extends unknown[]>(
     pair_fn: Component.PairFn,
     join: Join<U>,
-  ): QueryBuilderNode<[...T, ...U]>
-  with(
+  ): QueryBuilder<[...T, ...U]>
+  read(
     component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
-  ): QueryBuilderNode
-  with(
+  ): QueryBuilder
+  read(
     component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
     join?: Join<unknown[]>,
   ) {
@@ -45,26 +48,23 @@ class QueryBuilderNode<T extends unknown[] = unknown[]> {
       component = component()
     }
     if (Component.is_rel(component) && join !== undefined) {
-      this.joins.set(
-        component.id,
-        join(new QueryBuilderNode(component.inverse)),
-      )
+      this.joins.set(component.id, join(new QueryBuilder(component.inverse)))
     }
     this.terms.push(component)
     return this
   }
 }
-export type T<U extends unknown[] = unknown[]> = QueryBuilderNode<U>
+export type t<U extends unknown[] = unknown[]> = QueryBuilder<U>
 
-export function make(): QueryBuilderNode<[]>
+export function make(): QueryBuilder<[]>
 export function make<U extends Component.Ref>(ref: U): WithRef<[], U>
 export function make(
   component: Component.Tag | Component.Rel | Component.PairFn,
-): QueryBuilderNode<[]>
+): QueryBuilder<[]>
 export function make(
   component?: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
-): QueryBuilderNode<[]> {
+): QueryBuilder<[]> {
   return component === undefined
-    ? new QueryBuilderNode()
-    : new QueryBuilderNode().with(component)
+    ? new QueryBuilder()
+    : new QueryBuilder().read(component)
 }

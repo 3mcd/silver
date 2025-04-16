@@ -1,4 +1,4 @@
-import {assert} from "./assert"
+import {assert} from "./assert.ts"
 
 let GROW_FACTOR = 1.5
 
@@ -27,7 +27,7 @@ for (let i in ((s, e) => {
   arenas[i] = []
 }
 
-class Buffer {
+export class Buffer {
   buffer
   read_offset = 0
   write_offset
@@ -181,7 +181,7 @@ class Buffer {
   }
 }
 
-export type T = Buffer
+export type t = Buffer
 
 export function make(length: number, max_length?: number): Buffer
 export function make(ab: ArrayBufferLike): Buffer

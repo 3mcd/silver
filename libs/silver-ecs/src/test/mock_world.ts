@@ -9,21 +9,21 @@ import * as Type from "#type"
 type MockNode = {
   id: number
   type: {
-    vec: Component.T[]
+    vec: Component.t[]
     vec_hash: number
     refs: Component.Ref[]
   }
 }
 
 export let mock_world = () => {
-  let entities = new Map<Entity.T, Set<Component.T>>()
+  let entities = new Map<Entity.t, Set<Component.t>>()
   let resources = new Map<Component.Ref, unknown>()
 
   let node_id = 0
   let node_ids = new Map<number, number>()
   let nodes_by_id = SparseMap.make<MockNode>()
 
-  let get_node = (vec: Component.T[]) => {
+  let get_node = (vec: Component.t[]) => {
     let vec_hash = hash_words(vec.map(c => c.id))
     let id = node_ids.get(vec_hash)
     if (id === undefined) {
@@ -63,10 +63,10 @@ export let mock_world = () => {
     get_resource_opt(res: Component.Ref) {
       return resources.get(res)
     },
-    get(entity: Entity.T, component: Component.T) {
+    get(entity: Entity.t, component: Component.t) {
       return get_store(component.id)[entity]
     },
-    set(entity: Entity.T, component: Component.T, value: unknown) {
+    set(entity: Entity.t, component: Component.t, value: unknown) {
       get_store(component.id)[entity] = value
       let set = entities.get(entity)
       if (set === undefined) {
@@ -76,14 +76,14 @@ export let mock_world = () => {
       set.add(component)
       return this
     },
-    has(entity: Entity.T, component: Component.T) {
+    has(entity: Entity.t, component: Component.t) {
       let set = entities.get(entity)
       if (set === undefined) {
         return false
       }
       return set.has(component)
     },
-    add(entity: Entity.T, component: Component.T, value = null) {
+    add(entity: Entity.t, component: Component.t, value = null) {
       if (value !== undefined) {
         this.set(entity, component, value)
       } else {
@@ -96,7 +96,7 @@ export let mock_world = () => {
       }
       return this
     },
-    get_entity_node(entity: Entity.T) {
+    get_entity_node(entity: Entity.t) {
       let set = entities.get(entity)
       if (set === undefined) {
         throw new Error(`entity ${entity} does not exist`)
@@ -107,12 +107,12 @@ export let mock_world = () => {
       return get_store(component_id)
     },
     build() {
-      return this as unknown as World.T
+      return this as unknown as World.t
     },
-    is_alive(entity: Entity.T) {
+    is_alive(entity: Entity.t) {
       return entities.has(entity)
     },
-    reserve(entity: Entity.T, type: Type.T, values: unknown[]) {
+    reserve(entity: Entity.t, type: Type.t, values: unknown[]) {
       let j = 0
       for (let i = 0; i < type.vec.length; i++) {
         let component = type.vec[i]

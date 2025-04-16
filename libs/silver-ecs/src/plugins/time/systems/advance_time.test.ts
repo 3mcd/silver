@@ -1,7 +1,7 @@
-import {mock_world} from "../../../test/mock_world"
+import {mock_world} from "../../../test/mock_world.ts"
 import {expect, it, vi} from "vitest"
-import * as Time from "../time"
-import {advance_time} from "./advance_time"
+import * as Time from "../time.ts"
+import {advance_time} from "./advance_time.ts"
 
 let time = {
   advance: vi.fn(),

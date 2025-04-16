@@ -55,10 +55,10 @@ class TimeSync {
   }
 }
 
-export type T = TimeSync
+export type t = TimeSync
 
 export let make = (config: Config) => {
   return new TimeSync(config)
 }
 
-export let res = ref<T>()
+export let res = ref<t>()

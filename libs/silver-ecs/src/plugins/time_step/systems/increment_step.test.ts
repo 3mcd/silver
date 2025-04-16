@@ -1,7 +1,7 @@
 import {expect, it, vi} from "vitest"
-import {mock_world} from "../../../test"
-import * as Timestep from "../time_step"
-import {increment_step} from "./increment_step"
+import {mock_world} from "../../../test/mock_world.ts"
+import * as Timestep from "../time_step.ts"
+import {increment_step} from "./increment_step.ts"
 
 let timestep = {
   increment: vi.fn(),

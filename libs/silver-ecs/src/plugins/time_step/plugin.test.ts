@@ -1,8 +1,8 @@
-import {it, expect, vi, Mock} from "vitest"
-import {after, app, when, System, before} from "../../app"
-import * as Time from "../time/plugin"
-import * as Timestep from "./plugin"
-import {increment_step} from "./systems/increment_step"
+import {Mock, expect, it, vi} from "vitest"
+import {System, after, make as app, before, when} from "../../app/index.ts"
+import * as Time from "../time/plugin.ts"
+import * as Timestep from "./plugin.ts"
+import {increment_step} from "./systems/increment_step.ts"
 
 let PERIOD = 1 / 60
 let PERIOD_MS = PERIOD * 1000

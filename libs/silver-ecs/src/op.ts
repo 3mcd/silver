@@ -1,6 +1,6 @@
-import * as Component from "./component"
-import * as Entity from "./entity"
-import * as Type from "./type"
+import * as Component from "./component.ts"
+import * as Entity from "./entity.ts"
+import * as Type from "./type.ts"
 
 export enum Kind {
   Spawn,
@@ -11,31 +11,31 @@ export enum Kind {
 
 export type Spawn = {
   kind: Kind.Spawn
-  entity: Entity.T
-  type: Type.T
+  entity: Entity.t
+  type: Type.t
   values: unknown[]
 }
 
 export type Despawn = {
   kind: Kind.Despawn
-  type?: Type.T
-  entity: Entity.T
+  type?: Type.t
+  entity: Entity.t
 }
 
 export type Add = {
   kind: Kind.Add
-  entity: Entity.T
-  type: Type.T
+  entity: Entity.t
+  type: Type.t
   values: unknown[]
 }
 
 export type Remove = {
   kind: Kind.Remove
-  entity: Entity.T
-  type: Type.T
+  entity: Entity.t
+  type: Type.t
 }
 
-export type T = Spawn | Despawn | Add | Remove
+export type t = Spawn | Despawn | Add | Remove
 
 class Op {
   kind
@@ -44,9 +44,9 @@ class Op {
   values?
 
   constructor(
-    kind: T["kind"],
-    entity: Entity.T,
-    type?: Type.T,
+    kind: t["kind"],
+    entity: Entity.t,
+    type?: Type.t,
     values?: unknown,
   ) {
     this.kind = kind
@@ -56,26 +56,26 @@ class Op {
   }
 }
 
-export let spawn = <U extends Component.T[]>(
-  type: Type.T,
-  entity: Entity.T,
+export let spawn = <U extends Component.t[]>(
+  type: Type.t,
+  entity: Entity.t,
   values: Component.ValuesOf<U>,
 ) => {
   return new Op(Kind.Spawn, entity, type, values) as Spawn
 }
 
-export let despawn = (entity: Entity.T) => {
+export let despawn = (entity: Entity.t) => {
   return new Op(Kind.Despawn, entity) as Despawn
 }
 
-export let add = <U extends Component.T[]>(
-  type: Type.T,
-  entity: Entity.T,
+export let add = <U extends Component.t[]>(
+  type: Type.t,
+  entity: Entity.t,
   values: Component.ValuesOf<U>,
 ) => {
   return new Op(Kind.Add, entity, type, values) as Add
 }
 
-export let remove = (type: Type.T, entity: Entity.T) => {
+export let remove = (type: Type.t, entity: Entity.t) => {
   return new Op(Kind.Remove, entity, type) as Remove
 }

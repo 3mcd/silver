@@ -1,16 +1,16 @@
-import * as Component from "./component"
-import * as Entity from "./entity"
-import * as Node from "./node"
-import * as QueryBuilder from "./query_builder"
-import * as Type from "./type"
-import * as World from "./world"
+import * as Component from "./component.ts"
+import * as Entity from "./entity.ts"
+import * as Node from "./node.ts"
+import * as QueryBuilder from "./query_builder.ts"
+import * as Type from "./type.ts"
+import * as World from "./world.ts"
 
 export type ForEachIteratee<U extends unknown[]> = (...value: U) => void
 export type ForEach<U extends unknown[]> = (
   iteratee: ForEachIteratee<U>,
 ) => void
 export type ForEachEntityIteratee<U extends unknown[]> = (
-  entity: Entity.T,
+  entity: Entity.t,
   ...value: U
 ) => void
 export type ForEachEntity<U extends unknown[]> = (
@@ -63,16 +63,16 @@ let build_for_each_join = (
 
 function compile_for_each<U extends unknown[]>(
   query: T<U>,
-  world: World.T,
+  world: World.t,
 ): ForEach<U>
 function compile_for_each<U extends unknown[]>(
   query: T<U>,
-  world: World.T,
+  world: World.t,
   include_entity: true,
 ): ForEachEntity<U>
 function compile_for_each<U extends unknown[]>(
   query: T<U>,
-  world: World.T,
+  world: World.t,
   include_entity = false,
 ) {
   let body = ""
@@ -102,7 +102,7 @@ class Query<U extends unknown[] = unknown[]> {
   builder
   joins
 
-  constructor(builder: QueryBuilder.T<U>, joins: Join[], world: World.T) {
+  constructor(builder: QueryBuilder.t<U>, joins: Join[], world: World.t) {
     this.builder = builder
     this.joins = joins
     this.for_each = compile_for_each(this, world)
@@ -116,20 +116,20 @@ class Join implements Node.Listener {
   nodes
   terms
 
-  constructor(terms: Component.T[], join_on?: Component.T) {
+  constructor(terms: Component.t[], join_on?: Component.t) {
     this.join_on = join_on
-    this.nodes = [] as Node.T[]
+    this.nodes = [] as Node.t[]
     this.terms = terms
   }
 
-  on_node_created(node: Node.T): void {
+  on_node_created(node: Node.t): void {
     this.nodes.push(node)
   }
 }
 
 let init_query_joins = (
-  query_builder_node: QueryBuilder.T,
-  world: World.T,
+  query_builder_node: QueryBuilder.t,
+  world: World.t,
   joins: Join[] = [],
 ) => {
   let join = new Join(query_builder_node.terms, query_builder_node.join_on)
@@ -145,8 +145,8 @@ let init_query_joins = (
 }
 
 export let make = <U extends unknown[]>(
-  query_builder: QueryBuilder.T<U>,
-  world: World.T,
+  query_builder: QueryBuilder.t<U>,
+  world: World.t,
 ): T<U> => {
   let query_joins = init_query_joins(query_builder, world)
   let query = new Query(query_builder, query_joins, world)

@@ -1,10 +1,9 @@
 import * as Buffer from "#buffer"
-
-import {MessageType} from "./message_type"
+import {MessageType} from "./message_type.ts"
 
 export {MessageType}
 
-export let read_message_type = (buffer: Buffer.T) => {
+export let read_message_type = (buffer: Buffer.t) => {
   return buffer.read_u8()
 }
 
@@ -14,11 +13,11 @@ export let init_identity = () => {
   return buffer
 }
 
-export let write_identity = (buffer: Buffer.T, id: number) => {
+export let write_identity = (buffer: Buffer.t, id: number) => {
   buffer.write_u32(id)
 }
 
-export let read_identity = (buffer: Buffer.T) => {
+export let read_identity = (buffer: Buffer.t) => {
   return buffer.read_u32()
 }
 
@@ -28,11 +27,11 @@ export let init_time_sync_request = () => {
   return buffer
 }
 
-export let write_time_sync_request = (buffer: Buffer.T, t_mono: number) => {
+export let write_time_sync_request = (buffer: Buffer.t, t_mono: number) => {
   buffer.write_f64(t_mono)
 }
 
-export let read_time_sync_request = (buffer: Buffer.T) => {
+export let read_time_sync_request = (buffer: Buffer.t) => {
   return buffer.read_f64()
 }
 
@@ -43,7 +42,7 @@ export let init_time_sync_response = () => {
 }
 
 export let write_time_sync_response = (
-  buffer: Buffer.T,
+  buffer: Buffer.t,
   t_origin: number,
   t_remote: number,
 ) => {
@@ -52,7 +51,7 @@ export let write_time_sync_response = (
 }
 
 export let read_time_sync_response = (
-  buffer: Buffer.T,
+  buffer: Buffer.t,
   out: [number, number],
 ) => {
   out[0] = buffer.read_f64()
@@ -63,4 +62,4 @@ export {
   init_interest,
   encode_interest,
   decode_interest,
-} from "./interest_message"
+} from "./interest_message.ts"

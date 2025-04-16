@@ -1,5 +1,5 @@
 import {System} from "#app/index"
-import * as Time from "../time"
+import * as Time from "../time.ts"
 
 export let advance_time: System = world => {
   let time = world.get_resource(Time.res)

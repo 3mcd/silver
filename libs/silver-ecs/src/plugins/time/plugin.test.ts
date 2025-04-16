@@ -1,6 +1,6 @@
 import {expect, it, vi} from "vitest"
-import {after, app, before, System} from "../../app"
-import * as Time from "./plugin"
+import {after, make as app, before, System} from "../../app/index.ts"
+import * as Time from "./plugin.ts"
 
 it("advances time during Time.advance", () => {
   let t_mono_a: number | undefined

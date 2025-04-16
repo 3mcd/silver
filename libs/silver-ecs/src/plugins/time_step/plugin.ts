@@ -1,14 +1,15 @@
-import {after, App, before, range, when} from "#app/index"
+import {after, App, before, when} from "#app/index"
+import * as Range from "#app/range"
 import * as Time from "#plugins/time/plugin"
 import * as World from "#world"
-import * as Timestepper from "./stepper"
-import {advance_timestep} from "./systems/advance_timestep"
-import {increment_step} from "./systems/increment_step"
-import * as Timestep from "./time_step"
+import * as Timestepper from "./stepper.ts"
+import {advance_timestep} from "./systems/advance_timestep.ts"
+import {increment_step} from "./systems/increment_step.ts"
+import * as Timestep from "./time_step.ts"
 
 export type Config = Timestep.Config
 
-export let steps = (world: World.T) => world.get_resource(Timestep.res).steps()
+export let steps = (world: World.t) => world.get_resource(Timestep.res).steps()
 
 let default_config: Config = {
   period: 1 / 60,
@@ -17,9 +18,9 @@ let default_config: Config = {
   overshoot: true,
 }
 
-export let advance = range(after(Time.advance))
-export let control = range(after(Time.advance), before(advance))
-export let logical = range(when(advance), when(steps))
+export let advance = Range.make(after(Time.advance))
+export let control = Range.make(after(Time.advance), before(advance))
+export let logical = Range.make(when(advance), when(steps))
 
 export let plugin = (app: App, config?: Partial<Config>) => {
   let stepper_config = {...default_config, ...config}
@@ -31,4 +32,4 @@ export let plugin = (app: App, config?: Partial<Config>) => {
     .add_system(increment_step, when(advance), when(steps), after(logical))
 }
 
-export * from "./time_step"
+export * from "./time_step.ts"

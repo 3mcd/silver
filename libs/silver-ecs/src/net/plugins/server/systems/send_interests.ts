@@ -1,11 +1,11 @@
 import {System} from "#app/index"
 import {make as query} from "#query_builder"
-import {HasInterest, Interest} from "../../../interest"
-import * as Protocol from "../../../protocol"
-import {Remote} from "../../../remote"
+import {HasInterest, Interest} from "../../../interest.ts"
+import * as Protocol from "../../../protocol.ts"
+import {Remote} from "../../../remote.ts"
 
-let remotes = query(Remote).with(HasInterest, interest =>
-  interest.with(Interest),
+let remotes = query(Remote).read(HasInterest, interest =>
+  interest.read(Interest),
 )
 
 export let send_interests: System = world => {

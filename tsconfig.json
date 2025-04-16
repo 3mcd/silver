@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "esnext",
+    "module": "nodenext",
     "isolatedModules": true,
     "downlevelIteration": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "strict": true,
     "declaration": true,
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": true,
+    "allowImportingTsExtensions": true
   }
 }
