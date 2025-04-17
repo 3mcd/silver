@@ -1,6 +1,6 @@
 import * as Component from "./component.ts"
-import * as Hash from "./hash.ts"
 import * as Entity from "./entity.ts"
+import * as Hash from "./hash.ts"
 
 /**
  * Create an ordered collection of unique components from a unrestricted array
@@ -126,7 +126,7 @@ class Type {
     let sum = this.vec.concat(other.vec)
     for (let i = 0; i < other.pairs.length; i++) {
       let pair = other.pairs[i]
-      let pair_rel_id = Entity.parse_hi(pair.id)
+      let pair_rel_id = Component.parse_pair_rel_id(pair)
       if (!this.has_component_id(pair_rel_id)) {
         let pair_rel = Component.find_by_id(pair_rel_id)!
         sum.push(pair_rel)

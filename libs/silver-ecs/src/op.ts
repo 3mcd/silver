@@ -57,8 +57,8 @@ class Op {
 }
 
 export let spawn = <U extends Component.t[]>(
-  type: Type.t,
   entity: Entity.t,
+  type: Type.t,
   values: Component.ValuesOf<U>,
 ) => {
   return new Op(Kind.Spawn, entity, type, values) as Spawn
@@ -69,13 +69,13 @@ export let despawn = (entity: Entity.t) => {
 }
 
 export let add = <U extends Component.t[]>(
-  type: Type.t,
   entity: Entity.t,
+  component: Component.t,
   values: Component.ValuesOf<U>,
 ) => {
-  return new Op(Kind.Add, entity, type, values) as Add
+  return new Op(Kind.Add, entity, Type.single(component), values) as Add
 }
 
-export let remove = (type: Type.t, entity: Entity.t) => {
-  return new Op(Kind.Remove, entity, type) as Remove
+export let remove = (entity: Entity.t, component: Component.t) => {
+  return new Op(Kind.Remove, entity, Type.single(component)) as Remove
 }

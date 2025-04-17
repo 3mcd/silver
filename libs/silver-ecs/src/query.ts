@@ -18,7 +18,7 @@ export type ForEachEntity<U extends unknown[]> = (
 ) => void
 
 let build_for_each_join = (
-  query: T,
+  query: t,
   join_index: number,
   include_entity: boolean,
 ) => {
@@ -62,16 +62,16 @@ let build_for_each_join = (
 }
 
 function compile_for_each<U extends unknown[]>(
-  query: T<U>,
+  query: t<U>,
   world: World.t,
 ): ForEach<U>
 function compile_for_each<U extends unknown[]>(
-  query: T<U>,
+  query: t<U>,
   world: World.t,
   include_entity: true,
 ): ForEachEntity<U>
 function compile_for_each<U extends unknown[]>(
-  query: T<U>,
+  query: t<U>,
   world: World.t,
   include_entity = false,
 ) {
@@ -85,7 +85,7 @@ function compile_for_each<U extends unknown[]>(
         .filter(Component.is_ref)
         .map(
           (ref, ref_index) =>
-            `let w${join_index}${ref_index}=W.store(${ref.id});`,
+            `let w${join_index}${ref_index}=W.array(${ref.id});`,
         )
         .join(""),
     )
@@ -109,7 +109,7 @@ class Query<U extends unknown[] = unknown[]> {
     this.for_each_entity = compile_for_each(this, world, true)
   }
 }
-export type T<U extends unknown[] = unknown[]> = Query<U>
+export type t<U extends unknown[] = unknown[]> = Query<U>
 
 class Join implements Node.Listener {
   join_on
@@ -147,7 +147,7 @@ let init_query_joins = (
 export let make = <U extends unknown[]>(
   query_builder: QueryBuilder.t<U>,
   world: World.t,
-): T<U> => {
+): t<U> => {
   let query_joins = init_query_joins(query_builder, world)
   let query = new Query(query_builder, query_joins, world)
   return query

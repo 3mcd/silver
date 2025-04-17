@@ -43,10 +43,16 @@ let clear_canvas: App.System = () => {
   clear()
 }
 
-let log_orbits = Effect.make([Orbits], (world, entity) => {
-  let orbits = world.get_exclusive_relative(entity, Orbits)
-  console.log(world.get(entity, Name), "orbits", world.get(orbits, Name))
-})
+let log_orbits = Effect.make(
+  [Orbits],
+  (world, entity) => {
+    let orbits = world.get_exclusive_relative(entity, Orbits)
+    console.log(world.get(entity, Name), "orbits", world.get(orbits, Name))
+  },
+  (world, entity) => {
+    console.log(entity, "no longer orbits anything")
+  },
+)
 
 type BodyOptions = {
   name: string
@@ -108,6 +114,18 @@ let game = App.make()
     let earth = body(world, earth_options).with(Orbits(sun)).spawn()
     let moon = body(world, moon_options).with(Orbits(earth)).spawn()
     console.log("sun", sun, "earth", earth, "moon", moon)
+    document.addEventListener("click", () => {
+      if (world.has(earth, Orbits(sun))) {
+        world.remove(earth, Orbits(sun))
+      } else {
+        if (world.has(moon, Orbits(earth))) {
+          world.remove(moon, Orbits(earth))
+        } else {
+          world.add(moon, Orbits(earth))
+          world.add(earth, Orbits(sun))
+        }
+      }
+    })
   })
 
 let loop = () => {

@@ -40,7 +40,7 @@ export class World {
     this.#entity_registry = EntityRegistry.make()
     this.#id = id
     this.#ops = [] as Op.t[]
-    this.#queries = new Map<QueryBuilder.t, Query.T>()
+    this.#queries = new Map<QueryBuilder.t, Query.t>()
     this.#resources = [] as unknown[]
     this.#stage = Stage.make()
     this.graph = Graph.make()
@@ -55,8 +55,8 @@ export class World {
   }
 
   #get_value(entity: Entity.t, component: Component.Ref) {
-    let store = this.store(component.id)
-    return store[entity]
+    let array = this.array(component.id)
+    return array[entity]
   }
 
   #set_value<U extends Component.t>(
@@ -64,14 +64,15 @@ export class World {
     component: U,
     value: Component.ValueOf<U>,
   ) {
-    let store = this.store(component.id)
-    store[entity] = value
+    let array = this.array(component.id)
+    array[entity] = value
   }
 
   #set_values(entity: Entity.t, type: Type.t, values: unknown[]) {
     for (let i = 0; i < type.refs.length; i++) {
       let ref = type.refs[i]
-      this.#set_value(entity, ref, values[ref.id])
+      let ref_value = values[ref.id]
+      this.#set_value(entity, ref, ref_value)
     }
   }
 
@@ -86,16 +87,6 @@ export class World {
     }
   }
 
-  #despawn(entity: Entity.t) {
-    let node = this.get_entity_node(entity)
-    this.#unset_relations(entity, node.type)
-    let entity_hi = Entity.parse_hi(entity)
-    if (entity_hi === this.#id || entity_hi === 0) {
-      this.#entity_registry.free(entity)
-    }
-    this.#stage.move(entity)
-  }
-
   #set_relations(subject: Entity.t, type: Type.t) {
     for (let i = 0; i < type.pairs.length; i++) {
       let pair = type.pairs[i]
@@ -108,7 +99,7 @@ export class World {
       let object_node = this.get_entity_node(object)
       // grant the object entity the relation's inverse tag
       if (!object_node.type.has_component(rel_inverse)) {
-        this.#apply_add(Op.add(Type.single(rel_inverse), object, []))
+        this.#apply_add(object, Type.single(rel_inverse))
       }
       let next_object_node = this.get_entity_node(object)
       next_object_node.set_object(rel_inverse.id, subject, object)
@@ -126,9 +117,10 @@ export class World {
       switch (object_node.unpair(rel.inverse.id, entity, object)) {
         // Object has no more subjects, so remove the relation's inverse tag.
         case 2:
-        case 3:
-          this.#apply_remove(Op.remove(Type.single(rel.inverse), object))
+        case 3: {
+          this.#apply_remove(object, Type.single(rel.inverse))
           break
+        }
         default:
           break
       }
@@ -157,66 +149,91 @@ export class World {
     }
   }
 
-  #apply_spawn(op: Op.Spawn) {
-    let {entity, type, values} = op
+  #apply_spawn(entity: Entity.t, type: Type.t, values: unknown[]) {
     let node = this.graph.find_or_create_node_by_type(type)
     this.#set_values(entity, type, values)
     this.#set_relations(entity, type)
     this.#stage.move(entity, node)
   }
 
-  #apply_despawn(op: Op.Despawn) {
-    let node = this.get_entity_node(op.entity)
-    op.type = node.type
-    this.#despawn(op.entity)
+  #apply_spawn_op(op: Op.Spawn) {
+    this.#apply_spawn(op.entity, op.type, op.values)
   }
 
-  #apply_add(op: Op.Add) {
-    let {entity, type, values} = op
-    this.#set_values(entity, type, values)
+  #apply_despawn(entity: Entity.t) {
+    let node = this.get_entity_node(entity)
+    this.#unset_relations(entity, node.type)
+    let entity_hi = Entity.parse_hi(entity)
+    if (entity_hi === this.#id || entity_hi === 0) {
+      this.#entity_registry.free(entity)
+    }
+    this.#stage.move(entity)
+  }
+
+  #apply_despawn_op(op: Op.Despawn) {
+    let node = this.get_entity_node(op.entity)
+    op.type = node.type
+    this.#apply_despawn(op.entity)
+  }
+
+  #apply_add(entity: Entity.t, type: Type.t, values?: unknown[]) {
+    if (values !== undefined) {
+      this.#set_values(entity, type, values)
+    }
     this.#set_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
     let next_type = prev_node.type.from_sum(type)
     let next_node = this.graph.find_or_create_node_by_type(next_type)
-    this.#move_relations(entity, prev_node, next_node)
-    this.#stage.move(entity, next_node)
+    if (next_node !== prev_node) {
+      this.#move_relations(entity, prev_node, next_node)
+      this.#stage.move(entity, next_node)
+    }
   }
 
-  #apply_remove(op: Op.Remove) {
-    let {entity, type} = op
+  #apply_add_op(op: Op.Add) {
+    this.#apply_add(op.entity, op.type, op.values)
+  }
+
+  #apply_remove(entity: Entity.t, type: Type.t) {
     // this.#unset_values(entity, type)
     this.#unset_relations(entity, type)
     let prev_node = this.get_entity_node(entity)
     let next_type = prev_node.type.from_difference(type)
     let next_node = this.graph.find_or_create_node_by_type(next_type)
-    this.#move_relations(entity, prev_node, next_node)
-    this.#stage.move(entity, next_node)
+    if (next_node !== prev_node) {
+      this.#move_relations(entity, prev_node, next_node)
+      this.#stage.move(entity, next_node)
+    }
+  }
+
+  #apply_remove_op(op: Op.Remove) {
+    this.#apply_remove(op.entity, op.type)
   }
 
   #apply_op(op: Op.t) {
     switch (op.kind) {
       case Op.Kind.Spawn:
-        this.#apply_spawn(op)
+        this.#apply_spawn_op(op)
         break
       case Op.Kind.Despawn:
-        this.#apply_despawn(op)
+        this.#apply_despawn_op(op)
         break
       case Op.Kind.Add:
-        this.#apply_add(op)
+        this.#apply_add_op(op)
         break
       case Op.Kind.Remove:
-        this.#apply_remove(op)
+        this.#apply_remove_op(op)
         break
     }
   }
 
-  #resolve_query<U extends unknown[]>(query: QueryBuilder.t<U>): Query.T<U> {
+  #resolve_query<U extends unknown[]>(query: QueryBuilder.t<U>): Query.t<U> {
     let compiled_query = this.#queries.get(query)
     if (compiled_query === undefined) {
       compiled_query = Query.make(query, this)
       this.#queries.set(query, compiled_query)
     }
-    return compiled_query as Query.T<U>
+    return compiled_query as Query.t<U>
   }
 
   identify(id: number) {
@@ -244,17 +261,20 @@ export class World {
   spawn(type: Type.t, values: unknown[]): Entity.t
   spawn(type?: Type.t, values?: unknown[]): Entity.t {
     let entity = this.#entity_registry.alloc(this.#id)
-    this.#ops.push(Op.spawn(type ?? Type.empty, entity, values as []))
+    let op = Op.spawn(entity, type ?? Type.empty, values as [])
+    this.#ops.push(op)
     return entity
   }
 
   despawn(entity: Entity.t) {
     this.#entity_registry.check(entity)
-    this.#ops.push(Op.despawn(entity))
+    let op = Op.despawn(entity)
+    this.#ops.push(op)
   }
 
   reserve(entity: Entity.t, type: Type.t, values: unknown[]) {
-    this.#ops.push(Op.spawn(type ?? Type.empty, entity, values as []))
+    let op = Op.spawn(entity, type ?? Type.empty, values as [])
+    this.#ops.push(op)
   }
 
   add<U>(entity: Entity.t, ref: Component.Ref<U>, value: U): void
@@ -262,19 +282,12 @@ export class World {
   add(entity: Entity.t, tag: Component.Tag): void
   add(entity: Entity.t, component: Component.t, value?: unknown) {
     this.#entity_registry.check(entity)
-    this.#ops.push(
-      Op.add(
-        Type.single(component),
-        entity,
-        value
-          ? (() => {
-              let arr = []
-              arr[component.id] = value
-              return arr as []
-            })()
-          : [],
-      ),
-    )
+    let values: unknown[] = []
+    if (value !== undefined) {
+      values[component.id] = value
+    }
+    let op = Op.add(entity, component, values as [])
+    this.#ops.push(op)
   }
 
   remove(
@@ -282,7 +295,8 @@ export class World {
     component: Component.Ref | Component.Tag | Component.Pair,
   ) {
     if (this.#entity_registry.is_alive(entity)) {
-      this.#ops.push(Op.remove(Type.single(component), entity))
+      let op = Op.remove(entity, component)
+      this.#ops.push(op)
     }
   }
 
@@ -359,9 +373,9 @@ export class World {
     return this.#entity_registry.is_alive(entity)
   }
 
-  store(component_id: number) {
-    let store = (this.#entity_data[component_id] ??= [])
-    return store
+  array(component_id: number) {
+    let array = (this.#entity_data[component_id] ??= [])
+    return array
   }
 
   single(ref: Component.Ref): Entity.t {
@@ -384,28 +398,29 @@ export class World {
     return assert_exists(entity, err_missing_entity_single)
   }
 
-  with<U extends Component.Tag>(tag: U): EntityBuilder.t
+  with<U extends Component.Tag>(tag: U): EntityBuilder.EntityBuilder
   with<U extends Component.Ref>(
     ref: U,
     value: Component.ValueOf<U>,
-  ): EntityBuilder.t
-  with<U extends Component.RefFactory>(ref: U): EntityBuilder.t
-  with<U extends Component.Pair>(component: U): EntityBuilder.t
+  ): EntityBuilder.EntityBuilder
+  with<U extends Component.RefFactory>(ref: U): EntityBuilder.EntityBuilder
+  with<U extends Component.Pair>(component: U): EntityBuilder.EntityBuilder
   with(
     component: Component.Tag | Component.Ref | Component.Pair,
     value?: unknown,
   ) {
-    let builder = EntityBuilder.make(this)
+    let entity_builder = EntityBuilder.make(this)
     return Component.is_ref(component)
-      ? builder.with(component, value ?? component.init?.())
-      : builder.with(component)
+      ? entity_builder.with(component, value ?? component.init?.())
+      : entity_builder.with(component)
   }
 
   for_each<U extends unknown[]>(
     query: QueryBuilder.t<U>,
     iteratee: Query.ForEachIteratee<U>,
   ) {
-    this.#resolve_query(query).for_each(iteratee)
+    let resolved_query = this.#resolve_query(query)
+    resolved_query.for_each(iteratee)
     return this
   }
 
@@ -413,7 +428,8 @@ export class World {
     query: QueryBuilder.t<U>,
     iteratee: Query.ForEachEntityIteratee<U>,
   ) {
-    this.#resolve_query(query).for_each_entity(iteratee)
+    let resolved_query = this.#resolve_query(query)
+    resolved_query.for_each_entity(iteratee)
   }
 
   add_effect<const U extends Effect.Term[]>(effect: Effect.t<U>) {

@@ -210,14 +210,8 @@ export let is_tag = (component: t): component is Tag | Rel =>
 export let is_rel = (component: t): component is Rel =>
   component.kind === Kind.Rel
 
-export let is_rel_exclusive = (component: t): component is Rel =>
-  component.kind === Kind.Rel && component.topology === Topology.Exclusive
-
 export let is_rel_inverse = (component: t): component is RelInverse =>
   component.kind === Kind.RelInverse
 
 export let is_pair = (component: t): component is Pair =>
-  component.kind === Kind.Pair
-
-export let is_tag_pair = (component: t): component is Pair =>
   component.kind === Kind.Pair
