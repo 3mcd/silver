@@ -49,7 +49,7 @@ export class World {
   /** @internal */
   get_entity_node(entity: Entity.t) {
     return assert_exists(
-      Stage.get_next_entity_node(this.#stage, entity),
+      this.#stage.get_next_entity_node(entity),
       err_missing_entity,
     )
   }
@@ -89,8 +89,11 @@ export class World {
   #despawn(entity: Entity.t) {
     let node = this.get_entity_node(entity)
     this.#unset_relations(entity, node.type)
-    this.#entity_registry.free(entity)
-    Stage.move(this.#stage, entity)
+    let entity_hi = Entity.parse_hi(entity)
+    if (entity_hi === this.#id || entity_hi === 0) {
+      this.#entity_registry.free(entity)
+    }
+    this.#stage.move(entity)
   }
 
   #set_relations(subject: Entity.t, type: Type.t) {
@@ -159,7 +162,7 @@ export class World {
     let node = this.graph.find_or_create_node_by_type(type)
     this.#set_values(entity, type, values)
     this.#set_relations(entity, type)
-    Stage.move(this.#stage, entity, node)
+    this.#stage.move(entity, node)
   }
 
   #apply_despawn(op: Op.Despawn) {
@@ -176,7 +179,7 @@ export class World {
     let next_type = prev_node.type.from_sum(type)
     let next_node = this.graph.find_or_create_node_by_type(next_type)
     this.#move_relations(entity, prev_node, next_node)
-    Stage.move(this.#stage, entity, next_node)
+    this.#stage.move(entity, next_node)
   }
 
   #apply_remove(op: Op.Remove) {
@@ -187,7 +190,7 @@ export class World {
     let next_type = prev_node.type.from_difference(type)
     let next_node = this.graph.find_or_create_node_by_type(next_type)
     this.#move_relations(entity, prev_node, next_node)
-    Stage.move(this.#stage, entity, next_node)
+    this.#stage.move(entity, next_node)
   }
 
   #apply_op(op: Op.t) {
@@ -309,7 +312,7 @@ export class World {
       }
       this.#ops = []
     }
-    Stage.apply(this.#stage)
+    this.#stage.apply()
     for (let i = 0; i < ops.length; i++) {
       let op = ops[i]
       switch (op.kind) {

@@ -193,7 +193,7 @@ export let decode_interest = (
       if (world.is_alive(entity)) {
         for (let k = 0; k < segment_match_length; k++) {
           let component = segment_match[k]
-          if (component.is_ref()) {
+          if (Component.is_ref(component)) {
             if (world.has(entity, component)) {
               // decode the value on top of the existing one
               let ref_encoding = serde.encoding_from_ref_id(component.id)
@@ -219,9 +219,9 @@ export let decode_interest = (
         }
         continue
       }
-      // type used to spawn the new entity
+      // type used to spawn new entities
       type ??= Type.make(segment_match.slice(0, segment_match_length))
-      let values = [] as unknown[]
+      let values: unknown[] = []
       for (let k = 0; k < segment_match_length; k++) {
         let component = segment_match[k]
         if (Component.is_rel(component)) {

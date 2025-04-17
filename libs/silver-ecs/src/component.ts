@@ -18,9 +18,6 @@ export enum Topology {
 export interface Base<U> {
   kind: Kind
   id: number
-  is_ref: () => this is Ref<U>
-  is_tag: () => this is Tag
-  is_rel: () => this is Rel
 }
 
 export interface Tag extends Base<void> {
@@ -103,18 +100,6 @@ class Component {
     this.schema = schema
     this.topology = topology
     this.init = init
-  }
-
-  is_ref(): this is Ref {
-    return this.kind === Kind.Ref
-  }
-
-  is_tag(): this is Tag {
-    return this.kind === Kind.Tag
-  }
-
-  is_rel(): this is Rel {
-    return this.kind === Kind.Rel
   }
 }
 

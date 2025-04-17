@@ -3,7 +3,7 @@ import * as Range from "./range.ts"
 import * as System from "./system.ts"
 import * as SystemGraph from "./system_graph.ts"
 
-class Schedule {
+export class Schedule {
   graph = SystemGraph.make<System.t>()
   stale = true
   system_runs = [] as number[]

@@ -48,32 +48,53 @@ let log_orbits = Effect.make([Orbits], (world, entity) => {
   console.log(world.get(entity, Name), "orbits", world.get(orbits, Name))
 })
 
-let body = (
-  world: World.t,
-  name: string,
-  color: string,
-  x: number,
-  y: number,
-  r: number,
-  av: number,
-) =>
+type BodyOptions = {
+  name: string
+  color: string
+  x: number
+  y: number
+  r: number
+  av: number
+}
+
+let body = (world: World.t, options: BodyOptions) =>
   world
-    .with(Name, name)
-    .with(Color, color)
-    .with(Position, {x, y})
-    .with(Radius, r)
-    .with(Angvel, av)
+    .with(Name, options.name)
+    .with(Color, options.color)
+    .with(Position, {x: options.x, y: options.y})
+    .with(Radius, options.r)
+    .with(Angvel, options.av)
+
+let sun_options = {
+  name: "sun",
+  color: "#ff0",
+  x: 0,
+  y: 0,
+  r: 10,
+  av: 0,
+}
+
+let earth_options = {
+  name: "earth",
+  color: "#00f",
+  x: 30,
+  y: 0,
+  r: 3,
+  av: 2,
+}
+
+let moon_options = {
+  name: "moon",
+  color: "#aaa",
+  x: 5,
+  y: 0,
+  r: 1,
+  av: 10,
+}
 
 let game = App.make()
   .use(Time.plugin)
   .use(Timestep.plugin)
-  .add_init_system(world => {
-    let sun = body(world, "sun", "#ff0", 0, 0, 10, 0).spawn()
-    let earth = body(world, "earth", "#00f", 30, 0, 3, 2)
-      .with(Orbits(sun))
-      .spawn()
-    body(world, "moon", "#aaa", 5, 0, 1, 10).with(Orbits(earth)).spawn()
-  })
   .add_system(
     move_satellites,
     System.before(clear_canvas),
@@ -82,6 +103,12 @@ let game = App.make()
   .add_system(clear_canvas)
   .add_system(draw_bodies, System.after(clear_canvas))
   .add_effect(log_orbits)
+  .add_init_system(world => {
+    let sun = body(world, sun_options).spawn()
+    let earth = body(world, earth_options).with(Orbits(sun)).spawn()
+    let moon = body(world, moon_options).with(Orbits(earth)).spawn()
+    console.log("sun", sun, "earth", earth, "moon", moon)
+  })
 
 let loop = () => {
   game.run()
