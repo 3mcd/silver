@@ -1,6 +1,14 @@
-import {App, Component, Effect, Query, System, World} from "silver-ecs"
+import {App, Component, Effect, Entity, Query, System, World} from "silver-ecs"
 import {Commands, Time, Timestep} from "silver-ecs/plugins"
-import {canvas, circle, clear, context, transform} from "./canvas"
+import {
+  canvas,
+  circle,
+  clear,
+  context,
+  transform,
+  transformX,
+  transformY,
+} from "./canvas"
 import {Angvel, Color, Name, Orbits, Position, Radius} from "./data"
 
 let FONT_SIZE = 12 * window.devicePixelRatio
@@ -43,14 +51,18 @@ let clear_canvas: App.System = () => {
   clear()
 }
 
-let log_orbits = Effect.make(
-  [Orbits],
+let log_orbits = Effect.make([Orbits], (world, entity) => {
+  let orbits = world.get_exclusive_relative(entity, Orbits)
+  console.log(world.get(entity, Name), "orbits", world.get(orbits, Name))
+})
+
+let log_bodies = Effect.make(
+  [Name],
   (world, entity) => {
-    let orbits = world.get_exclusive_relative(entity, Orbits)
-    console.log(world.get(entity, Name), "orbits", world.get(orbits, Name))
+    console.log("body", world.get(entity, Name), "spawned")
   },
   (world, entity) => {
-    console.log(entity, "no longer orbits anything")
+    console.log("body", world.get(entity, Name), "despawned")
   },
 )
 
@@ -98,9 +110,7 @@ let moon_options = {
   av: 10,
 }
 
-let Click = Component.ref<{}>()
-
-let queries = Component.ref<{planets: Query.QueryBuilder}>()
+let Click = Component.ref<{entity: Entity.t}>()
 
 let game = App.make()
   .use(Time.plugin)
@@ -113,36 +123,42 @@ let game = App.make()
   )
   .add_system(clear_canvas)
   .add_system(draw_bodies, System.after(clear_canvas))
+  .add_effect(log_bodies)
   .add_effect(log_orbits)
   .add_init_system(world => {
     let commands = world.get_resource(Commands.res)
-    let sun = body(world, sun_options).spawn()
-    let earth = body(world, earth_options).with(Orbits(sun)).spawn()
-    let moon = body(world, moon_options).with(Orbits(earth)).spawn()
 
-    world.set_resource(queries, {
-      planets: Query.make()
-        .with(Orbits(sun))
-        .with(Name)
-        .with(Orbits, body => body.with(Name)),
-    })
+    body(world, moon_options)
+      .with(
+        Orbits(
+          body(world, earth_options)
+            .with(Orbits(body(world, sun_options).spawn()))
+            .spawn(),
+        ),
+      )
+      .spawn()
 
-    console.log("sun", sun, "earth", earth, "moon", moon)
-    document.addEventListener("click", () => {
-      let step = world.get_resource(Timestep.res).step()
-      let command = Commands.make_command(Click, {}, step)
-      commands.insert(command)
+    document.addEventListener("click", e => {
+      let x = transformX(e.clientX) - canvas.width / 2
+      let y = transformY(e.clientY) - canvas.height / 2
+      world.for_each(bodies, (_, __, p, r, entity) => {
+        let dx = p.x - x
+        let dy = p.y - y
+        if (Math.sqrt(dx * dx + dy * dy) < r) {
+          let step = world.get_resource(Timestep.res).step()
+          let command = Commands.make_command(Click, {entity}, step)
+          commands.insert(command)
+          return Query.$break
+        }
+      })
     })
   })
   .add_system(world => {
     let timestep = world.get_resource(Timestep.res)
     let commands = world.get_resource(Commands.res)
-    let {planets} = world.get_resource(queries)
     let step = timestep.step()
-    commands.read(Click, step, () => {
-      world.for_each(planets, (planet_name, orbits_name) => {
-        console.log("planet", planet_name, "orbits", orbits_name)
-      })
+    commands.read(Click, step, command => {
+      world.despawn(command.data.entity)
     })
   }, System.when(Commands.read))
 

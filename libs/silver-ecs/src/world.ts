@@ -107,6 +107,19 @@ export class World {
   }
 
   #unset_relations(entity: Entity.t, type: Type.t) {
+    let node = this.get_entity_node(entity)
+    for (let i = 0; i < type.rels_inverse.length; i++) {
+      let rel_inverse = type.rels_inverse[i]
+      let rel_map = node.rel_maps[rel_inverse.id]
+      let subjects = rel_map.b_to_a[entity]
+      subjects?.for_each(subject => {
+        this.#apply_remove(
+          subject,
+          Type.single(Component.make_pair(rel_inverse.rel, entity)),
+        )
+      })
+      rel_map.delete_object(entity)
+    }
     for (let i = 0; i < type.pairs.length; i++) {
       let pair = type.pairs[i]
       let rel_id = Component.parse_pair_rel_id(pair)
@@ -115,7 +128,7 @@ export class World {
       let object = Entity.make(object_id, this.#id)
       let object_node = this.get_entity_node(object)
       switch (object_node.unpair(rel.inverse.id, entity, object)) {
-        // Object has no more subjects, so remove the relation's inverse tag.
+        // object has no more subjects, so remove the relation's inverse tag
         case 2:
         case 3: {
           this.#apply_remove(object, Type.single(rel.inverse))
@@ -132,7 +145,7 @@ export class World {
    * each relation present in both nodes.
    */
   #move_relations(object: Entity.t, prev_node: Node.t, next_node: Node.t) {
-    // For every relation type that this entity is an object of.
+    // for every relation type that this entity is an object of
     for (let i = 0; i < prev_node.type.rels_inverse.length; i++) {
       let rel_inverse = prev_node.type.rels_inverse[i]
       let rel_map = prev_node.rel_maps[rel_inverse.id]
@@ -141,7 +154,7 @@ export class World {
         continue
       }
       if (next_node.type.has_component(rel_inverse)) {
-        subjects.each(subject => {
+        subjects.for_each(subject => {
           next_node.set_object(rel_inverse.id, subject, object)
         })
       }
@@ -427,14 +440,6 @@ export class World {
     let resolved_query = this.#resolve_query(query)
     resolved_query.for_each(iteratee)
     return this
-  }
-
-  for_each_entity<U extends unknown[]>(
-    query: QueryBuilder.t<U>,
-    iteratee: Query.ForEachEntityIteratee<U>,
-  ) {
-    let resolved_query = this.#resolve_query(query)
-    resolved_query.for_each_entity(iteratee)
   }
 
   add_effect<const U extends Effect.Term[]>(effect: Effect.t<U>) {

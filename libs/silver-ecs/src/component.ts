@@ -46,6 +46,7 @@ export type ValuesOf<U extends t[] = t[]> = U extends [
 
 export interface RelInverse extends Base<void> {
   kind: Kind.RelInverse
+  rel: Rel
   topology: Topology
 }
 export interface Rel extends Base<void> {
@@ -172,6 +173,7 @@ export let rel = (options?: RelOptions): PairFn => {
     : Topology.Inclusive
   let rel = make(rel_id, Kind.Rel, rel_topology)
   rel.inverse = make(rel_id_inverse, Kind.RelInverse, rel_topology)
+  rel.inverse.rel = rel
   let pairs: Pair[] = []
   function pair_fn(): Rel
   function pair_fn(entity: Entity.t): Pair

@@ -55,7 +55,7 @@ class RelMap<U extends number> implements RelMap<U> {
     if (a === undefined) {
       return
     }
-    a.each(subject => {
+    a.for_each(subject => {
       let b = this.a_to_b[subject]
       if (b === undefined) {
         return
@@ -73,7 +73,7 @@ class RelMap<U extends number> implements RelMap<U> {
     if (b === undefined) {
       return
     }
-    b.each(target => {
+    b.for_each(target => {
       let a = this.b_to_a[target]
       if (a === undefined) {
         return

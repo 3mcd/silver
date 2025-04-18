@@ -37,7 +37,7 @@ export class Batch {
   }
 
   each(callback: (entity: Entity.t) => void) {
-    this.entities.each(callback)
+    this.entities.for_each(callback)
   }
 }
 

@@ -74,3 +74,5 @@ export function make(
     ? new QueryBuilder()
     : new QueryBuilder().with(component)
 }
+
+export {$break} from "./query.ts"

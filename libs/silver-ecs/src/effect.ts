@@ -28,7 +28,7 @@ export class Effect<U extends Term[]> implements Node.Listener {
       return
     }
     assert(this.world !== undefined)
-    batch.entities.each(entity => {
+    batch.entities.for_each(entity => {
       this.#on_match!(this.world!, entity)
     })
   }
@@ -39,7 +39,7 @@ export class Effect<U extends Term[]> implements Node.Listener {
       return
     }
     assert(this.world !== undefined)
-    batch.entities.each(entity => {
+    batch.entities.for_each(entity => {
       this.#on_unmatch!(this.world!, entity)
     })
   }

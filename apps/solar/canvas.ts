@@ -17,8 +17,8 @@ export let translate = (dx: number, dy: number) => {
   transform.y -= dy
 }
 
-let transformX = (x: number) => transform.scale * x + transform.x
-let transformY = (y: number) => transform.scale * y + transform.y
+export let transformX = (x: number) => transform.scale * x + transform.x
+export let transformY = (y: number) => transform.scale * y + transform.y
 
 let dragging = false
 

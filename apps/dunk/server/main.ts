@@ -71,7 +71,7 @@ let players = Query.make(IsPlayer)
 
 let amplify_entities: App.System = world => {
   world.for_each(interests, interest => {
-    world.for_each_entity(players, player => {
+    world.for_each(players, player => {
       interest.amplify(player, 0.1)
     })
   })

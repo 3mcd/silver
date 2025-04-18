@@ -51,7 +51,7 @@ export class SparseSet<U extends number> {
     return this.dense.length
   }
 
-  each(iteratee: ForEachIteratee<U>): void {
+  for_each(iteratee: ForEachIteratee<U>): void {
     for (let i = this.dense.length - 1; i >= 0; i--) {
       iteratee(this.dense[i])
     }

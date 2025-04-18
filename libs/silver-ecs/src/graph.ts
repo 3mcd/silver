@@ -105,7 +105,7 @@ export class Graph {
     node.traverse_right(next_node => {
       let prev_type = next_node.type.without_component(component)
       let prev_node = this.find_or_create_node_by_type(prev_type)
-      next_node.entities.each(entity => {
+      next_node.entities.for_each(entity => {
         next_node.remove_entity(entity)
         prev_node.insert_entity(entity)
         iteratee(entity, prev_node)

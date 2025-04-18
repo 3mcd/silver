@@ -143,7 +143,7 @@ class Type {
         if (Component.is_rel(component)) {
           for (let j = 0; j < this.pairs.length; j++) {
             let pair = this.pairs[j]
-            let pair_rel_id = Entity.parse_hi(pair.id)
+            let pair_rel_id = Component.parse_pair_rel_id(pair)
             if (
               this.pair_counts[pair_rel_id] === other.pair_counts[pair_rel_id]
             ) {
