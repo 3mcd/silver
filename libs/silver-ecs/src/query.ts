@@ -12,7 +12,7 @@ export type ForEach<U extends unknown[]> = (
   iteratee: ForEachIteratee<U>,
 ) => void
 
-export const $break = "break"
+export const exit = "exit"
 
 let build_for_each_join = (query: t, join_index: number) => {
   let i = `i${join_index}` // current node index
@@ -44,7 +44,7 @@ let build_for_each_join = (query: t, join_index: number) => {
     fetch.push(`e${join_index}`)
     exp += fetch.join(",")
     exp += ");"
-    exp += `if(r==="break")return;`
+    exp += `if(r==="${exit}")return;`
   } else {
     exp += build_for_each_join(query, join_index + 1)
   }

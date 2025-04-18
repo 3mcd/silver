@@ -75,4 +75,4 @@ export function make(
     : new QueryBuilder().with(component)
 }
 
-export {$break} from "./query.ts"
+export {exit} from "./query.ts"

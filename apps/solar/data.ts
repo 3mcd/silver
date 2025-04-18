@@ -2,6 +2,7 @@ import {Component} from "silver-ecs"
 
 type Position = {x: number; y: number}
 
+export let LocalPosition = Component.ref<Position>({x: "f32", y: "f32"})
 export let Position = Component.ref<Position>({x: "f32", y: "f32"})
 export let Radius = Component.ref<number>("f32")
 export let Angvel = Component.ref<number>("f32")
