@@ -17,38 +17,38 @@ export let translate = (dx: number, dy: number) => {
   transform.y -= dy
 }
 
-export let transformX = (x: number) => transform.scale * x + transform.x
-export let transformY = (y: number) => transform.scale * y + transform.y
+export let transform_x = (x: number) => transform.scale * x + transform.x
+export let transform_y = (y: number) => transform.scale * y + transform.y
 
 let dragging = false
 
-let onMousedown = () => {
+let on_mousedown = () => {
   dragging = true
 }
 
-let onMousemove = (e: MouseEvent) => {
+let on_mousemove = (e: MouseEvent) => {
   if (dragging) {
     translate(e.movementX * transform.scale, e.movementY * transform.scale)
   }
 }
 
-let onMouseup = () => {
+let on_mouseup = () => {
   dragging = false
 }
 
-let onWheel = (e: WheelEvent) => {
+let on_wheel = (e: WheelEvent) => {
   let s = Math.sign(e.deltaY) > 0 ? 0.9 : 1.1
-  let tx = transformX(e.pageX * dpr - canvas.offsetLeft)
-  let ty = transformY(e.pageY * dpr - canvas.offsetTop)
+  let tx = transform_x(e.pageX * dpr - canvas.offsetLeft)
+  let ty = transform_y(e.pageY * dpr - canvas.offsetTop)
   translate(tx, ty)
   scale(s)
   translate(-tx, -ty)
 }
 
-canvas.addEventListener("wheel", onWheel, {passive: true})
-canvas.addEventListener("mousedown", onMousedown)
-canvas.addEventListener("mousemove", onMousemove)
-canvas.addEventListener("mouseup", onMouseup)
+canvas.addEventListener("wheel", on_wheel, {passive: true})
+canvas.addEventListener("mousedown", on_mousedown)
+canvas.addEventListener("mousemove", on_mousemove)
+canvas.addEventListener("mouseup", on_mouseup)
 
 let resize = () => {
   let width = window.innerWidth
@@ -60,10 +60,10 @@ let resize = () => {
 }
 
 export let clear = () => {
-  let left = transformX(0)
-  let top = transformY(0)
-  let width = Math.abs(transformX(context.canvas.width) - left)
-  let height = Math.abs(transformY(context.canvas.height) - top)
+  let left = transform_x(0)
+  let top = transform_y(0)
+  let width = Math.abs(transform_x(context.canvas.width) - left)
+  let height = Math.abs(transform_y(context.canvas.height) - top)
   context.fillStyle = "black"
   context.fillRect(left, top, width, height)
 }
@@ -85,9 +85,9 @@ export let arc = (
   radius: number,
   start: number,
   end: number,
-  lineWidth: number,
+  line_width: number,
 ) => {
-  context.lineWidth = lineWidth
+  context.lineWidth = line_width
   context.strokeStyle = color
   context.beginPath()
   context.arc(0, 0, radius, start, end)
@@ -99,9 +99,9 @@ export let rect = (
   color: string,
   width: number,
   height: number,
-  lineWidth: number,
+  line_width: number,
 ) => {
-  context.lineWidth = lineWidth
+  context.lineWidth = line_width
   context.strokeStyle = color
   context.strokeRect(0, 0, width, height)
 }

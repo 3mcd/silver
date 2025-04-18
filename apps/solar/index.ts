@@ -6,8 +6,8 @@ import {
   clear,
   context,
   transform,
-  transformX,
-  transformY,
+  transform_x,
+  transform_y,
 } from "./canvas"
 import {Angvel, Color, Name, Orbits, Position, Radius} from "./data"
 
@@ -23,7 +23,7 @@ let move_satellites: App.System = world => {
     satellites,
     (satellite_pos, satellite_angvel, orbiting_pos) => {
       let period = 0.1
-      let a = ((Math.PI / 180) * step * satellite_angvel) / period / 100
+      let a = ((Math.PI / 180) * step * satellite_angvel) / period / 1
       satellite_pos.x = orbiting_pos.x + 30 * Math.cos(a)
       satellite_pos.y = orbiting_pos.y + 30 * Math.sin(a)
     },
@@ -110,7 +110,16 @@ let moon_options = {
   av: 10,
 }
 
-let Click = Component.ref<{entity: Entity.t}>()
+let jupiter_options = {
+  name: "jupiter",
+  color: "#955",
+  x: 50,
+  y: 50,
+  r: 5,
+  av: 1,
+}
+
+let Destroy = Component.ref<Entity.t>()
 
 let game = App.make()
   .use(Time.plugin)
@@ -126,27 +135,23 @@ let game = App.make()
   .add_effect(log_bodies)
   .add_effect(log_orbits)
   .add_init_system(world => {
-    let commands = world.get_resource(Commands.res)
-
+    let sun = body(world, sun_options).spawn()
     body(world, moon_options)
-      .with(
-        Orbits(
-          body(world, earth_options)
-            .with(Orbits(body(world, sun_options).spawn()))
-            .spawn(),
-        ),
-      )
+      .with(Orbits(body(world, earth_options).with(Orbits(sun)).spawn()))
       .spawn()
-
+    body(world, jupiter_options).with(Orbits(sun)).spawn()
+  })
+  .add_init_system(world => {
+    let commands = world.get_resource(Commands.res)
     document.addEventListener("click", e => {
-      let x = transformX(e.clientX) - canvas.width / 2
-      let y = transformY(e.clientY) - canvas.height / 2
+      let x = transform_x(e.clientX) - canvas.width / 2
+      let y = transform_y(e.clientY) - canvas.height / 2
       world.for_each(bodies, (_, __, p, r, entity) => {
         let dx = p.x - x
         let dy = p.y - y
         if (Math.sqrt(dx * dx + dy * dy) < r) {
           let step = world.get_resource(Timestep.res).step()
-          let command = Commands.make_command(Click, {entity}, step)
+          let command = Commands.make_command(Destroy, entity, step)
           commands.insert(command)
           return Query.$break
         }
@@ -157,8 +162,8 @@ let game = App.make()
     let timestep = world.get_resource(Timestep.res)
     let commands = world.get_resource(Commands.res)
     let step = timestep.step()
-    commands.read(Click, step, command => {
-      world.despawn(command.data.entity)
+    commands.read(Destroy, step, command => {
+      world.despawn(command.data)
     })
   }, System.when(Commands.read))
 
