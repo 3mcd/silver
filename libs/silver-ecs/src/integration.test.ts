@@ -16,13 +16,13 @@ test("integration", async () => {
   let InCell = Component.rel()
   let IsFood = Component.tag()
   let query_builder = QueryBuilder.make()
-    .read(Name)
-    .read(Likes, likes =>
+    .with(Name)
+    .with(Likes, likes =>
       likes
-        .read(Name)
-        .read(IsFood)
-        .read(InCell, cell =>
-          cell.read(Rect).read(InGrid, grid => grid.read(Rect)),
+        .with(Name)
+        .with(IsFood)
+        .with(InCell, cell =>
+          cell.with(Rect).with(InGrid, grid => grid.with(Rect)),
         ),
     )
 

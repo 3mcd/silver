@@ -339,7 +339,13 @@ export class World {
     return ops
   }
 
-  get_exclusive_relative_opt(entity: Entity.t, rel: Component.Rel) {
+  get_exclusive_relative_opt(
+    entity: Entity.t,
+    rel: Component.Rel | Component.PairFn,
+  ) {
+    if (typeof rel === "function") {
+      rel = rel()
+    }
     let node = this.get_entity_node(entity)
     assert(rel.topology === Component.Topology.Exclusive, err_inclusive)
     if (!node.type.has_component(rel)) {
@@ -349,8 +355,7 @@ export class World {
       let pair = node.type.pairs[i]
       let rel_id = Component.parse_pair_rel_id(pair)
       if (rel_id === rel.id) {
-        let object_id = Component.parse_pair_entity(pair)
-        return Entity.make(object_id, this.#id)
+        return Component.parse_pair_entity(pair)
       }
     }
     throw new Error(err_missing_pair)

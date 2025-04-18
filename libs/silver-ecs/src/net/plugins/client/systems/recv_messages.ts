@@ -34,7 +34,7 @@ let recv_message = (buffer: Buffer.t, world: World.t) => {
   }
 }
 
-let remotes = QueryBuilder.make().read(Remote)
+let remotes = QueryBuilder.make().with(Remote)
 
 export let recv_messages: System = world => {
   world.for_each(remotes, remote => {

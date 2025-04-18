@@ -197,7 +197,7 @@ export let decode_interest = (
             if (world.has(entity, component)) {
               // decode the value on top of the existing one
               let ref_encoding = serde.encoding_from_ref_id(component.id)
-              let ref_store = world.store(component.id)
+              let ref_store = world.array(component.id)
               ref_encoding.decode(buffer, entity, ref_store, true)
             } else {
               // allocate a new value and add it to the entity

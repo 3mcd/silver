@@ -4,8 +4,8 @@ import {HasInterest, Interest} from "../../../interest.ts"
 import * as Protocol from "../../../protocol.ts"
 import {Remote} from "../../../remote.ts"
 
-let remotes = query(Remote).read(HasInterest, interest =>
-  interest.read(Interest),
+let remotes = query(Remote).with(HasInterest, interest =>
+  interest.with(Interest),
 )
 
 export let send_interests: System = world => {

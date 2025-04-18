@@ -23,24 +23,24 @@ export class QueryBuilder<T extends unknown[] = unknown[]> {
     this.join_on = join_on
   }
 
-  read<U extends Component.Ref>(ref: U): WithRef<T, U>
-  read<U extends Component.Tag>(tag: U): this
-  read(rel: Component.Rel): this
-  read<U extends unknown[]>(
+  with<U extends Component.Ref>(ref: U): WithRef<T, U>
+  with<U extends Component.Tag>(tag: U): this
+  with(rel: Component.Rel): this
+  with<U extends unknown[]>(
     rel: Component.Rel,
     join: Join<U>,
   ): QueryBuilder<[...T, ...U]>
-  read<U extends unknown[]>(
+  with<U extends unknown[]>(
     pair_fn: Component.PairFn,
   ): QueryBuilder<[...T, ...U]>
-  read<U extends unknown[]>(
+  with<U extends unknown[]>(
     pair_fn: Component.PairFn,
     join: Join<U>,
   ): QueryBuilder<[...T, ...U]>
-  read(
+  with(
     component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
   ): QueryBuilder
-  read(
+  with(
     component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
     join?: Join<unknown[]>,
   ) {
@@ -66,5 +66,5 @@ export function make(
 ): QueryBuilder<[]> {
   return component === undefined
     ? new QueryBuilder()
-    : new QueryBuilder().read(component)
+    : new QueryBuilder().with(component)
 }

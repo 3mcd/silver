@@ -5,7 +5,7 @@ import {Time} from "#plugins/index"
 import * as QueryBuilder from "#query_builder"
 import {res} from "../client.ts"
 
-let remotes = QueryBuilder.make().read(Remote)
+let remotes = QueryBuilder.make().with(Remote)
 
 export let send_messages: System = world => {
   let client = world.get_resource(res)

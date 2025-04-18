@@ -1,13 +1,13 @@
 import {App, Effect, Query, System, World} from "silver-ecs"
-import {Time, Timestep} from "silver-ecs/plugins"
+import {Commands, Time, Timestep} from "silver-ecs/plugins"
 import {canvas, circle, clear, context, transform} from "./canvas"
 import {Angvel, Color, Name, Orbits, Position, Radius} from "./data"
 
 let FONT_SIZE = 12 * window.devicePixelRatio
 
 let satellites = Query.make(Position)
-  .read(Angvel)
-  .read(Orbits, body => body.read(Position))
+  .with(Angvel)
+  .with(Orbits, body => body.with(Position))
 
 let move_satellites: App.System = world => {
   let step = world.get_resource(Timestep.res).step()
@@ -22,7 +22,7 @@ let move_satellites: App.System = world => {
   )
 }
 
-let bodies = Query.make(Name).read(Color).read(Position).read(Radius)
+let bodies = Query.make().with(Name).with(Color).with(Position).with(Radius)
 
 let draw_bodies: App.System = world => {
   context.save()
@@ -101,6 +101,7 @@ let moon_options = {
 let game = App.make()
   .use(Time.plugin)
   .use(Timestep.plugin)
+  .use(Commands.plugin)
   .add_system(
     move_satellites,
     System.before(clear_canvas),
