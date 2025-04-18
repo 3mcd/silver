@@ -114,7 +114,7 @@ class StepBuffer<T> {
     this.#hi = this.#steps[this.#steps.length - 1] ?? -Infinity
   }
 
-  readAll(iteratee: (value: T, step: number) => void) {
+  read_all(iteratee: (value: T, step: number) => void) {
     for (let i = 0; i < this.#steps.length; i++) {
       const s = this.#steps[i]
       const s_data = this.#step_data[i]
@@ -125,12 +125,12 @@ class StepBuffer<T> {
     }
   }
 
-  readTo(step: number, iteratee: (value: T, step: number) => void) {
+  read_to(step: number, iteratee: (value: T, step: number) => void) {
     if (step < this.#lo) {
       return
     }
     if (step >= this.#hi) {
-      this.readAll(iteratee)
+      this.read_all(iteratee)
       return
     }
     let hi = this.#step_indices[step]

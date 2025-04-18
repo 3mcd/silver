@@ -5,13 +5,13 @@ import * as System from "#app/system"
 import * as Timestep from "../time_step/plugin.ts"
 import * as StepBuffer from "#step_buffer"
 
-export class Command<T extends Component.Ref> {
+export class Command<U = unknown> {
   readonly origin: number | undefined
   readonly data
   readonly step
   readonly ref
 
-  constructor(ref: T, data: Component.ValueOf<T>, step: number) {
+  constructor(ref: Component.Ref<U>, data: U, step: number) {
     this.ref = ref
     this.data = data
     this.step = step
@@ -19,30 +19,39 @@ export class Command<T extends Component.Ref> {
 }
 
 export class Commands {
-  #buffers_by_command
+  #buffers_by_command_id
 
   constructor() {
-    this.#buffers_by_command = new Map<number, StepBuffer.t>()
+    this.#buffers_by_command_id = new Map<number, StepBuffer.t<Command>>()
   }
 
   #get_buffer(command_id: number): StepBuffer.t {
-    let buffer = this.#buffers_by_command.get(command_id)
+    let buffer = this.#buffers_by_command_id.get(command_id)
     if (buffer === undefined) {
       buffer = StepBuffer.make()
-      this.#buffers_by_command.set(command_id, buffer)
+      this.#buffers_by_command_id.set(command_id, buffer)
     }
     return buffer
   }
 
-  insert(command: Command<Component.Ref>, step: number) {
+  insert(command: Command, step = command.step) {
     let buffer = this.#get_buffer(command.ref.id)
     buffer.insert(step, command)
   }
 
   drain_to(step: number) {
-    this.#buffers_by_command.forEach(buffer => {
+    this.#buffers_by_command_id.forEach(buffer => {
       buffer.drain_to(step)
     })
+  }
+
+  read<U>(
+    command: Component.Ref<U>,
+    step: number,
+    iteratee: (value: Command<U>, step: number) => void,
+  ) {
+    let buffer = this.#get_buffer(command.id) as StepBuffer.t<Command<U>>
+    buffer.read_to(step, iteratee)
   }
 }
 
@@ -50,6 +59,14 @@ export type t = Commands
 
 export let make = () => {
   return new Commands()
+}
+
+export let make_command = <U>(
+  ref: Component.Ref<U>,
+  data: U,
+  step: number,
+): Command<U> => {
+  return new Command(ref, data, step)
 }
 
 export let res = Component.ref<t>()

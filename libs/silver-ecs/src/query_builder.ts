@@ -37,11 +37,17 @@ export class QueryBuilder<T extends unknown[] = unknown[]> {
     pair_fn: Component.PairFn,
     join: Join<U>,
   ): QueryBuilder<[...T, ...U]>
+  with(pair: Component.Pair): this
   with(
     component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
   ): QueryBuilder
   with(
-    component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
+    component:
+      | Component.Ref
+      | Component.Tag
+      | Component.Rel
+      | Component.Pair
+      | Component.PairFn,
     join?: Join<unknown[]>,
   ) {
     if (component instanceof Function) {

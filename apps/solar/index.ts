@@ -1,4 +1,4 @@
-import {App, Effect, Query, System, World} from "silver-ecs"
+import {App, Component, Effect, Query, System, World} from "silver-ecs"
 import {Commands, Time, Timestep} from "silver-ecs/plugins"
 import {canvas, circle, clear, context, transform} from "./canvas"
 import {Angvel, Color, Name, Orbits, Position, Radius} from "./data"
@@ -98,6 +98,10 @@ let moon_options = {
   av: 10,
 }
 
+let Click = Component.ref<{}>()
+
+let queries = Component.ref<{planets: Query.QueryBuilder}>()
+
 let game = App.make()
   .use(Time.plugin)
   .use(Timestep.plugin)
@@ -111,23 +115,36 @@ let game = App.make()
   .add_system(draw_bodies, System.after(clear_canvas))
   .add_effect(log_orbits)
   .add_init_system(world => {
+    let commands = world.get_resource(Commands.res)
     let sun = body(world, sun_options).spawn()
     let earth = body(world, earth_options).with(Orbits(sun)).spawn()
     let moon = body(world, moon_options).with(Orbits(earth)).spawn()
+
+    world.set_resource(queries, {
+      planets: Query.make()
+        .with(Orbits(sun))
+        .with(Name)
+        .with(Orbits, body => body.with(Name)),
+    })
+
     console.log("sun", sun, "earth", earth, "moon", moon)
     document.addEventListener("click", () => {
-      if (world.has(earth, Orbits(sun))) {
-        world.remove(earth, Orbits(sun))
-      } else {
-        if (world.has(moon, Orbits(earth))) {
-          world.remove(moon, Orbits(earth))
-        } else {
-          world.add(moon, Orbits(earth))
-          world.add(earth, Orbits(sun))
-        }
-      }
+      let step = world.get_resource(Timestep.res).step()
+      let command = Commands.make_command(Click, {}, step)
+      commands.insert(command)
     })
   })
+  .add_system(world => {
+    let timestep = world.get_resource(Timestep.res)
+    let commands = world.get_resource(Commands.res)
+    let {planets} = world.get_resource(queries)
+    let step = timestep.step()
+    commands.read(Click, step, () => {
+      world.for_each(planets, (planet_name, orbits_name) => {
+        console.log("planet", planet_name, "orbits", orbits_name)
+      })
+    })
+  }, System.when(Commands.read))
 
 let loop = () => {
   game.run()
