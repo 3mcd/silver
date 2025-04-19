@@ -1,7 +1,7 @@
 import {expect, test} from "vitest"
 import * as World from "./world.ts"
 import * as Component from "./component.ts"
-import * as QueryBuilder from "./query_builder.ts"
+import * as Selector from "./selector.ts"
 
 class Pos {
   constructor(public x = 0, public y = 0) {}
@@ -15,7 +15,7 @@ test("integration", async () => {
   let InGrid = Component.rel()
   let InCell = Component.rel()
   let IsFood = Component.tag()
-  let query_builder = QueryBuilder.make()
+  let selector = Selector.make()
     .with(Name)
     .with(Likes, likes =>
       likes
@@ -51,7 +51,7 @@ test("integration", async () => {
   let results: [string, string, Pos, Pos][] = []
 
   world.for_each(
-    query_builder,
+    selector,
     (person_name, food_name, food_cell_pos, food_grid_pos) => {
       results.push([person_name, food_name, food_cell_pos, food_grid_pos])
     },

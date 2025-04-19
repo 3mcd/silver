@@ -8,7 +8,7 @@ import * as Graph from "./graph.ts"
 import * as Node from "./node.ts"
 import * as Op from "./op.ts"
 import * as Query from "./query.ts"
-import * as QueryBuilder from "./query_builder.ts"
+import * as Selector from "./selector.ts"
 import * as Stage from "./stage.ts"
 import * as Type from "./type.ts"
 
@@ -40,7 +40,7 @@ export class World {
     this.#entity_registry = EntityRegistry.make()
     this.#id = id
     this.#ops = [] as Op.t[]
-    this.#queries = new Map<QueryBuilder.t, Query.t>()
+    this.#queries = new Map<Selector.t, Query.t>()
     this.#resources = [] as unknown[]
     this.#stage = Stage.make()
     this.graph = Graph.make()
@@ -240,7 +240,7 @@ export class World {
     }
   }
 
-  #resolve_query<U extends unknown[]>(query: QueryBuilder.t<U>): Query.t<U> {
+  #resolve_query<U extends unknown[]>(query: Selector.t<U>): Query.t<U> {
     let compiled_query = this.#queries.get(query)
     if (compiled_query === undefined) {
       compiled_query = Query.make(query, this)
@@ -434,7 +434,7 @@ export class World {
   }
 
   for_each<U extends unknown[]>(
-    query: QueryBuilder.t<U>,
+    query: Selector.t<U>,
     iteratee: Query.ForEachIteratee<U>,
   ) {
     let resolved_query = this.#resolve_query(query)

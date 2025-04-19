@@ -19,7 +19,7 @@ import {
 } from "dgel"
 import {mat4} from "gl-matrix"
 import {cube} from "primitive-geometry"
-import {App, Query, Range, Component, System} from "silver-ecs"
+import {App, Selector, Range, Component, System} from "silver-ecs"
 import typed_array_concat from "typed-array-concat"
 import typed_array_interleave from "typed-array-interleave"
 import {IsPlayer} from "../player/plugin"
@@ -214,7 +214,7 @@ let res = Component.ref<Context>()
 
 let clear: App.System = world => {}
 
-let players = Query.make(IsPlayer)
+let players = Selector.make(IsPlayer)
 
 let draw: App.System = world => {
   camera_controls.update()

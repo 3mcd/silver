@@ -1,7 +1,7 @@
 import * as Component from "./component.ts"
 import * as Entity from "./entity.ts"
 import * as Node from "./node.ts"
-import * as QueryBuilder from "./query_builder.ts"
+import * as Selector from "./selector.ts"
 import * as Type from "./type.ts"
 import * as World from "./world.ts"
 
@@ -11,8 +11,6 @@ export type ForEachIteratee<U extends unknown[]> = (
 export type ForEach<U extends unknown[]> = (
   iteratee: ForEachIteratee<U>,
 ) => void
-
-export const exit = "exit"
 
 let build_for_each_join = (query: t, join_index: number) => {
   let i = `i${join_index}` // current node index
@@ -44,7 +42,7 @@ let build_for_each_join = (query: t, join_index: number) => {
     fetch.push(`e${join_index}`)
     exp += fetch.join(",")
     exp += ");"
-    exp += `if(r==="${exit}")return;`
+    exp += `if(r===false)return;`
   } else {
     exp += build_for_each_join(query, join_index + 1)
   }
@@ -84,7 +82,7 @@ class Query<U extends unknown[] = unknown[]> {
   builder
   joins
 
-  constructor(builder: QueryBuilder.t<U>, joins: Join[], world: World.t) {
+  constructor(builder: Selector.t<U>, joins: Join[], world: World.t) {
     this.builder = builder
     this.joins = joins
     this.for_each = compile_for_each(this, world)
@@ -109,7 +107,7 @@ class Join implements Node.Listener {
 }
 
 let init_query_joins = (
-  query_builder_node: QueryBuilder.t,
+  query_builder_node: Selector.t,
   world: World.t,
   joins: Join[] = [],
 ) => {
@@ -119,14 +117,14 @@ let init_query_joins = (
   )
   node.add_listener(join, true)
   joins.push(join)
-  query_builder_node.joins.each_value(query_builder_inner => {
-    init_query_joins(query_builder_inner, world, joins)
+  query_builder_node.joins.each_value(join_selector => {
+    init_query_joins(join_selector, world, joins)
   })
   return joins
 }
 
 export let make = <U extends unknown[]>(
-  query_builder: QueryBuilder.t<U>,
+  query_builder: Selector.t<U>,
   world: World.t,
 ): t<U> => {
   let query_joins = init_query_joins(query_builder, world)

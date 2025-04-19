@@ -1,5 +1,5 @@
 import {System} from "#app/index"
-import {make as query} from "#query_builder"
+import {make as query} from "#selector"
 import {HasInterest, Interest} from "../../../interest.ts"
 import * as Protocol from "../../../protocol.ts"
 import {Remote} from "../../../remote.ts"

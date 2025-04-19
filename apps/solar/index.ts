@@ -1,4 +1,4 @@
-import {App, Component, Effect, Entity, Query, System, World} from "silver-ecs"
+import {App, Component, Effect, Selector, System, World} from "silver-ecs"
 import {Commands, Time, Timestep} from "silver-ecs/plugins"
 import {
   canvas,
@@ -56,7 +56,7 @@ let log_bodies = Effect.make(
   },
 )
 
-let satellites = Query.make(LocalPosition)
+let satellites = Selector.make(LocalPosition)
   .with(Position)
   .with(Angvel)
   .with(Orbits, body => body.with(Position))
@@ -65,25 +65,26 @@ let move_satellites: App.System = world => {
   let step = world.get_resource(Timestep.res).step()
   world.for_each(
     satellites,
-    (sattelite_local_pos, satellite_pos, satellite_angvel, orbiting_pos, e) => {
+    (satellite_local_pos, satellite_pos, satellite_angvel, orbiting_pos) => {
       let a = (Math.PI / 180) * step * satellite_angvel
       let cos_a = Math.cos(a)
       let sin_a = Math.sin(a)
-      let x = sattelite_local_pos.x * cos_a - sattelite_local_pos.y * sin_a
-      let y = sattelite_local_pos.x * sin_a + sattelite_local_pos.y * cos_a
+      let x = satellite_local_pos.x * cos_a - satellite_local_pos.y * sin_a
+      let y = satellite_local_pos.x * sin_a + satellite_local_pos.y * cos_a
       satellite_pos.x = x + orbiting_pos.x
       satellite_pos.y = y + orbiting_pos.y
     },
   )
 }
 
-let bodies = Query.make().with(Name).with(Color).with(Position).with(Radius)
+let bodies = Selector.make().with(Position).with(Radius)
+let bodies_full = bodies.with(Name).with(Color)
 
 let draw_bodies: App.System = world => {
   context.save()
   context.font = `${FONT_SIZE * transform.scale}px monospace`
   context.translate(canvas.width / 2, canvas.height / 2)
-  world.for_each(bodies, (name, color, position, radius) => {
+  world.for_each(bodies_full, (position, radius, name, color) => {
     context.save()
     context.translate(position.x, position.y)
     circle(color, radius)
@@ -101,9 +102,6 @@ let clear_canvas: App.System = () => {
 // resources
 type Pointer = {x: number; y: number}
 let Pointer = Component.ref<Pointer>()
-
-// commands
-let Despawn = Component.ref<Entity.t>()
 
 // systems
 let sun_def = {name: "sun", color: "#ff0", x: 0, y: 0, r: 15, av: 0}
@@ -130,14 +128,14 @@ let click_bodies: App.System = world => {
   document.addEventListener("click", e => {
     let x = transform_x(e.clientX) - canvas.width / 2
     let y = transform_y(e.clientY) - canvas.height / 2
-    world.for_each(bodies, (_, __, p, r, entity) => {
-      let dx = p.x - x
-      let dy = p.y - y
-      if (Math.sqrt(dx * dx + dy * dy) < r) {
+    world.for_each(bodies, (position, radius, entity) => {
+      let dx = position.x - x
+      let dy = position.y - y
+      if (Math.sqrt(dx * dx + dy * dy) < radius) {
         let step = world.get_resource(Timestep.res).step()
-        let command = Commands.make_command(Despawn, entity, step)
+        let command = Commands.despawn(entity, step)
         commands.insert(command)
-        return Query.exit
+        return false
       }
     })
   })
@@ -154,25 +152,16 @@ let update_pointer: App.System = world => {
   })
 }
 
-let despawn_bodies: App.System = world => {
-  let timestep = world.get_resource(Timestep.res)
-  let commands = world.get_resource(Commands.res)
-  let step = timestep.step()
-  commands.read(Despawn, step, command => {
-    world.despawn(command.data)
-  })
-}
-
 let toggle_cursor: App.System = world => {
   let pointer = world.get_resource(Pointer)
   let hit = false
-  world.for_each(bodies, (_, __, p, r) => {
+  world.for_each(bodies, (p, r) => {
     let dx = p.x - pointer.x
     let dy = p.y - pointer.y
     if (Math.sqrt(dx * dx + dy * dy) < r) {
       document.body.style = "cursor: pointer"
       hit = true
-      return Query.exit
+      return false
     }
   })
   if (!hit) {
@@ -197,7 +186,6 @@ let game = App.make()
   )
   .add_system(clear_canvas)
   .add_system(draw_bodies, System.after(clear_canvas))
-  .add_system(despawn_bodies, System.when(Commands.read))
   .add_system(toggle_cursor, System.when(Timestep.logical))
 
 let loop = () => {

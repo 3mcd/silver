@@ -2,14 +2,12 @@ import * as Component from "./component.ts"
 import * as SparseMap from "./sparse_map.ts"
 
 type WithRef<T extends unknown[], U> = U extends Component.Ref<infer V>
-  ? QueryBuilder<[...T, V]>
+  ? Selector<[...T, V]>
   : never
 
-type Join<U extends unknown[]> = (
-  query_builder: QueryBuilder<[]>,
-) => QueryBuilder<U>
+type Join<U extends unknown[]> = (query_builder: Selector<[]>) => Selector<U>
 
-export class QueryBuilder<T extends unknown[] = unknown[]> {
+export class Selector<T extends unknown[] = unknown[]> {
   /** @internal */
   terms
   /** @internal */
@@ -17,9 +15,13 @@ export class QueryBuilder<T extends unknown[] = unknown[]> {
   /** @internal */
   join_on
 
-  constructor(join_on?: Component.t) {
-    this.terms = join_on ? [join_on] : []
-    this.joins = SparseMap.make<QueryBuilder>()
+  constructor(
+    terms: Component.t[] = [],
+    join_on: Component.t | undefined = undefined,
+    joins = SparseMap.make<Selector>(),
+  ) {
+    this.terms = terms
+    this.joins = joins
     this.join_on = join_on
   }
 
@@ -29,18 +31,16 @@ export class QueryBuilder<T extends unknown[] = unknown[]> {
   with<U extends unknown[]>(
     rel: Component.Rel,
     join: Join<U>,
-  ): QueryBuilder<[...T, ...U]>
-  with<U extends unknown[]>(
-    pair_fn: Component.PairFn,
-  ): QueryBuilder<[...T, ...U]>
+  ): Selector<[...T, ...U]>
+  with<U extends unknown[]>(pair_fn: Component.PairFn): Selector<[...T, ...U]>
   with<U extends unknown[]>(
     pair_fn: Component.PairFn,
     join: Join<U>,
-  ): QueryBuilder<[...T, ...U]>
+  ): Selector<[...T, ...U]>
   with(pair: Component.Pair): this
   with(
     component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
-  ): QueryBuilder
+  ): Selector
   with(
     component:
       | Component.Ref
@@ -53,26 +53,26 @@ export class QueryBuilder<T extends unknown[] = unknown[]> {
     if (component instanceof Function) {
       component = component()
     }
+    let terms = [...this.terms, component]
+    let joins = this.joins.clone()
     if (Component.is_rel(component) && join !== undefined) {
-      this.joins.set(component.id, join(new QueryBuilder(component.inverse)))
+      let selector = new Selector([component.inverse], component.inverse)
+      joins.set(component.id, join(selector))
     }
-    this.terms.push(component)
-    return this
+    return new Selector(terms, this.join_on, joins)
   }
 }
-export type t<U extends unknown[] = unknown[]> = QueryBuilder<U>
+export type t<U extends unknown[] = unknown[]> = Selector<U>
 
-export function make(): QueryBuilder<[]>
+export function make(): Selector<[]>
 export function make<U extends Component.Ref>(ref: U): WithRef<[], U>
 export function make(
   component: Component.Tag | Component.Rel | Component.PairFn,
-): QueryBuilder<[]>
+): Selector<[]>
 export function make(
   component?: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
-): QueryBuilder<[]> {
+): Selector<[]> {
   return component === undefined
-    ? new QueryBuilder()
-    : new QueryBuilder().with(component)
+    ? new Selector()
+    : new Selector().with(component)
 }
-
-export {exit} from "./query.ts"

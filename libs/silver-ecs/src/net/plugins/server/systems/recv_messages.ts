@@ -3,7 +3,7 @@ import * as Buffer from "#buffer"
 import * as Protocol from "#net/protocol"
 import {Remote} from "#net/remote"
 import * as Time from "#plugins/time/plugin"
-import {make as query} from "#query_builder"
+import {make as query} from "#selector"
 import * as World from "#world"
 
 let clients = query(Remote)

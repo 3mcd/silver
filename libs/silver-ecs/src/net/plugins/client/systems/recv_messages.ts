@@ -3,7 +3,7 @@ import * as Buffer from "#buffer"
 import * as Protocol from "#net/protocol"
 import {Remote} from "#net/remote"
 import {Time, Timesync} from "#plugins/index"
-import * as QueryBuilder from "#query_builder"
+import * as Selector from "#selector"
 import * as World from "#world"
 
 let recv_identity = (buffer: Buffer.t, world: World.t) => {
@@ -34,7 +34,7 @@ let recv_message = (buffer: Buffer.t, world: World.t) => {
   }
 }
 
-let remotes = QueryBuilder.make().with(Remote)
+let remotes = Selector.make().with(Remote)
 
 export let recv_messages: System = world => {
   world.for_each(remotes, remote => {

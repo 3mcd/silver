@@ -80,6 +80,14 @@ export class SparseMap<U = unknown> {
       iteratee(this.dense[i])
     }
   }
+
+  clone(): SparseMap<U> {
+    let clone = new SparseMap<U>()
+    for (let i = 0; i < this.dense.length; i++) {
+      clone.set(this.indices[i], this.dense[i])
+    }
+    return clone
+  }
 }
 
 export type T<U = unknown> = SparseMap<U>

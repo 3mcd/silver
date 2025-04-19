@@ -31,7 +31,7 @@ export * as Effect from "./effect.ts"
 /**
  * A live collection of entities that match a given component signature.
  */
-export * as Query from "./query_builder.ts"
+export * as Selector from "./selector.ts"
 
 export * as World from "./world.ts"
 

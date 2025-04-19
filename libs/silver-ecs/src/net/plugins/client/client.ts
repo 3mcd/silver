@@ -1,7 +1,7 @@
 import {ref} from "#component"
 
 class Client {
-  t_time_sync = 0
+  t_last_time_sync = 0
 }
 
 export type t = Client

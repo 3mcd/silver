@@ -4,6 +4,7 @@ import * as Range from "#app/range"
 import * as System from "#app/system"
 import * as Timestep from "../time_step/plugin.ts"
 import * as StepBuffer from "#step_buffer"
+import * as Entity from "#entity"
 
 export class Command<U = unknown> {
   readonly origin: number | undefined
@@ -17,6 +18,8 @@ export class Command<U = unknown> {
     this.step = step
   }
 }
+
+export let Despawn = Component.ref<Entity.t>()
 
 export class Commands {
   #buffers_by_command_id
@@ -69,6 +72,10 @@ export let make_command = <U>(
   return new Command(ref, data, step)
 }
 
+export let despawn = <U>(entity: Entity.t, step: number): Command<Entity.t> => {
+  return make_command(Despawn, entity, step)
+}
+
 export let res = Component.ref<t>()
 
 let drain_commands: System.Fn = world => {
@@ -76,6 +83,15 @@ let drain_commands: System.Fn = world => {
   let timestep = world.get_resource(Timestep.res)
   let step = timestep.step()
   commands.drain_to(step)
+}
+
+let despawn_entities: System.Fn = world => {
+  let timestep = world.get_resource(Timestep.res)
+  let commands = world.get_resource(res)
+  let step = timestep.step()
+  commands.read(Despawn, step, command => {
+    world.despawn(command.data)
+  })
 }
 
 export let read = Range.make(
@@ -93,4 +109,5 @@ export let plugin: Plugin = app => {
   app
     .add_resource(res, make())
     .add_system(drain_commands, System.when(Timestep.logical))
+    .add_system(despawn_entities, System.when(read))
 }
