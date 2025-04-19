@@ -169,24 +169,29 @@ let toggle_cursor: App.System = world => {
   }
 }
 
+let solar: App.Plugin = app => {
+  app
+    .add_resource(Pointer, {x: 0, y: 0})
+    .add_effect(log_bodies)
+    .add_effect(log_orbits)
+    .add_init_system(spawn_bodies)
+    .add_init_system(click_bodies)
+    .add_init_system(update_pointer)
+    .add_system(
+      move_satellites,
+      System.before(clear_canvas),
+      System.when(Timestep.logical),
+    )
+    .add_system(clear_canvas)
+    .add_system(draw_bodies, System.after(clear_canvas))
+    .add_system(toggle_cursor, System.when(Timestep.logical))
+}
+
 let game = App.make()
   .use(Time.plugin)
   .use(Timestep.plugin)
   .use(Commands.plugin)
-  .add_resource(Pointer, {x: 0, y: 0})
-  .add_effect(log_bodies)
-  .add_effect(log_orbits)
-  .add_init_system(spawn_bodies)
-  .add_init_system(click_bodies)
-  .add_init_system(update_pointer)
-  .add_system(
-    move_satellites,
-    System.before(clear_canvas),
-    System.when(Timestep.logical),
-  )
-  .add_system(clear_canvas)
-  .add_system(draw_bodies, System.after(clear_canvas))
-  .add_system(toggle_cursor, System.when(Timestep.logical))
+  .use(solar)
 
 let loop = () => {
   game.run()
