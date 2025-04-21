@@ -2,7 +2,7 @@ export let canvas = document.querySelector("canvas")!
 export let context = canvas.getContext("2d")!
 export let transform = {scale: 1, x: 0, y: 0}
 
-let dpr = window.devicePixelRatio
+export let dpr = window.devicePixelRatio
 
 let scale = (s: number) => {
   context.scale(s, s)

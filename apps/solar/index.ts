@@ -6,13 +6,14 @@ import {
   circle,
   clear,
   context,
+  dpr,
   image,
-  transform,
   to_world_x,
   to_world_y,
+  transform,
 } from "./canvas"
 
-let FONT_SIZE = 12 * window.devicePixelRatio
+let FONT_SIZE = 12 * dpr
 
 type Position = {x: number; y: number}
 
@@ -181,8 +182,8 @@ let spawn_bodies: App.System = world => {
 let click_bodies: App.System = world => {
   let commands = world.get_resource(Commands.res)
   document.addEventListener("click", e => {
-    let x = to_world_x(e.clientX) - canvas.width / 2
-    let y = to_world_y(e.clientY) - canvas.height / 2
+    let x = to_world_x(e.clientX * dpr) - canvas.width / 2
+    let y = to_world_y(e.clientY * dpr) - canvas.height / 2
     world.for_each(bodies, (position, radius, entity) => {
       let dx = position.x - x
       let dy = position.y - y
@@ -199,8 +200,8 @@ let click_bodies: App.System = world => {
 let update_pointer: App.System = world => {
   let pointer = world.get_resource(Pointer)
   let on_pointermove = (e: MouseEvent) => {
-    pointer.x = to_world_x(e.clientX) - canvas.width / 2
-    pointer.y = to_world_y(e.clientY) - canvas.height / 2
+    pointer.x = to_world_x(e.clientX * dpr) - canvas.width / 2
+    pointer.y = to_world_y(e.clientY * dpr) - canvas.height / 2
   }
   document.addEventListener("pointermove", on_pointermove, {
     passive: true,
