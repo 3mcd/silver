@@ -69,7 +69,7 @@ let move_satellites: App.System = world => {
   world.for_each(
     satellites,
     (satellite_local_pos, satellite_pos, satellite_angvel, orbiting_pos) => {
-      let a = (Math.PI / 180) * step * satellite_angvel
+      let a = (Math.PI / 180) * step * satellite_angvel * 0.1
       let cos_a = Math.cos(a)
       let sin_a = Math.sin(a)
       let x = satellite_local_pos.x * cos_a - satellite_local_pos.y * sin_a

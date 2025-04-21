@@ -2,9 +2,6 @@ export let canvas = document.querySelector("canvas")!
 export let context = canvas.getContext("2d")!
 export let transform = {scale: 1, x: 0, y: 0}
 
-context.imageSmoothingEnabled = false
-context.textRendering = "optimizeSpeed"
-
 let dpr = window.devicePixelRatio
 
 let scale = (s: number) => {
@@ -114,6 +111,8 @@ export let rect = (
 }
 
 let asset_map = new Map<string, HTMLImageElement>()
+
+context.imageSmoothingEnabled = false
 
 export let image = (src: string, width: number, height: number) => {
   let img = asset_map.get(src)
