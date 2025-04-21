@@ -2,6 +2,9 @@ export let canvas = document.querySelector("canvas")!
 export let context = canvas.getContext("2d")!
 export let transform = {scale: 1, x: 0, y: 0}
 
+context.imageSmoothingEnabled = false
+context.textRendering = "optimizeSpeed"
+
 let dpr = window.devicePixelRatio
 
 let scale = (s: number) => {
@@ -17,8 +20,12 @@ export let translate = (dx: number, dy: number) => {
   transform.y -= dy
 }
 
-export let transform_x = (x: number) => transform.scale * x + transform.x
-export let transform_y = (y: number) => transform.scale * y + transform.y
+export let center = () => {
+  context.translate(canvas.width / 2, canvas.height / 2)
+}
+
+export let to_world_x = (x: number) => transform.scale * x + transform.x
+export let to_world_y = (y: number) => transform.scale * y + transform.y
 
 let dragging = false
 
@@ -38,8 +45,8 @@ let on_mouseup = () => {
 
 let on_wheel = (e: WheelEvent) => {
   let s = Math.sign(e.deltaY) > 0 ? 0.9 : 1.1
-  let tx = transform_x(e.pageX * dpr - canvas.offsetLeft)
-  let ty = transform_y(e.pageY * dpr - canvas.offsetTop)
+  let tx = to_world_x(e.pageX * dpr - canvas.offsetLeft)
+  let ty = to_world_y(e.pageY * dpr - canvas.offsetTop)
   translate(tx, ty)
   scale(s)
   translate(-tx, -ty)
@@ -60,10 +67,10 @@ let resize = () => {
 }
 
 export let clear = () => {
-  let left = transform_x(0)
-  let top = transform_y(0)
-  let width = Math.abs(transform_x(context.canvas.width) - left)
-  let height = Math.abs(transform_y(context.canvas.height) - top)
+  let left = to_world_x(0)
+  let top = to_world_y(0)
+  let width = Math.abs(to_world_x(context.canvas.width) - left)
+  let height = Math.abs(to_world_y(context.canvas.height) - top)
   context.fillStyle = "black"
   context.fillRect(left, top, width, height)
 }
@@ -104,4 +111,18 @@ export let rect = (
   context.lineWidth = line_width
   context.strokeStyle = color
   context.strokeRect(0, 0, width, height)
+}
+
+let asset_map = new Map<string, HTMLImageElement>()
+
+export let image = (src: string, width: number, height: number) => {
+  let img = asset_map.get(src)
+  if (img === undefined) {
+    img = new Image()
+    img.src = src
+    asset_map.set(src, img)
+  }
+  if (img.complete) {
+    context.drawImage(img, -width / 2, -height / 2, width, height)
+  }
 }

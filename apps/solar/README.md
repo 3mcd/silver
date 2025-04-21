@@ -1,6 +1,6 @@
 # solar
 
-Demonstrates components, relationships, queries, and query filters.
+Demonstrates components, relationships, plugins, and queries.
 
 ### Getting started
 
