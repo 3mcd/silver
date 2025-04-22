@@ -1,85 +1,75 @@
-import {App, Range, Selector, System} from "silver-ecs"
-import {IsPlayer} from "../player/plugin"
+import {vec2} from "gl-matrix"
 import Regl from "regl"
-import {Time} from "silver-ecs/plugins"
+import {App, Range, Selector, System} from "silver-ecs"
+import {Timestep} from "silver-ecs/plugins"
+import {Position} from "../physics/data"
+import {IsPlayer} from "../player/plugin"
+import * as triangle_shader from "./shaders/triangle"
 
 let regl = Regl()
 
 type Uniforms = {
-  color: string
+  u_color: string
+  u_offset: vec2
+  u_viewport_w: number
+  u_viewport_h: number
 }
 
-// Calling regl() creates a new partially evaluated draw command
-const drawTriangle = regl<Uniforms>({
-  // Shaders in regl are just strings.  You can use glslify or whatever you want
-  // to define them.  No need to manually create shader objects.
-  frag: `
-    precision mediump float;
-    uniform vec4 color;
-    void main() {
-      gl_FragColor = color;
-    }`,
+let triangle_props = {
+  u_color: [0, 0, 0, 1],
+  u_offset: [0, 0],
+}
 
-  vert: `
-    precision mediump float;
-    attribute vec2 position;
-    void main() {
-      gl_Position = vec4(position, 0, 1);
-    }`,
-
-  // Here we define the vertex attributes for the above shader
+const triangle = regl<Uniforms>({
+  frag: triangle_shader.frag,
+  vert: triangle_shader.vert,
   attributes: {
-    // regl.buffer creates a new array buffer object
-    position: regl.buffer([
-      [-2, -2], // no need to flatten nested arrays, regl automatically
-      [4, -2], // unrolls them into a typedarray (default Float32)
-      [4, 4],
+    a_position: regl.buffer([
+      [-0.866, -0.5],
+      [0.866, -0.5],
+      [0, 1],
     ]),
-    // regl automatically infers sane defaults for the vertex attribute pointers
   },
-
   uniforms: {
-    // This defines the color of the triangle to be a dynamic variable
-    color: regl.prop<Uniforms, "color">("color"),
+    u_color: regl.prop<Uniforms, "u_color">("u_color"),
+    u_offset: regl.prop<Uniforms, "u_offset">("u_offset"),
+    u_viewport_w: regl.context("viewportWidth"),
+    u_viewport_h: regl.context("viewportHeight"),
   },
-
-  // This tells regl the number of vertices to draw in this command
   count: 3,
 })
 
-let on_resize = () => {}
-on_resize()
+let clear_opts: Regl.ClearOptions = {
+  color: [0, 0, 0, 0],
+  depth: 1,
+}
 
-// ecs
+let clear: App.System = () => {
+  regl.clear(clear_opts)
+}
 
-let clear: App.System = world => {}
+let draw_player = (position: Position, step: number) => {
+  triangle_props.u_color[0] = Math.cos(0.02 * (0.001 * step))
+  triangle_props.u_color[1] = Math.sin(0.02 * (0.02 * step))
+  triangle_props.u_color[2] = Math.cos(0.02 * (0.3 * step))
+  triangle_props.u_offset[0] = position.x / 10
+  triangle_props.u_offset[1] = position.y / 10
+  triangle(triangle_props)
+}
 
-let players = Selector.make(IsPlayer)
+let players = Selector.make(IsPlayer).with(Position)
 
-let draw: App.System = world => {
-  let time = world.get_resource(Time.res).t_mono()
-
-  // clear contents of the drawing buffer
-  regl.clear({
-    color: [0, 0, 0, 0],
-    depth: 1,
-  })
-
-  // draw a triangle using the command defined above
-  drawTriangle({
-    color: [
-      Math.cos(time * 0.001),
-      Math.sin(time * 0.0008),
-      Math.cos(time * 0.003),
-      1,
-    ],
+let draw_players: App.System = world => {
+  let step = world.get_resource(Timestep.res).step()
+  world.for_each(players, position => {
+    draw_player(position, step)
   })
 }
 
-let render = Range.make()
+let render = Range.make(System.after(Timestep.logical))
 
 export let plugin: App.Plugin = app => {
   app
     .add_system(clear, System.when(render))
-    .add_system(draw, System.when(render), System.after(clear))
+    .add_system(draw_players, System.when(render), System.after(clear))
 }

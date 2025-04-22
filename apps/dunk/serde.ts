@@ -1,4 +1,5 @@
 import {Serde} from "silver-ecs/net"
-import {Test} from "./plugins/test"
+import {Position} from "./plugins/physics/data"
+import {IsPlayer} from "./plugins/player/plugin"
 
-export let serde = Serde.make().add(Test)
+export let serde = Serde.make().add(IsPlayer).add(Position)

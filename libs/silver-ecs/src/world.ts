@@ -280,7 +280,7 @@ export class World {
   }
 
   despawn(entity: Entity.t) {
-    this.#entity_registry.check(entity)
+    // this.#entity_registry.check(entity)
     let op = Op.despawn(entity)
     this.#ops.push(op)
   }
@@ -294,7 +294,7 @@ export class World {
   add(entity: Entity.t, pair: Component.Pair): void
   add(entity: Entity.t, tag: Component.Tag): void
   add(entity: Entity.t, component: Component.t, value?: unknown) {
-    this.#entity_registry.check(entity)
+    // this.#entity_registry.check(entity)
     let values: unknown[] = []
     if (value !== undefined) {
       values[component.id] = value
@@ -307,7 +307,7 @@ export class World {
     entity: Entity.t,
     component: Component.Ref | Component.Tag | Component.Pair,
   ) {
-    if (this.#entity_registry.is_alive(entity)) {
+    if (this.is_alive(entity)) {
       let op = Op.remove(entity, component)
       this.#ops.push(op)
     }
@@ -388,7 +388,7 @@ export class World {
   }
 
   is_alive(entity: Entity.t) {
-    return this.#entity_registry.is_alive(entity)
+    return this.#stage.get_next_entity_node(entity) !== undefined
   }
 
   array(component_id: number) {

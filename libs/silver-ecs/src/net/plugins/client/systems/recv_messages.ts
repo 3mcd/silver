@@ -26,7 +26,7 @@ let recv_message = (buffer: Buffer.t, world: World.t) => {
       recv_identity(buffer, world)
       break
     case Protocol.MessageType.Interest:
-      console.log(buffer.buffer)
+      Protocol.decode_interest(buffer, world, true)
       break
     case Protocol.MessageType.TimeSyncResponse:
       recv_time_sync_response(buffer, world)

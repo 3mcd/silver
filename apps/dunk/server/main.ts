@@ -4,7 +4,8 @@ import {createServer} from "node:https"
 import {join} from "node:path"
 import {App, Selector} from "silver-ecs"
 import {HasInterest, Interest, Remote, Serde, Server} from "silver-ecs/net"
-import {Time} from "silver-ecs/plugins"
+import {Time, Timestep} from "silver-ecs/plugins"
+import {Position} from "../plugins/physics/data"
 import {IsPlayer} from "../plugins/player/plugin"
 import {WebTransportRemote} from "../remote"
 import {serde} from "../serde"
@@ -67,11 +68,11 @@ let http3_server = new Http3Server({
 })
 
 let interests = Selector.make(Interest)
-let players = Selector.make(IsPlayer)
+let players = Selector.make(IsPlayer).with(Position)
 
 let amplify_entities: App.System = world => {
   world.for_each(interests, interest => {
-    world.for_each(players, player => {
+    world.for_each(players, (_, player) => {
       interest.amplify(player, 0.1)
     })
   })
@@ -79,20 +80,27 @@ let amplify_entities: App.System = world => {
 
 let game = App.make()
   .use(Time.plugin)
+  .use(Timestep.plugin)
   .use(Server.plugin)
   .add_resource(Serde.res, serde)
   .add_system(amplify_entities)
-  .add_init_system(world => {
-    world.with(Interest).spawn()
+  .add_system(world => {
+    let timestep = world.get_resource(Timestep.res)
+    let a = timestep.step() * timestep.period()
+    world.for_each(players, position => {
+      position.x += Math.sin(a) * 0.01
+      position.y += Math.cos(a) * 0.01
+    })
   })
 
 let handle_web_transport_session = (wt: WebTransport) => {
   let world = game.world()
-  let interest = world.single(Interest)
+  let interest = world.with(Interest).spawn()
   let client = world
     .with(Remote, new WebTransportRemote(wt))
     .with(IsPlayer)
     .with(HasInterest(interest))
+    .with(Position, {x: Math.random() * 10, y: Math.random() * 10})
     .spawn()
   wt.closed.then(() => {
     world.despawn(client)

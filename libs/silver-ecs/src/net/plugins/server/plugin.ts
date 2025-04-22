@@ -1,16 +1,16 @@
 import {App} from "#app/index"
 
 import * as Range from "#app/range"
+import * as System from "#app/system"
 import {ref} from "#component"
 import * as Effect from "#effect"
 import * as Entity from "#entity"
-import * as World from "#world"
 import * as Protocol from "#net/protocol"
 import {Remote} from "#net/remote"
+import * as World from "#world"
 import * as Server from "./server.ts"
 import {recv_messages} from "./systems/recv_messages.ts"
 import {send_interests} from "./systems/send_interests.ts"
-import * as System from "#app/system"
 
 export let res = ref<Server.t>()
 export let recv = Range.make()
@@ -31,7 +31,7 @@ let identify_client = (world: World.t, entity: Entity.t) => {
 let release_client = (world: World.t, entity: Entity.t) => {
   let server = world.get_resource(res)
   let client_id = world.get(entity, ClientId)
-  world.remove(entity, ClientId)
+  // world.remove(entity, ClientId)
   server.free_client_id(client_id)
 }
 

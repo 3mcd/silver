@@ -70,8 +70,9 @@ let write_segment_components = (
     let component = node_match[i]
     if (Component.is_rel(component)) {
       // TODO: relations
+    } else if (Component.is_tag(component)) {
+      buffer.write_u32(serde.to_iso(component))
     } else {
-      assert(Component.is_ref(component))
       buffer.write_u32(serde.to_iso(component))
     }
   }
@@ -92,6 +93,8 @@ let write_segment_entities = (
       let component = node_match[i]
       if (Component.is_rel(component)) {
         // TODO: relations
+      } else if (Component.is_tag(component)) {
+        // write nothing
       } else {
         assert(Component.is_ref(component))
         let ref_out = world.get(entity, component)
@@ -225,11 +228,12 @@ export let decode_interest = (
       for (let k = 0; k < segment_match_length; k++) {
         let component = segment_match[k]
         if (Component.is_rel(component)) {
+        } else if (Component.is_tag(component)) {
         } else {
           let ref_encoding = serde.encoding_from_ref_id(component.id)
           ref_encoding.decode(buffer, entity, ref_out, init)
           if (init) {
-            values.push(ref_out[entity])
+            values[component.id] = ref_out[entity]
             ref_out[entity] = undefined
           }
         }
