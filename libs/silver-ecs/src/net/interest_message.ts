@@ -1,4 +1,4 @@
-import {assert, assert_exists} from "#assert"
+import {assert_exists} from "#assert"
 import * as Buffer from "#buffer"
 import * as Component from "#component"
 import * as Entity from "#entity"
@@ -70,8 +70,6 @@ let write_segment_components = (
     let component = node_match[i]
     if (Component.is_rel(component)) {
       // TODO: relations
-    } else if (Component.is_tag(component)) {
-      buffer.write_u32(serde.to_iso(component))
     } else {
       buffer.write_u32(serde.to_iso(component))
     }
@@ -93,13 +91,10 @@ let write_segment_entities = (
       let component = node_match[i]
       if (Component.is_rel(component)) {
         // TODO: relations
-      } else if (Component.is_tag(component)) {
-        // write nothing
-      } else {
-        assert(Component.is_ref(component))
-        let ref_out = world.get(entity, component)
+      } else if (Component.is_ref(component)) {
+        let ref_value = world.get(entity, component)
         let ref_encoding = serde.encoding_from_ref_id(component.id)
-        ref_encoding.encode(buffer, ref_out)
+        ref_encoding.encode(buffer, ref_value)
       }
     }
   }
@@ -171,19 +166,26 @@ export let encode_interest = (
   segment_lengths.clear()
 }
 
-let segment_match = [] as Component.t[]
-let ref_out = [] as unknown[]
-
-export let decode_interest = (
+let decode_ref_value_out = [] as unknown[]
+let decode_ref_value = (
   buffer: Buffer.t,
-  world: World.t,
-  init = false,
+  component: Component.t,
+  serde: Serde.t,
+  entity: Entity.t,
+  out = decode_ref_value_out,
 ) => {
+  let ref_encoding = serde.encoding_from_ref_id(component.id)
+  ref_encoding.decode(buffer, entity, out, true)
+  return out[entity]
+}
+
+let segment_match = [] as Component.t[]
+
+export let decode_interest = (buffer: Buffer.t, world: World.t) => {
   let serde = world.get_resource(Serde.res)
   let segment_count = buffer.read_u8()
   for (let i = 0; i < segment_count; i++) {
     let segment_length = buffer.read_u8()
-    // resolve the component local of each segment component id
     let segment_match_length = buffer.read_u8()
     for (let j = 0; j < segment_match_length; j++) {
       let component_id_iso = buffer.read_u32()
@@ -196,49 +198,30 @@ export let decode_interest = (
       if (world.is_alive(entity)) {
         for (let k = 0; k < segment_match_length; k++) {
           let component = segment_match[k]
-          if (Component.is_ref(component)) {
-            if (world.has(entity, component)) {
-              // decode the value on top of the existing one
-              let ref_encoding = serde.encoding_from_ref_id(component.id)
-              let ref_store = world.array(component.id)
-              ref_encoding.decode(buffer, entity, ref_store, true)
-            } else {
-              // allocate a new value and add it to the entity
-              let ref_encoding = serde.encoding_from_ref_id(component.id)
-              ref_encoding.decode(buffer, entity, ref_out, true)
-              world.add(entity, component, ref_out[entity])
-              ref_out[entity] = undefined
+          if (world.has(entity, component)) {
+            if (Component.is_ref(component)) {
+              let array = world.array(component.id)
+              decode_ref_value(buffer, component, serde, entity, array)
             }
           } else {
-            // simply add the value if the component is data-less
-            world.add(
-              entity,
-              component as Component.Tag &
-                Component.Rel &
-                Component.RelInverse &
-                Component.Pair,
-            )
+            if (Component.is_ref(component)) {
+              let value = decode_ref_value(buffer, component, serde, entity)
+              world.add(entity, component, value)
+            } else {
+              world.add(entity, component as Component.Tag)
+            }
           }
         }
-        continue
-      }
-      // type used to spawn new entities
-      type ??= Type.make(segment_match.slice(0, segment_match_length))
-      let values: unknown[] = []
-      for (let k = 0; k < segment_match_length; k++) {
-        let component = segment_match[k]
-        if (Component.is_rel(component)) {
-        } else if (Component.is_tag(component)) {
-        } else {
-          let ref_encoding = serde.encoding_from_ref_id(component.id)
-          ref_encoding.decode(buffer, entity, ref_out, init)
-          if (init) {
-            values[component.id] = ref_out[entity]
-            ref_out[entity] = undefined
+      } else {
+        let values: unknown[] = []
+        for (let k = 0; k < segment_match_length; k++) {
+          let component = segment_match[k]
+          if (Component.is_ref(component)) {
+            let value = decode_ref_value(buffer, component, serde, entity)
+            values[component.id] = value
           }
         }
-      }
-      if (init) {
+        type ??= Type.make(segment_match.slice(0, segment_match_length))
         world.reserve(entity, type, values)
       }
     }

@@ -67,13 +67,25 @@ let http3_server = new Http3Server({
   privKey: key,
 })
 
-let interests = Selector.make(Interest)
+let interests = Selector.make(IsPlayer)
+  .with(Position)
+  .with(HasInterest, interest => interest.with(Interest))
+let bodies = Selector.make(Position)
 let players = Selector.make(IsPlayer).with(Position)
 
+let distance = (p1: Position, p2: Position) => {
+  let dx = p2.x - p1.x
+  let dy = p2.y - p1.y
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
 let amplify_entities: App.System = world => {
-  world.for_each(interests, interest => {
-    world.for_each(players, (_, player) => {
-      interest.amplify(player, 0.1)
+  world.for_each(interests, (player_position, player_interest) => {
+    world.for_each(bodies, (body_position, body_entity) => {
+      player_interest.amplify(
+        body_entity,
+        1 / distance(player_position, body_position),
+      )
     })
   })
 }
@@ -100,7 +112,10 @@ let handle_web_transport_session = (wt: WebTransport) => {
     .with(Remote, new WebTransportRemote(wt))
     .with(IsPlayer)
     .with(HasInterest(interest))
-    .with(Position, {x: Math.random() * 10, y: Math.random() * 10})
+    .with(Position, {
+      x: (0.5 - Math.random()) * 10,
+      y: (0.5 - Math.random()) * 10,
+    })
     .spawn()
   wt.closed.then(() => {
     world.despawn(client)

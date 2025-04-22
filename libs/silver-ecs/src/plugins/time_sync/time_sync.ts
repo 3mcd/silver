@@ -44,6 +44,9 @@ class TimeSync {
       }
       mean /= hi - lo
       if (Math.abs(mean - this.#offset) > this.#config.max_offset) {
+        console.log(
+          `[time_sync] computed new offset: offset=${mean.toFixed(2)}s`,
+        )
         this.#offset = mean
       }
       this.#samples.pop()
