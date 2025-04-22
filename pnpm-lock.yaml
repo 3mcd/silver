@@ -63,6 +63,9 @@ importers:
       primitive-geometry:
         specifier: ^2.10.1
         version: 2.10.1
+      regl:
+        specifier: ^2.1.1
+        version: 2.1.1
       silver-ecs:
         specifier: workspace:*
         version: link:../../libs/silver-ecs
@@ -2066,6 +2069,9 @@ packages:
   regjsparser@0.9.1:
     resolution: {integrity: sha512-dQUtn90WanSNl+7mQKcXAgZxvUe7Z0SqXlgzv0za4LwiUhyzBC58yQO3liFoUgu8GiJVInAhJjkj1N0EtQ5nkQ==}
     hasBin: true
+
+  regl@2.1.1:
+    resolution: {integrity: sha512-+IOGrxl3FZ8ZM9ixCWQZzFRiRn7Rzn9bu3iFHwg/yz4tlOUQgbO4PHLgG+1ZT60zcIV8tief6Qrmyl8qcoJP0g==}
 
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
@@ -4541,6 +4547,8 @@ snapshots:
   regjsparser@0.9.1:
     dependencies:
       jsesc: 0.5.0
+
+  regl@2.1.1: {}
 
   require-directory@2.1.1: {}
 
