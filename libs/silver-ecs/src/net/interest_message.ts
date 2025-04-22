@@ -176,7 +176,9 @@ let decode_ref_value = (
 ) => {
   let ref_encoding = serde.encoding_from_ref_id(component.id)
   ref_encoding.decode(buffer, entity, out, true)
-  return out[entity]
+  let ref_value = out[entity]
+  out[entity] = undefined
+  return ref_value
 }
 
 let segment_match = [] as Component.t[]

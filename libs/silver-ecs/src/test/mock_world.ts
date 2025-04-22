@@ -1,10 +1,10 @@
-import * as Entity from "#entity"
 import {assert_exists} from "#assert"
 import * as Component from "#component"
-import * as World from "#world"
-import * as SparseMap from "#sparse_map"
+import * as Entity from "#entity"
 import {hash_words} from "#hash"
+import * as SparseMap from "#sparse_map"
 import * as Type from "#type"
+import * as World from "#world"
 
 type MockNode = {
   id: number
@@ -113,13 +113,11 @@ export let mock_world = () => {
       return entities.has(entity)
     },
     reserve(entity: Entity.t, type: Type.t, values: unknown[]) {
-      let j = 0
       for (let i = 0; i < type.vec.length; i++) {
         let component = type.vec[i]
         if (Component.is_ref(component)) {
-          let value = values[j]
+          let value = values[component.id]
           this.set(entity, component, value)
-          j++
         } else {
           this.set(entity, component, null)
         }
