@@ -6,7 +6,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "sh ./cert_gen.sh && (sh ./open_browser.sh & pnpm dev:server & pnpm dev:client)",
+    "dev": "sh ./open_browser.sh & pnpm dev:server & pnpm dev:client",
     "dev:server": "tsx server/main.ts",
     "dev:client": "tsx build/watch.ts"
   },
