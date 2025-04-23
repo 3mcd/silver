@@ -2,7 +2,7 @@ import * as Component from "#component"
 import * as Entity from "#entity"
 import {mock_world} from "#test/mock_world"
 import {expect, test} from "vitest"
-import * as Interest from "./interest.ts"
+import * as Interest from "./interest/interest.ts"
 import * as Protocol from "./protocol.ts"
 import * as Serde from "./serde.ts"
 

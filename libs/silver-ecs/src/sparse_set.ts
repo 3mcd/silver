@@ -21,7 +21,7 @@ export class SparseSet<U extends number> {
     return this.dense[index]
   }
 
-  indexOf(value: U): number {
+  index_of(value: U): number {
     return this.sparse[value] ?? -1
   }
 

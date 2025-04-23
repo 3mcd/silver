@@ -1,6 +1,6 @@
 import {System} from "#app/index"
 import {make as query} from "#selector"
-import {HasInterest, Interest} from "../../../interest.ts"
+import {HasInterest, Interest} from "../../../interest/interest.ts"
 import * as Protocol from "../../../protocol.ts"
 import {Remote} from "../../../remote.ts"
 

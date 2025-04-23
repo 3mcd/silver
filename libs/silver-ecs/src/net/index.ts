@@ -1,4 +1,4 @@
-export * from "./interest.ts"
+export * from "./interest/interest.ts"
 export * as Client from "./plugins/client/plugin.ts"
 export * as Server from "./plugins/server/plugin.ts"
 export {Remote} from "./remote.ts"

@@ -59,7 +59,7 @@ export let read_time_sync_response = (
 }
 
 export {
-  init_interest,
-  encode_interest,
   decode_interest,
-} from "./interest_message.ts"
+  encode_interest,
+  init_interest,
+} from "./interest/interest_message.ts"

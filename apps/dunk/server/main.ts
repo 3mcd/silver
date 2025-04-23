@@ -82,10 +82,16 @@ let distance = (p1: Position, p2: Position) => {
 let amplify_entities: App.System = world => {
   world.for_each(interests, (player_position, player_interest) => {
     world.for_each(bodies, (body_position, body_entity) => {
-      player_interest.amplify(
-        body_entity,
-        1 / distance(player_position, body_position),
-      )
+      let d = distance(player_position, body_position)
+      if (player_position === body_position) {
+        player_interest.amplify(body_entity, 1)
+        return
+      }
+      if (d >= 4) {
+        player_interest.discard(body_entity)
+      } else {
+        player_interest.amplify(body_entity, d === 0 ? 1 : Math.min(1 / d, 1))
+      }
     })
   })
 }
@@ -99,9 +105,9 @@ let game = App.make()
   .add_system(world => {
     let timestep = world.get_resource(Timestep.res)
     let a = timestep.step() * timestep.period()
-    world.for_each(players, position => {
-      position.x += Math.sin(a) * 0.01
-      position.y += Math.cos(a) * 0.01
+    world.for_each(players, (position, entity) => {
+      position.x += Math.sin(a) * 0.005 * (1 + entity)
+      position.y += Math.cos(a) * 0.005 * (1 + entity)
     })
   })
 
