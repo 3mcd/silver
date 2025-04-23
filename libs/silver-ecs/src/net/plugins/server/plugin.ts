@@ -7,6 +7,7 @@ import * as Effect from "#effect"
 import * as Entity from "#entity"
 import * as Protocol from "#net/protocol"
 import {Remote} from "#net/remote"
+import * as Timestep from "#plugins/time_step/plugin"
 import * as World from "#world"
 import * as Server from "./server.ts"
 import {recv_messages} from "./systems/recv_messages.ts"
@@ -31,16 +32,20 @@ let identify_client = (world: World.t, entity: Entity.t) => {
 let release_client = (world: World.t, entity: Entity.t) => {
   let server = world.get_resource(res)
   let client_id = world.get(entity, ClientId)
-  // world.remove(entity, ClientId)
   server.free_client_id(client_id)
 }
 
 let identify_clients = Effect.make([Remote], identify_client, release_client)
 
 export let plugin = (app: App) => {
+  app.world().identify(1)
   app
     .add_resource(res, Server.make())
     .add_system(recv_messages, System.when(recv))
-    .add_system(send_interests, System.when(send))
+    .add_system(
+      send_interests,
+      System.when(send),
+      System.when(Timestep.logical),
+    )
     .add_effect(identify_clients)
 }

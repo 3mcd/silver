@@ -1,5 +1,15 @@
+import * as Entity from "#entity"
 import * as Component from "./component.ts"
 import * as SparseMap from "./sparse_map.ts"
+
+export type Term =
+  | Component.Ref
+  | Component.Tag
+  | Component.Rel
+  | Component.RelInverse
+  | Component.Pair
+  | Component.PairFn
+  | "entity"
 
 type WithRef<T extends unknown[], U> = U extends Component.Ref<infer V>
   ? Selector<[...T, V]>
@@ -16,7 +26,7 @@ export class Selector<T extends unknown[] = unknown[]> {
   join_on
 
   constructor(
-    terms: Component.t[] = [],
+    terms: Term[] = [],
     join_on: Component.t | undefined = undefined,
     joins = SparseMap.make<Selector>(),
   ) {
@@ -41,23 +51,20 @@ export class Selector<T extends unknown[] = unknown[]> {
   with(
     component: Component.Ref | Component.Tag | Component.Rel | Component.PairFn,
   ): Selector
-  with(
-    component:
-      | Component.Ref
-      | Component.Tag
-      | Component.Rel
-      | Component.Pair
-      | Component.PairFn,
-    join?: Join<unknown[]>,
-  ) {
-    if (component instanceof Function) {
-      component = component()
+  with(entity: "entity"): Selector<[...T, Entity.t]>
+  with(term: Term, join?: Join<unknown[]>) {
+    if (term instanceof Function) {
+      term = term()
     }
-    let terms = [...this.terms, component]
+    let terms = [...this.terms, term]
     let joins = this.joins.clone()
-    if (Component.is_rel(component) && join !== undefined) {
-      let selector = new Selector([component.inverse], component.inverse)
-      joins.set(component.id, join(selector))
+    if (
+      typeof term === "object" &&
+      Component.is_rel(term) &&
+      join !== undefined
+    ) {
+      let selector = new Selector([term.inverse], term.inverse)
+      joins.set(term.id, join(selector))
     }
     return new Selector(terms, this.join_on, joins)
   }

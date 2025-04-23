@@ -1,10 +1,10 @@
 import {System} from "#app/index"
 import {make as query} from "#selector"
-import {HasInterest, Interest} from "../../../interest/interest.ts"
+import {InterestedIn, Interest} from "../../../interest/interest.ts"
 import * as Protocol from "../../../protocol.ts"
 import {Remote} from "../../../remote.ts"
 
-let remotes = query(Remote).with(HasInterest, interest =>
+let remotes = query(Remote).with(InterestedIn, interest =>
   interest.with(Interest),
 )
 

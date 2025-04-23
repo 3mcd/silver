@@ -1,13 +1,10 @@
 import * as Component from "./component.ts"
-import * as Entity from "./entity.ts"
 import * as Node from "./node.ts"
 import * as Selector from "./selector.ts"
 import * as Type from "./type.ts"
 import * as World from "./world.ts"
 
-export type ForEachIteratee<U extends unknown[]> = (
-  ...args: [...value: U, entity: Entity.t]
-) => void
+export type ForEachIteratee<U extends unknown[]> = (...value: U) => void
 export type ForEach<U extends unknown[]> = (
   iteratee: ForEachIteratee<U>,
 ) => void
@@ -35,11 +32,16 @@ let build_for_each_join = (query: t, join_index: number) => {
     let fetch: string[] = []
     for (let join_index = 0; join_index < query.joins.length; join_index++) {
       let join = query.joins[join_index]
-      join.terms.filter(Component.is_ref).forEach((_, ref_index) => {
-        fetch.push(`w${join_index}${ref_index}[e${join_index}]`)
-      })
+      let ref_index = 0
+      for (let i = 0; i < join.terms.length; i++) {
+        let term = join.terms[i]
+        if (term === "entity") {
+          fetch.push(`e${join_index}`)
+        } else if (typeof term === "object" && Component.is_ref(term)) {
+          fetch.push(`w${join_index}${ref_index++}[e${join_index}]`)
+        }
+      }
     }
-    fetch.push(`e${join_index}`)
     exp += fetch.join(",")
     exp += ");"
     exp += `if(r===false)return;`
@@ -63,6 +65,7 @@ function compile_for_each<U extends unknown[]>(query: t<U>, world: World.t) {
   body += query.joins
     .map((join, join_index) =>
       join.terms
+        .filter(t => typeof t === "object")
         .filter(Component.is_ref)
         .map(
           (ref, ref_index) =>
@@ -95,7 +98,7 @@ class Join implements Node.Listener {
   nodes
   terms
 
-  constructor(terms: Component.t[], join_on?: Component.t) {
+  constructor(terms: Selector.Term[], join_on?: Component.t) {
     this.join_on = join_on
     this.nodes = [] as Node.t[]
     this.terms = terms
@@ -113,7 +116,7 @@ let init_query_joins = (
 ) => {
   let join = new Join(query_builder_node.terms, query_builder_node.join_on)
   let node = world.graph.find_or_create_node_by_type(
-    Type.make(query_builder_node.terms),
+    Type.make(query_builder_node.terms.filter(t => typeof t === "object")),
   )
   node.add_listener(join, true)
   joins.push(join)

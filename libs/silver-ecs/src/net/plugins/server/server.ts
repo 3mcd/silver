@@ -3,7 +3,7 @@ class Server {
   free_ids
 
   constructor() {
-    this.next_id = 1
+    this.next_id = 2
     this.free_ids = [] as number[]
   }
 

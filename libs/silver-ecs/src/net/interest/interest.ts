@@ -5,7 +5,15 @@ import * as Entity from "#entity"
 import * as SparseMap from "#sparse_map"
 import * as SparseSet from "#sparse_set"
 
-export class InterestImpl {
+export interface Interest {
+  amplify(entity: Entity.t, value: number): void
+  discard(entity: Entity.t): void
+  take(): Entity.t | undefined
+  discarded_count(): number
+  take_discarded(): Entity.t | undefined
+}
+
+export class InterestImpl implements Interest {
   #debts
   #queue
   #to_discard
@@ -67,12 +75,12 @@ export class InterestImpl {
   }
 }
 
-export type t = InterestImpl
+export type t = Interest
 
-export let make = () => {
+export let make = (): t => {
   return new InterestImpl()
 }
 
-export let Interest = ref(make)
-export let HasInterest = rel({exclusive: true})
+export let Interest = ref<t>(make)
+export let InterestedIn = rel({exclusive: true})
 export let Forgotten = tag()

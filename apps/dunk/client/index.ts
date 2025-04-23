@@ -16,9 +16,6 @@ let game = App.make()
     let wt = new WebTransport(`https://127.0.0.1:3000/wt`)
     world.with(Remote, new WebTransportRemote(wt)).spawn()
   })
-  .add_init_system(world => {
-    world.with(Player.IsPlayer).spawn()
-  })
 
 let loop = () => {
   game.run()

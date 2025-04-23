@@ -2,8 +2,8 @@ import {Http3Server} from "@fails-components/webtransport"
 import {readFile} from "node:fs/promises"
 import {createServer} from "node:https"
 import {join} from "node:path"
-import {App, Selector} from "silver-ecs"
-import {HasInterest, Interest, Remote, Serde, Server} from "silver-ecs/net"
+import {App, Selector, System} from "silver-ecs"
+import {InterestedIn, Interest, Remote, Serde, Server} from "silver-ecs/net"
 import {Time, Timestep} from "silver-ecs/plugins"
 import {Position} from "../plugins/physics/data"
 import {IsPlayer} from "../plugins/player/plugin"
@@ -68,10 +68,12 @@ let http3_server = new Http3Server({
 })
 
 let interests = Selector.make(IsPlayer)
+  .with("entity")
   .with(Position)
-  .with(HasInterest, interest => interest.with(Interest))
-let bodies = Selector.make(Position)
-let players = Selector.make(IsPlayer).with(Position)
+  .with(InterestedIn, interest => interest.with(Interest))
+
+let bodies = Selector.make().with("entity").with(Position)
+let players = bodies.with(IsPlayer)
 
 let distance = (p1: Position, p2: Position) => {
   let dx = p2.x - p1.x
@@ -80,19 +82,34 @@ let distance = (p1: Position, p2: Position) => {
 }
 
 let amplify_entities: App.System = world => {
-  world.for_each(interests, (player_position, player_interest) => {
-    world.for_each(bodies, (body_position, body_entity) => {
-      let d = distance(player_position, body_position)
-      if (player_position === body_position) {
-        player_interest.amplify(body_entity, 1)
-        return
-      }
-      if (d >= 4) {
-        player_interest.discard(body_entity)
-      } else {
-        player_interest.amplify(body_entity, d === 0 ? 1 : Math.min(1 / d, 1))
-      }
-    })
+  world.for_each(
+    interests,
+    (player_entity, player_position, player_interest) => {
+      world.for_each(bodies, (body_entity, body_position) => {
+        if (player_entity === body_entity) {
+          player_interest.amplify(body_entity, 1)
+          return
+        }
+        let d = distance(player_position, body_position)
+        if (d >= 4) {
+          player_interest.discard(body_entity)
+        } else {
+          player_interest.amplify(
+            body_entity,
+            d <= Number.EPSILON ? 1 : Math.min(1 / d, 1),
+          )
+        }
+      })
+    },
+  )
+}
+
+let move_entities: App.System = world => {
+  let timestep = world.get_resource(Timestep.res)
+  let a = timestep.step() * timestep.period()
+  world.for_each(players, (player_entity, player_position) => {
+    player_position.x += Math.sin(a) * 0.005 * ((player_entity % 10) + 1)
+    player_position.y += Math.cos(a) * 0.005 * ((player_entity % 10) + 1)
   })
 }
 
@@ -101,15 +118,12 @@ let game = App.make()
   .use(Timestep.plugin)
   .use(Server.plugin)
   .add_resource(Serde.res, serde)
-  .add_system(amplify_entities)
-  .add_system(world => {
-    let timestep = world.get_resource(Timestep.res)
-    let a = timestep.step() * timestep.period()
-    world.for_each(players, (position, entity) => {
-      position.x += Math.sin(a) * 0.005 * (1 + entity)
-      position.y += Math.cos(a) * 0.005 * (1 + entity)
-    })
-  })
+  .add_system(move_entities, System.when(Timestep.logical))
+  .add_system(
+    amplify_entities,
+    System.when(Timestep.logical),
+    System.after(move_entities),
+  )
 
 let handle_web_transport_session = (wt: WebTransport) => {
   let world = game.world()
@@ -117,7 +131,7 @@ let handle_web_transport_session = (wt: WebTransport) => {
   let client = world
     .with(Remote, new WebTransportRemote(wt))
     .with(IsPlayer)
-    .with(HasInterest(interest))
+    .with(InterestedIn(interest))
     .with(Position, {
       x: (0.5 - Math.random()) * 10,
       y: (0.5 - Math.random()) * 10,

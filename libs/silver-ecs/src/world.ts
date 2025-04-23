@@ -93,8 +93,7 @@ export class World {
       let rel_id = Component.parse_pair_rel_id(pair)
       let rel = Component.find_by_id(rel_id) as Component.Rel
       let rel_inverse = rel.inverse
-      let object_id = Component.parse_pair_entity(pair)
-      let object = Entity.make(object_id, this.#id)
+      let object = Component.parse_pair_entity(pair)
       assert(object !== subject, err_self_rel)
       let object_node = this.get_entity_node(object)
       // grant the object entity the relation's inverse tag
@@ -124,8 +123,7 @@ export class World {
       let pair = type.pairs[i]
       let rel_id = Component.parse_pair_rel_id(pair)
       let rel = Component.find_by_id(rel_id) as Component.Rel
-      let object_id = Component.parse_pair_entity(pair)
-      let object = Entity.make(object_id, this.#id)
+      let object = Component.parse_pair_entity(pair)
       let object_node = this.get_entity_node(object)
       switch (object_node.unpair(rel.inverse.id, entity, object)) {
         // object has no more subjects, so remove the relation's inverse tag
@@ -448,6 +446,11 @@ export class World {
     let node = this.graph.find_or_create_node_by_type(type)
     node.add_listener(effect, true)
     effect.world = this
+  }
+
+  debug_query(query: Selector.t) {
+    let resolved_query = this.#resolve_query(query)
+    return resolved_query.for_each.toString()
   }
 }
 export type t = World
