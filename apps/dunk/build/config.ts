@@ -1,5 +1,6 @@
 import {BuildOptions} from "esbuild"
 import {parseArgs} from "util"
+import {glsl} from "esbuild-plugin-glsl"
 
 let {values: args} = parseArgs({
   args: process.argv,
@@ -34,4 +35,9 @@ export let config: BuildOptions = {
   minify: Boolean(args.minify),
   mangleProps: Boolean(args.mangle) ? /_$/ : undefined,
   sourcemap: Boolean(args.sourcemap),
+  plugins: [
+    glsl({
+      minify: true,
+    }),
+  ],
 }

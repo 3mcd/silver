@@ -1,4 +1,4 @@
-import {mat4, vec3} from "gl-matrix"
+import {mat3, mat4, vec2, vec3} from "gl-matrix"
 import REGL, {DefaultContext, Regl} from "regl"
 
 let RIGHT = new Float32Array([1, 0, 0])
@@ -14,8 +14,8 @@ let clamp = (x: number, lo: number, hi: number) => {
 }
 
 type CameraState = {
-  view: mat4
-  projection: mat4
+  u_camera_view: mat4
+  u_camera_projection: mat4
   center: vec3
   theta: number
   phi: number
@@ -24,30 +24,36 @@ type CameraState = {
   up: vec3
 }
 
+enum Drag {
+  NONE,
+  ROTATE,
+  DOLLY,
+  PAN,
+}
+
 export class Camera {
   #state
   #inject
   #min_distance
   #max_distance
-  #prev_x
-  #prev_y
   #dragging
-  #d_distance
   #d_theta
   #d_phi
+  #d
+  #offset
 
   constructor(
     regl: Regl,
     min_distance: number,
     max_distance: number,
-    center: number,
+    center: vec3,
     theta: number,
     phi: number,
     up: vec3,
   ) {
     this.#state = {
-      view: mat4.identity(new Float32Array(16)),
-      projection: mat4.identity(new Float32Array(16)),
+      u_camera_view: mat4.identity(new Float32Array(16)),
+      u_camera_projection: mat4.identity(new Float32Array(16)),
       center: new Float32Array(center),
       theta: theta,
       phi: phi,
@@ -57,19 +63,18 @@ export class Camera {
     } as CameraState
     this.#min_distance = Math.log(min_distance)
     this.#max_distance = Math.log(max_distance)
-    this.#dragging = false
-    this.#d_distance = 0
+    this.#dragging = Drag.NONE
     this.#d_theta = 0
     this.#d_phi = 0
-    this.#prev_x = 0
-    this.#prev_y = 0
+    this.#d = vec3.create()
+    this.#offset = vec3.create()
     let uniform_keys = Object.keys(this.#state) as (keyof CameraState)[]
     this.#inject = regl<CameraState, {}, {}, CameraState>({
       context: {
         ...this.#state,
-        projection: context => {
+        u_camera_projection: context => {
           return mat4.perspective(
-            this.#state.projection,
+            this.#state.u_camera_projection,
             Math.PI / 4.0,
             context.viewportWidth / context.viewportHeight,
             0.01,
@@ -88,46 +93,62 @@ export class Camera {
   }
 
   #on_pointer_down = (event: PointerEvent) => {
-    if (event.button === 0) {
-      this.#dragging = true
-      this.#prev_x = event.clientX
-      this.#prev_y = event.clientY
+    event.preventDefault()
+    switch (event.button) {
+      case 0: // left button
+        this.#dragging = Drag.ROTATE
+        break
+      case 1: // middle button
+        this.#dragging = Drag.DOLLY
+        break
+      case 2: // right button
+        this.#dragging = Drag.PAN
+        return
+      default:
+        return
     }
   }
 
   #on_pointer_move = (event: PointerEvent) => {
-    if (this.#dragging) {
-      const dx = (event.clientX - this.#prev_x) / window.innerWidth
-      const dy = (event.clientY - this.#prev_y) / window.innerHeight
-      const w = Math.max(this.#state.distance, 0.5)
+    if (this.#dragging === Drag.NONE) {
+      return
+    }
 
-      this.#d_theta += w * dx
-      this.#d_phi += w * dy
+    let dx = event.movementX / window.innerWidth
+    let dy = event.movementY / window.innerHeight
+    let w = Math.max(this.#state.distance, 0.5)
 
-      this.#prev_x = event.clientX
-      this.#prev_y = event.clientY
+    if (this.#dragging === Drag.ROTATE) {
+      this.#d_theta += dx * w
+      this.#d_phi += dy * w
+    } else if (this.#dragging === Drag.DOLLY) {
+      this.#d[2] -= dy * w
+    } else if (this.#dragging === Drag.PAN) {
+      this.#d[0] = dx * 20 * w
+      this.#d[1] = dy * 20 * w
     }
   }
 
-  #on_pointer_up = (event: PointerEvent) => {
-    if (event.button === 0) {
-      this.#dragging = false
-      this.#d_theta = 0
-      this.#d_phi = 0
-    }
+  #on_pointer_up = () => {
+    this.#dragging = 0
+    this.#d_theta = 0
+    this.#d_phi = 0
   }
 
   #on_wheel = (event: WheelEvent) => {
-    this.#d_distance += event.deltaY / window.innerHeight
+    this.#d[2] += event.deltaY / window.innerHeight
+  }
+
+  #on_contextmenu = (event: MouseEvent) => {
+    event.preventDefault()
   }
 
   initialize() {
     document.addEventListener("pointerdown", this.#on_pointer_down)
-    document.addEventListener("pointermove", this.#on_pointer_move, {
-      passive: true,
-    })
+    document.addEventListener("pointermove", this.#on_pointer_move)
     document.addEventListener("pointerup", this.#on_pointer_up)
     document.addEventListener("wheel", this.#on_wheel)
+    document.addEventListener("contextmenu", this.#on_contextmenu)
   }
 
   dispose() {
@@ -135,6 +156,7 @@ export class Camera {
     document.removeEventListener("pointermove", this.#on_pointer_move)
     document.removeEventListener("pointerup", this.#on_pointer_up)
     document.removeEventListener("wheel", this.#on_wheel)
+    document.removeEventListener("contextmenu", this.#on_contextmenu)
   }
 
   update() {
@@ -145,37 +167,46 @@ export class Camera {
       Math.PI / 2.0,
     )
     this.#state.distance = clamp(
-      this.#state.distance + this.#d_distance,
+      this.#state.distance + this.#d[2],
       this.#min_distance,
       this.#max_distance,
     )
 
-    this.#d_theta = damp(this.#d_theta)
-    this.#d_phi = damp(this.#d_phi)
-    this.#d_distance = damp(this.#d_distance)
+    let sin_phi = Math.sin(this.#state.phi)
+    let cos_phi = Math.cos(this.#state.phi)
+    let sin_theta = Math.sin(this.#state.theta)
+    let cos_theta = Math.cos(this.#state.theta)
 
-    let theta = this.#state.theta
-    let phi = this.#state.phi
+    // rotate
     let r = Math.exp(this.#state.distance)
-
-    let v_front = r * Math.sin(theta) * Math.cos(phi)
-    let v_right = r * Math.cos(theta) * Math.cos(phi)
-    let v_up = r * Math.sin(phi)
-
-    for (let i = 0; i < 3; ++i) {
-      this.#state.eye[i] =
-        this.#state.center[i] +
-        v_front * FRONT[i] +
-        v_right * RIGHT[i] +
-        v_up * this.#state.up[i]
-    }
-
+    this.#state.eye[0] = -r * sin_theta * cos_phi
+    this.#state.eye[1] = r * sin_phi
+    this.#state.eye[2] = r * cos_theta * cos_phi
     mat4.lookAt(
-      this.#state.view,
+      this.#state.u_camera_view,
       this.#state.eye,
       this.#state.center,
       this.#state.up,
     )
+
+    // translate
+    let dx = this.#d[0]
+    let dy = this.#d[1]
+    let dz = this.#d[2]
+    this.#offset[0] += dx * cos_theta - dy * sin_theta * sin_phi
+    this.#offset[1] += -dy * cos_phi
+    this.#offset[2] += dx * sin_theta + dy * cos_theta * sin_phi
+    mat4.translate(
+      this.#state.u_camera_view,
+      this.#state.u_camera_view,
+      this.#offset,
+    )
+
+    this.#d[0] = damp(dx)
+    this.#d[1] = damp(dy)
+    this.#d[2] = damp(dz)
+    this.#d_theta = damp(this.#d_theta)
+    this.#d_phi = damp(this.#d_phi)
   }
 
   bind(block: REGL.CommandBodyFn) {
@@ -189,8 +220,8 @@ export let make = (
   regl: Regl,
   min_distance = 0.1,
   max_distance = 1000,
-  center = 3,
-  theta = 0,
+  center: vec3 = [0, 0, 0],
+  theta = Math.PI / 2,
   phi = 0,
   up: vec3 = [0, 1, 0],
 ) => {
