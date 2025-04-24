@@ -1,18 +1,19 @@
 import {vec2} from "gl-matrix"
 import Regl from "regl"
-import {App, Range, Selector, System} from "silver-ecs"
+import {App, Component, Range, Selector, System} from "silver-ecs"
 import {Timestep} from "silver-ecs/plugins"
 import {Position} from "../physics/data"
 import {IsPlayer} from "../player/plugin"
+import * as Camera from "./camera.ts"
 import * as triangle_shader from "./shaders/triangle"
 
 let regl = Regl()
 
+let camera_res = Component.ref<Camera.t>()
+
 type Uniforms = {
   u_color: string
   u_offset: vec2
-  u_viewport_w: number
-  u_viewport_h: number
 }
 
 let triangle_props = {
@@ -33,8 +34,6 @@ const triangle = regl<Uniforms>({
   uniforms: {
     u_color: regl.prop<Uniforms, "u_color">("u_color"),
     u_offset: regl.prop<Uniforms, "u_offset">("u_offset"),
-    u_viewport_w: regl.context("viewportWidth"),
-    u_viewport_h: regl.context("viewportHeight"),
   },
   count: 3,
 })
@@ -52,17 +51,25 @@ let draw_player = (position: Position, step: number) => {
   triangle_props.u_color[0] = Math.cos(0.02 * (0.001 * step))
   triangle_props.u_color[1] = Math.sin(0.02 * (0.02 * step))
   triangle_props.u_color[2] = Math.cos(0.02 * (0.3 * step))
-  triangle_props.u_offset[0] = position.x / 10
-  triangle_props.u_offset[1] = position.y / 10
+  triangle_props.u_offset[0] = position.x
+  triangle_props.u_offset[1] = position.y
   triangle(triangle_props)
 }
 
 let players = Selector.make(IsPlayer).with(Position)
 
+let update_camera: App.System = world => {
+  let camera = world.get_resource(camera_res)
+  camera.update()
+}
+
 let draw_players: App.System = world => {
   let step = world.get_resource(Timestep.res).step()
-  world.for_each(players, position => {
-    draw_player(position, step)
+  let camera = world.get_resource(camera_res)
+  camera.bind(() => {
+    world.for_each(players, position => {
+      draw_player(position, step)
+    })
   })
 }
 
@@ -70,6 +77,8 @@ let render = Range.make(System.after(Timestep.logical))
 
 export let plugin: App.Plugin = app => {
   app
+    .add_resource(camera_res, Camera.make(regl))
     .add_system(clear, System.when(render))
-    .add_system(draw_players, System.when(render), System.after(clear))
+    .add_system(update_camera, System.when(render), System.after(clear))
+    .add_system(draw_players, System.when(render), System.after(update_camera))
 }

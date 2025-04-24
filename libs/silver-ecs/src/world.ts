@@ -87,21 +87,25 @@ export class World {
     }
   }
 
-  #set_relations(subject: Entity.t, type: Type.t) {
+  #set_relations(subject_entity: Entity.t, type: Type.t) {
     for (let i = 0; i < type.pairs.length; i++) {
       let pair = type.pairs[i]
       let rel_id = Component.parse_pair_rel_id(pair)
       let rel = Component.find_by_id(rel_id) as Component.Rel
       let rel_inverse = rel.inverse
-      let object = Component.parse_pair_entity(pair)
-      assert(object !== subject, err_self_rel)
-      let object_node = this.get_entity_node(object)
+      let object_entity = Component.parse_pair_entity(pair)
+      assert(object_entity !== subject_entity, err_self_rel)
+      let object_entity_node = this.get_entity_node(object_entity)
       // grant the object entity the relation's inverse tag
-      if (!object_node.type.has_component(rel_inverse)) {
-        this.#apply_add(object, Type.single(rel_inverse))
+      if (!object_entity_node.type.has_component(rel_inverse)) {
+        this.#apply_add(object_entity, Type.single(rel_inverse))
       }
-      let next_object_node = this.get_entity_node(object)
-      next_object_node.set_object(rel_inverse.id, subject, object)
+      let object_entity_next_node = this.get_entity_node(object_entity)
+      object_entity_next_node.set_object(
+        rel_inverse.id,
+        subject_entity,
+        object_entity,
+      )
     }
   }
 
@@ -110,10 +114,10 @@ export class World {
     for (let i = 0; i < type.rels_inverse.length; i++) {
       let rel_inverse = type.rels_inverse[i]
       let rel_map = node.rel_maps[rel_inverse.id]
-      let subjects = rel_map.b_to_a[entity]
-      subjects?.for_each(subject => {
+      let subject_entities = rel_map.b_to_a[entity]
+      subject_entities?.for_each(subject_entity => {
         this.#apply_remove(
-          subject,
+          subject_entity,
           Type.single(Component.make_pair(rel_inverse.rel, entity)),
         )
       })
@@ -123,13 +127,15 @@ export class World {
       let pair = type.pairs[i]
       let rel_id = Component.parse_pair_rel_id(pair)
       let rel = Component.find_by_id(rel_id) as Component.Rel
-      let object = Component.parse_pair_entity(pair)
-      let object_node = this.get_entity_node(object)
-      switch (object_node.unpair(rel.inverse.id, entity, object)) {
+      let object_entity = Component.parse_pair_entity(pair)
+      let object_entity_node = this.get_entity_node(object_entity)
+      switch (
+        object_entity_node.unpair(rel.inverse.id, entity, object_entity)
+      ) {
         // object has no more subjects, so remove the relation's inverse tag
         case 2:
         case 3: {
-          this.#apply_remove(object, Type.single(rel.inverse))
+          this.#apply_remove(object_entity, Type.single(rel.inverse))
           break
         }
         default:
@@ -139,24 +145,28 @@ export class World {
   }
 
   /**
-   * Move the `object` entity's subjects from `prev_node` to `next_node` for
+   * Move the `object_entity` subjects from `prev_node` to `next_node` for
    * each relation present in both nodes.
    */
-  #move_relations(object: Entity.t, prev_node: Node.t, next_node: Node.t) {
+  #move_relations(
+    object_entity: Entity.t,
+    prev_node: Node.t,
+    next_node: Node.t,
+  ) {
     // for every relation type that this entity is an object of
     for (let i = 0; i < prev_node.type.rels_inverse.length; i++) {
       let rel_inverse = prev_node.type.rels_inverse[i]
       let rel_map = prev_node.rel_maps[rel_inverse.id]
-      let subjects = rel_map.b_to_a[object]
-      if (subjects === undefined) {
+      let subject_entities = rel_map.b_to_a[object_entity]
+      if (subject_entities === undefined) {
         continue
       }
       if (next_node.type.has_component(rel_inverse)) {
-        subjects.for_each(subject => {
-          next_node.set_object(rel_inverse.id, subject, object)
+        subject_entities.for_each(subject_entity => {
+          next_node.set_object(rel_inverse.id, subject_entity, object_entity)
         })
       }
-      prev_node.delete_object(rel_inverse.id, object)
+      prev_node.delete_object(rel_inverse.id, object_entity)
     }
   }
 
@@ -328,7 +338,7 @@ export class World {
     this.#set_value(entity, ref, value)
   }
 
-  step() {
+  flush_ops() {
     let ops = this.#ops
     if (this.#ops.length > 0) {
       for (let i = 0; i < this.#ops.length; i++) {

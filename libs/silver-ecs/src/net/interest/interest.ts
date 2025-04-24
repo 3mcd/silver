@@ -14,48 +14,43 @@ export interface Interest {
 }
 
 export class InterestImpl implements Interest {
-  #debts
+  #discarded
+  #discarded_deficits
   #queue
-  #to_discard
 
   constructor() {
-    this.#debts = SparseMap.make<number>()
+    this.#discarded = SparseSet.make<Entity.t>()
+    this.#discarded_deficits = SparseMap.make<number>()
     this.#queue = InterestQueue.make()
-    this.#to_discard = SparseSet.make<Entity.t>()
   }
 
   amplify(entity: Entity.t, value: number) {
-    if (this.#to_discard.has(entity)) {
+    if (this.#discarded.has(entity)) {
       return
     }
 
-    let debt = this.#debts.get(entity)
+    let deficit = this.#discarded_deficits.get(entity)
 
-    if (debt !== undefined && debt > 0) {
-      let debt_remaining = debt - value
-      if (debt_remaining <= 0) {
-        this.#debts.delete(entity)
-      } else {
-        this.#debts.set(entity, debt_remaining)
+    if (deficit !== undefined) {
+      let deficit_remainder = deficit - value
+      if (deficit_remainder > 0) {
+        this.#discarded_deficits.set(entity, deficit_remainder)
         return
       }
+      this.#discarded_deficits.delete(entity)
     }
 
     if (value <= Number.EPSILON) {
-      // remove the entity from the interest queue and set aside to be included in
-      // the next interest message as a despawn
-      this.#queue.remove(entity)
-      this.#to_discard.add(entity)
-      // reset entity debt to 1 to prevent rapid oscillations between discarded and
-      // not discarded
-      this.#debts.set(entity, 1)
-      return
+      this.discard(entity)
+    } else {
+      this.#queue.amplify(entity, value)
     }
-    this.#queue.amplify(entity, value)
   }
 
   discard(entity: Entity.t) {
-    this.amplify(entity, 0)
+    this.#queue.remove(entity)
+    this.#discarded.add(entity)
+    this.#discarded_deficits.set(entity, 1)
   }
 
   take() {
@@ -63,13 +58,13 @@ export class InterestImpl implements Interest {
   }
 
   discarded_count() {
-    return this.#to_discard.size()
+    return this.#discarded.size()
   }
 
   take_discarded() {
-    let entity = this.#to_discard.at(0)
+    let entity = this.#discarded.at(0)
     if (entity !== undefined) {
-      this.#to_discard.delete(entity)
+      this.#discarded.delete(entity)
     }
     return entity
   }

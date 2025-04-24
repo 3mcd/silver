@@ -28,11 +28,11 @@ export class App {
   run() {
     if (this.#init) {
       Schedule.run(this.#init_schedule, this.#world)
-      this.#world.step()
+      this.#world.flush_ops()
       this.#init = false
     }
     Schedule.run(this.#schedule, this.#world)
-    this.#world.step()
+    this.#world.flush_ops()
     return this
   }
 

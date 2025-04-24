@@ -46,7 +46,7 @@ test("integration", async () => {
   world.with(Name, "Aubrey").with(Likes(apple)).with(Likes(grape)).spawn()
   world.with(Name, "Jordan").with(Likes(plank)).spawn()
 
-  world.step()
+  world.flush_ops()
 
   let results: [string, string, Pos, Pos][] = []
 
