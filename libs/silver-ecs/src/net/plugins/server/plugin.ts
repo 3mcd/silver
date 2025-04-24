@@ -17,7 +17,7 @@ export let res = ref<Server.t>()
 export let recv = Range.make()
 export let send = Range.make()
 
-let ClientId = ref<number>()
+export let ClientId = ref("u16")
 
 let identify_client = (world: World.t, entity: Entity.t) => {
   let server = world.get_resource(res)

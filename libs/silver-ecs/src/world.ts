@@ -476,6 +476,10 @@ export class World {
     let resolved_query = this.#resolve_query(query)
     return resolved_query.for_each.toString()
   }
+
+  client_id() {
+    return this.#id
+  }
 }
 export type t = World
 

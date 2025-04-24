@@ -44,11 +44,11 @@ let init_clients = Effect.make([Remote], (world, entity) => {
   let interest = world.with(Interest).spawn()
   world
     .with(Player.IsPlayer)
-    .with(InterestedIn(interest))
     .with(Physics.Position, {
       x: (0.5 - Math.random()) * 10,
       y: (0.5 - Math.random()) * 10,
     })
+    .with(InterestedIn(interest))
     .add(entity)
 })
 

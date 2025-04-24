@@ -81,7 +81,7 @@ let move_satellites: App.System = world => {
   )
 }
 
-let bodies = Selector.make().with(Position).with(Radius)
+let bodies = Selector.make().with("entity").with(Position).with(Radius)
 let bodies_full = bodies.with(Name).with(Color)
 
 let draw_bodies: App.System = world => {
@@ -92,7 +92,7 @@ let draw_bodies: App.System = world => {
   let scaled_height = canvas.height * transform.scale
   let hw = canvas.width / 2
   let hh = canvas.height / 2
-  world.for_each(bodies_full, (position, radius, name, color, entity) => {
+  world.for_each(bodies_full, (entity, position, radius, name, color) => {
     if (
       position.x + radius + hw - transform.x > 0 &&
       position.x - radius + hw - transform.x < scaled_width &&
@@ -184,7 +184,7 @@ let click_bodies: App.System = world => {
   document.addEventListener("click", e => {
     let x = to_world_x(e.clientX * dpr) - canvas.width / 2
     let y = to_world_y(e.clientY * dpr) - canvas.height / 2
-    world.for_each(bodies, (position, radius, entity) => {
+    world.for_each(bodies, (entity, position, radius) => {
       let dx = position.x - x
       let dy = position.y - y
       if (Math.sqrt(dx * dx + dy * dy) < radius) {
@@ -211,7 +211,7 @@ let update_pointer: App.System = world => {
 let toggle_cursor: App.System = world => {
   let pointer = world.get_resource(Pointer)
   let hit = false
-  world.for_each(bodies, (p, r) => {
+  world.for_each(bodies, (_, p, r) => {
     let dx = p.x - pointer.x
     let dy = p.y - pointer.y
     if (Math.sqrt(dx * dx + dy * dy) < r) {
