@@ -5,6 +5,7 @@ import {Remote} from "#net/remote"
 import {Time, Timesync} from "#plugins/index"
 import * as Selector from "#selector"
 import * as World from "#world"
+import * as Client from "../client.ts"
 
 let recv_identity = (buffer: Buffer.t, world: World.t) => {
   let id = Protocol.read_identity(buffer)
@@ -25,9 +26,12 @@ let recv_message = (buffer: Buffer.t, world: World.t) => {
     case Protocol.MessageType.Identity:
       recv_identity(buffer, world)
       break
-    case Protocol.MessageType.Interest:
-      Protocol.decode_interest(buffer, world)
+    case Protocol.MessageType.Interest: {
+      let client = world.get_resource(Client.res)
+      let step = buffer.read_u32()
+      client.add_snapshot(buffer, step)
       break
+    }
     case Protocol.MessageType.TimeSyncResponse:
       recv_time_sync_response(buffer, world)
       break

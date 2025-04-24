@@ -68,12 +68,8 @@ export let despawn = (entity: Entity.t) => {
   return new Op(Kind.Despawn, entity) as Despawn
 }
 
-export let add = <U extends Component.t[]>(
-  entity: Entity.t,
-  component: Component.t,
-  values: Component.ValuesOf<U>,
-) => {
-  return new Op(Kind.Add, entity, Type.single(component), values) as Add
+export let add = (entity: Entity.t, type: Type.t, values: unknown[]) => {
+  return new Op(Kind.Add, entity, type, values) as Add
 }
 
 export let remove = (entity: Entity.t, component: Component.t) => {

@@ -1,14 +1,15 @@
 import {App} from "silver-ecs"
 import {Client, Remote, Serde} from "silver-ecs/net"
-import {Time, Timestep, Timesync} from "silver-ecs/plugins"
-import {Player, Render} from "../plugins"
+import {Commands, Time, Timestep, Timesync} from "silver-ecs/plugins"
 import {WebTransportRemote} from "../remote"
 import {serde} from "../serde"
+import {Render} from "./plugins"
 
 let game = App.make()
   .use(Time.plugin)
   .use(Timestep.plugin)
   .use(Timesync.plugin)
+  .use(Commands.plugin)
   .use(Client.plugin)
   .use(Render.plugin)
   .add_resource(Serde.res, serde)

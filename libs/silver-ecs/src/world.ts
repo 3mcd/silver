@@ -298,17 +298,31 @@ export class World {
     this.#ops.push(op)
   }
 
-  add<U>(entity: Entity.t, ref: Component.Ref<U>, value: U): void
-  add(entity: Entity.t, pair: Component.Pair): void
-  add(entity: Entity.t, tag: Component.Tag): void
-  add(entity: Entity.t, component: Component.t, value?: unknown) {
-    // this.#entity_registry.check(entity)
-    let values: unknown[] = []
-    if (value !== undefined) {
-      values[component.id] = value
+  add<U>(entity: Entity.t, ref: Component.Ref<U>, value: U): this
+  add(entity: Entity.t, pair: Component.Pair): this
+  add(entity: Entity.t, tag: Component.Tag): this
+  add(entity: Entity.t, type: Type.t, values: unknown[]): this
+  add(
+    entity: Entity.t,
+    component_or_type: Component.t | Type.t,
+    value?: unknown,
+  ) {
+    let type =
+      "id" in component_or_type
+        ? Type.single(component_or_type)
+        : component_or_type
+    let op: Op.t
+    if ("id" in component_or_type) {
+      let values: unknown[] = []
+      if (value !== undefined) {
+        values[component_or_type.id] = value
+      }
+      op = Op.add(entity, type, values as [])
+    } else {
+      op = Op.add(entity, type, value as unknown[])
     }
-    let op = Op.add(entity, component, values as [])
     this.#ops.push(op)
+    return this
   }
 
   remove(

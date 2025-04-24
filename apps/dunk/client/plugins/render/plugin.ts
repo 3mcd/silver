@@ -2,10 +2,9 @@ import {vec2} from "gl-matrix"
 import Regl from "regl"
 import {App, Component, Range, Selector, System} from "silver-ecs"
 import {Timestep} from "silver-ecs/plugins"
-import {Position} from "../physics/data"
-import {IsPlayer} from "../player/plugin"
+import {Physics, Player} from "../../../plugins"
 import * as Camera from "./camera.ts"
-import * as triangle_shader from "./shaders/triangle"
+import * as triangle_shader from "./shaders/triangle.ts"
 
 let regl = Regl()
 
@@ -47,7 +46,7 @@ let clear: App.System = () => {
   regl.clear(clear_opts)
 }
 
-let draw_player = (position: Position, step: number) => {
+let draw_player = (position: Physics.Position, step: number) => {
   triangle_props.u_color[0] = Math.cos(0.02 * (0.001 * step))
   triangle_props.u_color[1] = Math.sin(0.02 * (0.02 * step))
   triangle_props.u_color[2] = Math.cos(0.02 * (0.3 * step))
@@ -56,7 +55,7 @@ let draw_player = (position: Position, step: number) => {
   triangle(triangle_props)
 }
 
-let players = Selector.make(IsPlayer).with(Position)
+let players = Selector.make(Player.IsPlayer).with(Physics.Position)
 
 let update_camera: App.System = world => {
   let camera = world.get_resource(camera_res)

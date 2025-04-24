@@ -1,6 +1,7 @@
 import * as Component from "./component.ts"
-import * as World from "./world.ts"
+import * as Entity from "./entity.ts"
 import * as Type from "./type.ts"
+import * as World from "./world.ts"
 
 export class EntityBuilder {
   #type: Type.t
@@ -24,6 +25,10 @@ export class EntityBuilder {
 
   spawn() {
     return this.#world.spawn(this.#type, this.#values)
+  }
+
+  add(entity: Entity.t) {
+    this.#world.add(entity, this.#type, this.#values)
   }
 }
 export type t = EntityBuilder

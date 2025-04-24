@@ -3,6 +3,7 @@ import * as Buffer from "#buffer"
 import * as Component from "#component"
 import * as Entity from "#entity"
 import * as Node from "#node"
+import {Timestep} from "#plugins/index"
 import * as Schema from "#schema"
 import * as SparseMap from "#sparse_map"
 import * as Type from "#type"
@@ -113,6 +114,7 @@ let prepare_segments = (
   serde: Serde.t,
 ) => {
   let offset = buffer.write_offset
+  offset += 4 // step
   offset += 1 // discard count
 
   discard_count = Math.min(
@@ -151,9 +153,11 @@ export let encode_interest = (
   interest: Interest.t,
   world: World.t,
 ) => {
+  let timestep = world.get_resource(Timestep.res)
   let serde = world.get_resource(Serde.res)
   let message_length = prepare_segments(buffer, interest, world, serde)
   buffer.grow(message_length)
+  buffer.write_u32(timestep.step())
   buffer.write_u8(discard_count)
   for (let i = 0; i < discard_count; i++) {
     let entity = assert_exists(interest.take_discarded())

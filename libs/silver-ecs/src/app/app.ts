@@ -19,7 +19,7 @@ export class App {
   }
 
   use(plugin: Plugin): this
-  use<T>(plugin: Plugin<T>, config: T): this
+  use<T>(plugin: Plugin<T>, config?: T): this
   use(plugin: Plugin<unknown>, config?: t): this {
     plugin(this, config)
     return this
@@ -84,7 +84,7 @@ export type t = App
 
 export type Plugin<T = void> = T extends void
   ? (app: App) => void
-  : (app: App, config: T) => void
+  : (app: App, config: T | undefined) => void
 
 export const make = (
   world: World.t = World.make(),

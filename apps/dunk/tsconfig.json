@@ -4,7 +4,5 @@
     "module": "esnext",
     "moduleResolution": "node"
   },
-  "references": [
-    {"path": "../../libs/silver-ecs"}
-  ]
+  "references": [{"path": "../../libs/silver-ecs"}]
 }
