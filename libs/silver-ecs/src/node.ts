@@ -192,6 +192,15 @@ export class Node {
       })
     }
   }
+
+  toJSON() {
+    return {
+      id: this.id,
+      type: this.type.vec.map(c => c.id),
+      prev: this.prev_nodes.values().map(prev_node => prev_node.id),
+      next: this.next_nodes.values().map(prev_node => prev_node.id),
+    }
+  }
 }
 
 export type t = Node

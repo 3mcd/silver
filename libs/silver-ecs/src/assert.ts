@@ -1,3 +1,5 @@
+import {fatal} from "#logger"
+
 let ERR_INTERNAL = "Unexpected"
 
 export class AssertionError extends Error {
@@ -9,6 +11,7 @@ export function assert(
   message: string = ERR_INTERNAL,
 ): asserts condition {
   if (!condition) {
+    fatal("assertion", {message})
     throw new AssertionError(message)
   }
 }
@@ -30,6 +33,7 @@ export function assert_exists<T>(
   message: string = ERR_INTERNAL,
 ): T {
   if (value == null) {
+    fatal("assert_exists", {message})
     throw new ExistsError(message)
   }
   return value

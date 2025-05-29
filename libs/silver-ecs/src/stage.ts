@@ -1,3 +1,4 @@
+import {debug} from "#logger"
 import {assert_exists} from "./assert.ts"
 import * as Entity from "./entity.ts"
 import * as Hash from "./hash.ts"
@@ -97,7 +98,7 @@ class Stage {
 
   apply() {
     let emit_entity_batch = (batch: Batch) => {
-      let {entities, prev_node, next_node} = batch
+      let {prev_node, next_node} = batch
       // Invoke the iteratee for this batch.
       batch.each(function move_entity(entity) {
         if (prev_node) {
@@ -111,6 +112,9 @@ class Stage {
       // despawned.
       if (next_node === undefined) {
         emit_despawned_entities(batch)
+        DEBUG: {
+          debug("stage", {event: "despawned", batch: batch.entities.values()})
+        }
         // Stop tracking the despawned entities' nodes.
         let clear_entity_node = (entity: Entity.t) => {
           this.targets_by_entity.delete(entity)
@@ -126,8 +130,19 @@ class Stage {
       batch.each(finalize_entity_node)
       if (prev_node === undefined) {
         emit_spawned_entities(batch)
+        DEBUG: {
+          debug("stage", {event: "spawned", batch: batch.entities.values()})
+        }
       } else {
         emit_moved_entities(batch)
+        DEBUG: {
+          debug("stage", {
+            event: "moved",
+            batch: batch.entities.values(),
+            prev_node: prev_node.id,
+            next_node: next_node.id,
+          })
+        }
       }
     }
     // Emit all batches to interested nodes.

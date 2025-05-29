@@ -2,6 +2,7 @@ import {assert_exists} from "#assert"
 import * as Buffer from "#buffer"
 import * as Component from "#component"
 import * as Entity from "#entity"
+import {debug} from "#logger"
 import * as Node from "#node"
 import {Timestep} from "#plugins/index"
 import * as Schema from "#schema"
@@ -209,6 +210,9 @@ export let decode_interest = (buffer: Buffer.t, world: World.t) => {
     let entity = buffer.read_u32() as Entity.t
     if (world.is_alive(entity)) {
       world.despawn(entity)
+      DEBUG: {
+        debug("interest", {event: "discard", entity})
+      }
     }
   }
   let segment_count = buffer.read_u8()

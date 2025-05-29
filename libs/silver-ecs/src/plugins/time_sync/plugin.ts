@@ -5,6 +5,7 @@ import * as Time from "../time/plugin.ts"
 import * as Timestep from "../time_step/plugin.ts"
 import {control_timestep} from "./systems/control_timestep.ts"
 import * as Timesync from "./time_sync.ts"
+import {info} from "#logger"
 
 export type Config = Timesync.Config
 
@@ -24,7 +25,9 @@ export let synced: Criteria = world =>
   world.get_resource(Timesync.res).is_synced()
 
 export let plugin = (app: App, config?: Partial<Config>) => {
-  let time_sync = Timesync.make({...default_config, ...config})
+  let time_sync_config = {...default_config, ...config}
+  let time_sync = Timesync.make(time_sync_config)
+  info("time_sync", {event: "use", config: time_sync_config})
   app
     .add_resource(Timesync.res, time_sync)
     .add_system(control_timestep, System.when(control), System.when(synced))

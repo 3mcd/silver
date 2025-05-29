@@ -1,3 +1,5 @@
+import {warn} from "#logger"
+
 export type Config = {
   max_drift_t: number
   max_update_delta_t: number
@@ -64,11 +66,7 @@ class Timestepper {
     let t_drift = this.measure_drift(t_target)
     if (Math.abs(t_drift) >= this.#config.max_drift_t) {
       this.reset(t_target)
-      console.log(
-        `[time_step] reset due to drift: t_drift=${t_drift.toFixed(
-          2,
-        )}s, t_target=${t_target.toFixed(2)}s`,
-      )
+      warn("time_step", {event: "reset", t_drift, t_target})
     }
     return steps
   }

@@ -1,5 +1,5 @@
+import {debug} from "#logger"
 import * as Component from "./component.ts"
-import * as Entity from "./entity.ts"
 import * as Hash from "./hash.ts"
 import * as Node from "./node.ts"
 import * as SparseMap from "./sparse_map.ts"
@@ -67,50 +67,10 @@ export class Graph {
     this.nodes_by_id.set(node.id, node)
     this.link_nodes_traverse(node)
     this.emit_nodes_traverse(node)
-    return node
-  }
-
-  dispose_node(node: Node.t): void {
-    node.prev_nodes.for_each(function dispose_node_unlink_prev(xor, prev_node) {
-      node.unlink(prev_node, xor)
-    })
-    node.next_nodes.for_each(function dispose_node_unlink_next(xor, next_node) {
-      next_node.unlink(node, xor)
-    })
-    node.prev_nodes.clear()
-    node.next_nodes.clear()
-    this.nodes_by_hash.delete(node.type.vec_hash)
-    this.nodes_by_id.delete(node.id)
-    node.listeners = []
-  }
-
-  prune(node: Node.t): void {
-    let disposed_nodes: Node.t[] = []
-    node.traverse_right(function prune_inner(next_node) {
-      next_node.traverse_left(function prune_inner_dispose(visit) {
-        visit.emit_node_disposed(next_node)
-      })
-      disposed_nodes.push(next_node)
-    })
-    for (let i = 0; i < disposed_nodes.length; i++) {
-      this.dispose_node(disposed_nodes[i])
+    DEBUG: {
+      debug("graph", {event: "insert_node", node: node.toJSON()})
     }
-  }
-
-  move_entities_left(
-    node: Node.t,
-    component: Component.t,
-    iteratee: (entity: Entity.t, node: Node.t) => void,
-  ): void {
-    node.traverse_right(next_node => {
-      let prev_type = next_node.type.without_component(component)
-      let prev_node = this.find_or_create_node_by_type(prev_type)
-      next_node.entities.for_each(entity => {
-        next_node.remove_entity(entity)
-        prev_node.insert_entity(entity)
-        iteratee(entity, prev_node)
-      })
-    })
+    return node
   }
 
   find_or_create_node_by_type(type: Type.t): Node.t {

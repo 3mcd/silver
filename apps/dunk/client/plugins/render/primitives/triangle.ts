@@ -7,7 +7,7 @@ type Uniforms = {
   u_offset: vec2
 }
 
-export let triangle = regl<Uniforms>({
+export let draw_triangle = regl<Uniforms>({
   frag,
   vert,
   attributes: {

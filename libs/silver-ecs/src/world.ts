@@ -1,3 +1,4 @@
+import {info} from "#logger"
 import {assert, assert_exists} from "./assert.ts"
 import * as Component from "./component.ts"
 import * as Effect from "./effect.ts"
@@ -259,6 +260,7 @@ export class World {
 
   identify(id: number) {
     this.#id = id
+    info("world", {event: "identify", id})
   }
 
   has_resource<U>(res: Component.Ref<U>): boolean {
@@ -470,11 +472,6 @@ export class World {
     let node = this.graph.find_or_create_node_by_type(type)
     node.add_listener(effect, true)
     effect.world = this
-  }
-
-  debug_query(query: Selector.t) {
-    let resolved_query = this.#resolve_query(query)
-    return resolved_query.for_each.toString()
   }
 
   client_id() {

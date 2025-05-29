@@ -71,13 +71,6 @@ export class App {
   world() {
     return this.#world
   }
-
-  /**
-   * @internal
-   */
-  print_schedule() {
-    return this.#schedule.systems.map(system => system.name).join("\n")
-  }
 }
 
 export type t = App

@@ -11,7 +11,7 @@ type Attributes = {
   a_position: number[]
 }
 
-export let plane = regl<Uniforms, Attributes, Uniforms>({
+export let draw_plane = regl<Uniforms, Attributes, Uniforms>({
   frag,
   vert,
   attributes: {

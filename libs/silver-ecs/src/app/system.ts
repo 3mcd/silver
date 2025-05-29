@@ -45,19 +45,19 @@ export let make = (fn: Fn) => {
 export let is_system = (system: Fn | System): system is System =>
   system instanceof System
 
-let _after = (a: Fn | System, b: Fn | Range.t): System => {
-  if (!(a instanceof System)) {
-    a = make(a)
+export let after = (a: Fn | Range.t) => (b: System) => {
+  if (!(b instanceof System)) {
+    b = make(b)
   }
-  if (Range.is(b)) {
-    a.after.add(b.hi())
+  if (Range.is(a)) {
+    b.after.add(a.hi())
   } else {
-    a.after.add(b!)
+    b.after.add(a!)
   }
-  return a
+  return b
 }
 
-let _before = (a: Fn | System, b: Fn | Range.t): System => {
+export let before = (b: Fn | Range.t) => (a: System) => {
   if (!(a instanceof System)) {
     a = make(a)
   }
@@ -69,20 +69,16 @@ let _before = (a: Fn | System, b: Fn | Range.t): System => {
   return a
 }
 
-let _when = (a: Fn | System, b: Criteria | Range.t): System => {
-  if (!(a instanceof System)) {
-    a = make(a)
+export let when = (a: Criteria | Range.t) => (b: System) => {
+  if (!(b instanceof System)) {
+    b = make(b)
   }
-  if (Range.is(b)) {
-    a.after.add(b.lo())
-    a.before.add(b.hi())
-    a = apply_constraints(a, b.constraints())
+  if (Range.is(a)) {
+    b.after.add(a.lo())
+    b.before.add(a.hi())
+    b = apply_constraints(b, a.constraints())
   } else {
-    a.when.push(b)
+    b.when.push(a)
   }
-  return a
+  return b
 }
-
-export let after = (a: Fn | Range.t) => (b: System) => _after(b, a)
-export let before = (b: Fn | Range.t) => (a: System) => _before(a, b)
-export let when = (a: Criteria | Range.t) => (b: System) => _when(b, a)

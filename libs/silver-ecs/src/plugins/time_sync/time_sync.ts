@@ -1,4 +1,5 @@
 import {ref} from "#component"
+import {debug, info, trace} from "#logger"
 
 export type Sample = [t0: number, t1: number]
 
@@ -34,20 +35,25 @@ class TimeSync {
 
   add_sample(sample: Sample, t_current: number) {
     let offset = sample[1] - (sample[0] + t_current) / 2
+    DEBUG: {
+      debug("time_sync", {
+        event: "add_sample",
+        sample,
+        offset,
+      })
+    }
     if (this.#samples.unshift(offset) === this.#min_samples) {
-      let lo = this.#samples_to_discard_per_extreme
-      let hi = this.#min_samples - lo
-      let sorted = this.#samples.slice().sort()
-      let mean = 0
-      for (let i = lo; i < hi; i++) {
-        mean += sorted[i]
+      let sample_lo = this.#samples_to_discard_per_extreme
+      let sample_hi = this.#min_samples - sample_lo
+      let samples = this.#samples.slice().sort()
+      let mean_offset = 0
+      for (let i = sample_lo; i < sample_hi; i++) {
+        mean_offset += samples[i]
       }
-      mean /= hi - lo
-      if (Math.abs(mean - this.#offset) > this.#config.max_offset) {
-        console.log(
-          `[time_sync] computed new offset: offset=${mean.toFixed(2)}s`,
-        )
-        this.#offset = mean
+      mean_offset /= sample_hi - sample_lo
+      if (Math.abs(mean_offset - this.#offset) > this.#config.max_offset) {
+        info("time_sync", {event: "estimate", mean_offset})
+        this.#offset = mean_offset
       }
       this.#samples.pop()
     }

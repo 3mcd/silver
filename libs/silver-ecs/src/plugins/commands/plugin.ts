@@ -5,6 +5,7 @@ import * as System from "#app/system"
 import * as Timestep from "../time_step/plugin.ts"
 import * as StepBuffer from "#step_buffer"
 import * as Entity from "#entity"
+import {info} from "#logger"
 
 export class Command<U = unknown> {
   readonly origin: number | undefined
@@ -106,6 +107,7 @@ export let write = Range.make(
 )
 
 export let plugin: Plugin = app => {
+  info("commands", {event: "use"})
   app
     .add_resource(res, make())
     .add_system(drain_commands, System.when(Timestep.logical))

@@ -19,7 +19,7 @@ export class WebTransportRemote implements Remote {
   async #listen() {
     try {
       while (true) {
-        const {value, done} = await this.#reader.read()
+        let {value, done} = await this.#reader.read()
         if (done) {
           break
         }

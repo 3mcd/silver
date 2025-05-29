@@ -5,6 +5,7 @@ import * as System from "#app/system"
 import {ref} from "#component"
 import * as Effect from "#effect"
 import * as Entity from "#entity"
+import {info} from "#logger"
 import * as Protocol from "#net/protocol"
 import {Remote} from "#net/remote"
 import * as Timestep from "#plugins/time_step/plugin"
@@ -27,17 +28,20 @@ let identify_client = (world: World.t, entity: Entity.t) => {
   world.add(entity, ClientId, client_id)
   Protocol.write_identity(buffer, client_id)
   client_remote.send(buffer.end())
+  info("server", {event: "identify_client", client_id})
 }
 
 let release_client = (world: World.t, entity: Entity.t) => {
   let server = world.get_resource(res)
   let client_id = world.get(entity, ClientId)
   server.free_client_id(client_id)
+  info("server", {event: "release_client", client_id})
 }
 
 let identify_clients = Effect.make([Remote], identify_client, release_client)
 
 export let plugin = (app: App) => {
+  info("server", {event: "use"})
   app.world().identify(1)
   app
     .add_resource(res, Server.make())

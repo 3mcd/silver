@@ -1,6 +1,7 @@
 import {Plugin} from "#app/index"
 import * as Range from "#app/range"
 import * as System from "#app/system"
+import {debug, info} from "#logger"
 import {Timesync} from "#plugins/index"
 import * as Client from "./client.ts"
 import {apply_interest_snapshots} from "./systems/apply_interest_snapshots.ts"
@@ -19,14 +20,15 @@ let default_config: Config = {
 }
 
 export let plugin: Plugin<Config> = (app, config) => {
-  config = {...default_config, ...config}
-
+  let client_config = {...default_config, ...config}
+  let client = Client.make()
+  info("client", {event: "use", config: client_config})
   app
-    .add_resource(Client.res, Client.make())
+    .add_resource(Client.res, client)
     .add_system(recv_messages, System.when(recv))
     .add_system(send_messages, System.when(send))
 
-  if (config?.apply_interest_snapshots) {
+  if (client_config.apply_interest_snapshots) {
     app.add_system(
       apply_interest_snapshots,
       System.when(recv),

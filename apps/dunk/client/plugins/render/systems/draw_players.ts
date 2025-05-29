@@ -2,7 +2,7 @@ import {App, Selector} from "silver-ecs"
 import {ClientId} from "silver-ecs/net"
 import {Timestep} from "silver-ecs/plugins"
 import {camera_res} from "../resources"
-import {triangle} from "../primitives/triangle"
+import {draw_triangle} from "../primitives/triangle"
 import {Physics, Player} from "../../../../plugins"
 
 let players = Selector.make(Player.IsPlayer)
@@ -30,7 +30,7 @@ let draw_player = (
   }
   player_props.u_offset[0] = position.x
   player_props.u_offset[1] = position.y
-  triangle(player_props)
+  draw_triangle(player_props)
 }
 
 export let draw_players: App.System = world => {
@@ -39,7 +39,8 @@ export let draw_players: App.System = world => {
   let local_client_id = world.client_id()
   camera.bind(() => {
     world.for_each(players, (player_position, player_client_id) => {
-      draw_player(player_position, step, player_client_id === local_client_id)
+      let is_local = player_client_id === local_client_id
+      draw_player(player_position, step, is_local)
     })
   })
 }

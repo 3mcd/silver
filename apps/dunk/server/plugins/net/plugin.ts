@@ -26,15 +26,14 @@ let amplify_players: App.System = world => {
           return
         }
         let d = distance(player_position, body_position)
-        player_interest.amplify(
-          body_entity,
+        let a =
           d >= 4
             ? // hide bodies further than 4m away
               0
             : // amplify entities by a factor inversely proportional to their
               // distance from the player
-              1 / d,
-        )
+              1 / d
+        player_interest.amplify(body_entity, a)
       })
     },
   )

@@ -7,6 +7,7 @@ import * as Timestepper from "./stepper.ts"
 import {advance_timestep} from "./systems/advance_timestep.ts"
 import {increment_step} from "./systems/increment_step.ts"
 import * as Timestep from "./time_step.ts"
+import {info} from "#logger"
 
 export type Config = Timestep.Config
 
@@ -30,6 +31,7 @@ export let plugin = (app: App, config?: Partial<Config>) => {
   let stepper_config = {...default_config, ...config}
   let stepper = Timestepper.make(stepper_config)
   let timestep = Timestep.make(stepper)
+  info("time_step", {event: "use", config: stepper_config})
   app
     .add_resource(Timestep.res, timestep)
     .add_system(advance_timestep, System.when(advance), System.before(logical))

@@ -1,3 +1,4 @@
+import {info} from "#logger"
 import * as World from "../world.ts"
 import * as Range from "./range.ts"
 import * as System from "./system.ts"
@@ -47,6 +48,12 @@ export let run = (schedule: Schedule, world: World.t) => {
       .filter(s => !Range.is_anchor(s.fn))
       .filter(s => schedule.explicit.has(s.fn))
     schedule.stale = false
+    let system_names = schedule.systems
+      .map(system => system.name)
+      .filter(Boolean)
+    if (system_names.length > 0) {
+      info("schedule", {event: "build", system_names})
+    }
   }
   // try to execute each system once
   let total_runs_remaining = 0

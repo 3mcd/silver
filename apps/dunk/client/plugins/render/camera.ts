@@ -13,9 +13,12 @@ let clamp = (x: number, lo: number, hi: number) => {
   return Math.min(Math.max(x, lo), hi)
 }
 
-type CameraState = {
+type Uniforms = {
   u_camera_view: mat4
   u_camera_projection: mat4
+}
+
+type CameraState = {
   center: vec3
   theta: number
   phi: number
@@ -39,8 +42,9 @@ export class Camera {
   #dragging
   #d_theta
   #d_phi
-  #d
+  #deltas
   #offset
+  #uniforms
 
   constructor(
     regl: Regl,
@@ -51,9 +55,11 @@ export class Camera {
     phi: number,
     up: vec3,
   ) {
-    this.#state = {
+    this.#uniforms = {
       u_camera_view: mat4.identity(new Float32Array(16)),
       u_camera_projection: mat4.identity(new Float32Array(16)),
+    }
+    this.#state = {
       center: new Float32Array(center),
       theta: theta,
       phi: phi,
@@ -66,29 +72,28 @@ export class Camera {
     this.#dragging = Drag.NONE
     this.#d_theta = 0
     this.#d_phi = 0
-    this.#d = vec3.create()
+    this.#deltas = vec3.create()
     this.#offset = vec3.create()
-    let uniform_keys = Object.keys(this.#state) as (keyof CameraState)[]
-    this.#inject = regl<CameraState, {}, {}, CameraState>({
+    let uniform_keys = Object.keys(this.#uniforms) as (keyof Uniforms)[]
+    this.#inject = regl<Uniforms, {}, {}, Uniforms>({
       context: {
-        ...this.#state,
-        u_camera_projection: context => {
-          return mat4.perspective(
-            this.#state.u_camera_projection,
+        ...this.#uniforms,
+        u_camera_projection: context =>
+          mat4.perspective(
+            this.#uniforms.u_camera_projection,
             Math.PI / 4.0,
             context.viewportWidth / context.viewportHeight,
             0.01,
             1000.0,
-          )
-        },
+          ),
       },
-      uniforms: uniform_keys.reduce((uniforms, name) => {
-        uniforms[name] = regl.context<
-          DefaultContext & CameraState,
-          keyof CameraState
-        >(name)
-        return uniforms
-      }, {} as Record<keyof CameraState, REGL.DynamicVariable<number>>),
+      uniforms: uniform_keys.reduce(
+        (uniforms, name) => ({
+          ...uniforms,
+          [name]: regl.context<DefaultContext & Uniforms, keyof Uniforms>(name),
+        }),
+        {} as Record<keyof Uniforms, REGL.DynamicVariable<number>>,
+      ),
     })
   }
 
@@ -122,10 +127,10 @@ export class Camera {
       this.#d_theta += dx * w
       this.#d_phi += dy * w
     } else if (this.#dragging === Drag.DOLLY) {
-      this.#d[2] -= dy * w
+      this.#deltas[2] -= dy * w
     } else if (this.#dragging === Drag.PAN) {
-      this.#d[0] = dx * 20 * w
-      this.#d[1] = dy * 20 * w
+      this.#deltas[0] = dx * 20 * w
+      this.#deltas[1] = dy * 20 * w
     }
   }
 
@@ -136,7 +141,7 @@ export class Camera {
   }
 
   #on_wheel = (event: WheelEvent) => {
-    this.#d[2] += event.deltaY / window.innerHeight
+    this.#deltas[2] += event.deltaY / window.innerHeight
   }
 
   #on_contextmenu = (event: MouseEvent) => {
@@ -167,7 +172,7 @@ export class Camera {
       Math.PI / 2.0,
     )
     this.#state.distance = clamp(
-      this.#state.distance + this.#d[2],
+      this.#state.distance + this.#deltas[2],
       this.#min_distance,
       this.#max_distance,
     )
@@ -183,28 +188,28 @@ export class Camera {
     this.#state.eye[1] = r * sin_phi
     this.#state.eye[2] = r * cos_theta * cos_phi
     mat4.lookAt(
-      this.#state.u_camera_view,
+      this.#uniforms.u_camera_view,
       this.#state.eye,
       this.#state.center,
       this.#state.up,
     )
 
     // translate
-    let dx = this.#d[0]
-    let dy = this.#d[1]
-    let dz = this.#d[2]
+    let dx = this.#deltas[0]
+    let dy = this.#deltas[1]
+    let dz = this.#deltas[2]
     this.#offset[0] += dx * cos_theta - dy * sin_theta * sin_phi
     this.#offset[1] += -dy * cos_phi
     this.#offset[2] += dx * sin_theta + dy * cos_theta * sin_phi
     mat4.translate(
-      this.#state.u_camera_view,
-      this.#state.u_camera_view,
+      this.#uniforms.u_camera_view,
+      this.#uniforms.u_camera_view,
       this.#offset,
     )
 
-    this.#d[0] = damp(dx)
-    this.#d[1] = damp(dy)
-    this.#d[2] = damp(dz)
+    this.#deltas[0] = damp(dx)
+    this.#deltas[1] = damp(dy)
+    this.#deltas[2] = damp(dz)
     this.#d_theta = damp(this.#d_theta)
     this.#d_phi = damp(this.#d_phi)
   }
