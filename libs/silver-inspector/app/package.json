@@ -1,4 +1,0 @@
-{
-  "main": "dist/silver-inspector-app.cjs.js",
-  "module": "dist/silver-inspector-app.esm.js"
-}

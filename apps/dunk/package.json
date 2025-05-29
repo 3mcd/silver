@@ -1,0 +1,28 @@
+{
+  "name": "dunk",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "sh ./open_browser.sh & pnpm dev:server & pnpm dev:client",
+    "dev:server": "tsx server/main.ts",
+    "dev:client": "tsx build/watch.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fails-components/webtransport": "^1.1.4",
+    "@fails-components/webtransport-transport-http3-quiche": "^1.1.4",
+    "gl-matrix": "^3.4.3",
+    "regl": "^2.1.1",
+    "silver-ecs": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.1",
+    "esbuild-plugin-glsl": "^1.4.0",
+    "tsx": "^4.19.2"
+  }
+}

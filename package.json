@@ -1,40 +1,41 @@
 {
   "name": "silver",
+  "type": "module",
   "private": true,
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "bench": "PERF_UNIT=ms pnpm --filter=silver-ecs bench",
     "build": "preconstruct build && pnpm -r build",
-    "dev": "pnpm --filter=three start",
+    "dev": "pnpm --filter=dunk dev",
     "postinstall": "preconstruct dev",
     "reset": "pnpm reset:bench & pnpm reset:dist & pnpm i",
     "reset:bench": "find ./libs -type f -name '*.bench-results' -delete",
     "reset:dist": "find ./libs -type d -name 'dist' -prune -exec rm -rf {} \\;",
     "release": "pnpm build && pnpm publish -r",
-    "test": "pnpm -r --parallel test"
+    "test": "pnpm -r --parallel test",
+    "test:coverage": "pnpm -r --parallel --filter \"./libs/**\" exec vitest run --coverage"
   },
   "keywords": [],
   "author": "Eric McDaniel <eric.g.mcdaniel@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@babel/preset-env": "^7.23.3",
-    "@babel/preset-react": "^7.23.3",
-    "@babel/preset-typescript": "^7.23.3",
-    "@preconstruct/cli": "^2.8.1",
-    "@types/node": "^20.10.6",
-    "babel-plugin-transform-import-ignore": "^1.1.0",
-    "esbuild": "^0.18.17",
-    "typescript": "^5.3.0",
-    "vitest": "^0.30.1"
-  },
-  "devDependencies": {
-    "tsx": "^3.12.7"
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.4",
+    "@babel/preset-typescript": "^7.24.7",
+    "@preconstruct/cli": "^2.8.12",
+    "@types/node": "22.14.0",
+    "@vitest/coverage-v8": "^2.0.5",
+    "esbuild": "^0.23.1",
+    "typescript": "^5.8.3",
+    "vitest": "^2.0.5"
   },
   "preconstruct": {
     "packages": [
       "libs/*"
     ]
+  },
+  "devDependencies": {
+    "babel-plugin-tsconfig-paths": "^1.0.3"
   }
 }

@@ -1,4 +1,0 @@
-{
-  "main": "dist/silver-bench-cli.cjs.js",
-  "module": "dist/silver-bench-cli.esm.js"
-}
